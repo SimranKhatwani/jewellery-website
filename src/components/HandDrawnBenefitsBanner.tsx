@@ -10,7 +10,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
   return (
     <section 
       aria-label="Aurelle Craft and Service Principles" 
-      className="w-full bg-[#FFFFFF] border-y border-[#9A8E78]/15 py-12 md:py-16 px-6"
+      className="w-full bg-[#F7F1E9] border-y border-[#D7C5AF]/40 py-12 md:py-16 px-6"
     >
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-6 items-start">
@@ -20,7 +20,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105">
               <svg
                 viewBox="0 0 100 100"
-                className="w-full h-full text-[#6C6658]"
+                className="w-full h-full text-[#593D30]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.2"
@@ -42,10 +42,10 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
                 <path d="M 52 52 L 68 44 L 71 52 L 55 60 Z" strokeWidth="0.9" opacity="0.8" />
               </svg>
             </div>
-            <p className="text-sm md:text-base font-medium text-[#6C6658] tracking-tight">
+            <p className="text-sm md:text-base font-medium text-[#593D30] tracking-tight">
               Shipping Made Simple
             </p>
-            <span className="text-xs text-[#9A8E78] mt-1 tracking-wide">
+            <span className="text-xs text-[#8E8172] mt-1 tracking-wide">
               Secure express dispatch
             </span>
           </div>
@@ -55,7 +55,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105">
               <svg
                 viewBox="0 0 100 100"
-                className="w-full h-full text-[#6C6658]"
+                className="w-full h-full text-[#593D30]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.2"
@@ -69,13 +69,13 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
                 <path d="M 32 46 Q 50 38 68 46" strokeWidth="1.4" />
                 <path d="M 27 54 C 28 62, 32 68, 38 71" strokeWidth="0.8" opacity="0.7" />
                 <path d="M 31 56 C 32 63, 35 67, 40 70" strokeWidth="0.8" opacity="0.7" />
-                <text x="47" y="66" fontSize="5" fontFamily="sans-serif" fill="#6C6658" stroke="none" opacity="0.75" letterSpacing="0.5">925</text>
+                <text x="47" y="66" fontSize="5" fontFamily="sans-serif" fill="#593D30" stroke="none" opacity="0.75" letterSpacing="0.5">925</text>
               </svg>
             </div>
-            <p className="text-sm md:text-base font-medium text-[#6C6658] tracking-tight">
+            <p className="text-sm md:text-base font-medium text-[#593D30] tracking-tight">
               Silver, Beautifully Detailed
             </p>
-            <span className="text-xs text-[#9A8E78] mt-1 tracking-wide">
+            <span className="text-xs text-[#8E8172] mt-1 tracking-wide">
               Solid 925 hallmarks
             </span>
           </div>
@@ -85,7 +85,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105">
               <svg
                 viewBox="0 0 100 100"
-                className="w-full h-full text-[#6C6658]"
+                className="w-full h-full text-[#593D30]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.2"
@@ -105,10 +105,10 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
                 <path d="M 58 58 L 68 68" strokeWidth="1.8" />
               </svg>
             </div>
-            <p className="text-sm md:text-base font-medium text-[#6C6658] tracking-tight">
+            <p className="text-sm md:text-base font-medium text-[#593D30] tracking-tight">
               Thoughtfully Crafted
             </p>
-            <span className="text-xs text-[#9A8E78] mt-1 tracking-wide">
+            <span className="text-xs text-[#8E8172] mt-1 tracking-wide">
               Artisanal hand finishing
             </span>
           </div>
@@ -118,7 +118,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105">
               <svg
                 viewBox="0 0 100 100"
-                className="w-full h-full text-[#6C6658]"
+                className="w-full h-full text-[#593D30]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.2"
@@ -137,10 +137,10 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
                 <path d="M 28 64 L 48 74" strokeWidth="0.75" opacity="0.6" />
               </svg>
             </div>
-            <p className="text-sm md:text-base font-medium text-[#6C6658] tracking-tight">
+            <p className="text-sm md:text-base font-medium text-[#593D30] tracking-tight">
               Ready for Gifting
             </p>
-            <span className="text-xs text-[#9A8E78] mt-1 tracking-wide">
+            <span className="text-xs text-[#8E8172] mt-1 tracking-wide">
               Signature archival box
             </span>
           </div>
@@ -150,7 +150,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105">
               <svg
                 viewBox="0 0 100 100"
-                className="w-full h-full text-[#6C6658]"
+                className="w-full h-full text-[#593D30]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.2"
@@ -160,19 +160,19 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
                 <path d="M 38 20 C 38 42, 42 60, 48 72 C 54 84, 66 88, 76 88" strokeWidth="1.4" strokeDasharray="3 1" opacity="0.5" />
                 <path d="M 40 48 Q 58 64 78 52" strokeWidth="1.6" />
                 <path d="M 42 54 Q 59 70 76 59" strokeWidth="1.0" />
-                <circle cx="48" cy="59" r="1.5" fill="#6C6658" />
-                <circle cx="56" cy="64" r="1.5" fill="#6C6658" />
-                <circle cx="65" cy="63" r="1.5" fill="#6C6658" />
-                <circle cx="72" cy="60" r="1.5" fill="#6C6658" />
-                <path d="M 59 64 C 58 67, 57 71, 59 73 C 61 73, 62 70, 60 64" fill="#6C6658" />
+                <circle cx="48" cy="59" r="1.5" fill="#593D30" />
+                <circle cx="56" cy="64" r="1.5" fill="#593D30" />
+                <circle cx="65" cy="63" r="1.5" fill="#593D30" />
+                <circle cx="72" cy="60" r="1.5" fill="#593D30" />
+                <path d="M 59 64 C 58 67, 57 71, 59 73 C 61 73, 62 70, 60 64" fill="#593D30" />
                 <path d="M 59 44 L 59 40" strokeWidth="1" />
                 <path d="M 67 46 L 70 43" strokeWidth="1" />
               </svg>
             </div>
-            <p className="text-sm md:text-base font-medium text-[#6C6658] tracking-tight">
+            <p className="text-sm md:text-base font-medium text-[#593D30] tracking-tight">
               Made for Everyday Styling
             </p>
-            <span className="text-xs text-[#9A8E78] mt-1 tracking-wide">
+            <span className="text-xs text-[#8E8172] mt-1 tracking-wide">
               Featherlight & durable
             </span>
           </div>

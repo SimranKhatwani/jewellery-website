@@ -1,28 +1,53 @@
 @import "tailwindcss";
 
 @theme {
-  --color-warm-taupe: #9A8E78;
-  --color-muted-mocha: #93826E;
+  --color-terracotta: #A85F49;
+  --color-ivory: #F7F1E9;
+  --color-chocolate: #593D30;
+  --color-sand: #D7C5AF;
+  --color-taupe: #8E8172;
   --color-pure-white: #FFFFFF;
-  --color-soft-stone: #E4E1DB;
-  --color-muted-charcoal: #6C6658;
+
+  --color-burnt-terracotta: #A85F49;
+  --color-warm-ivory: #F7F1E9;
+  --color-deep-chocolate: #593D30;
+  --color-soft-sand: #D7C5AF;
+  --color-muted-taupe: #8E8172;
+
+  --color-warm-taupe: #8E8172;
+  --color-muted-mocha: #A85F49;
+  --color-soft-stone: #F7F1E9;
+  --color-muted-charcoal: #593D30;
 }
 
 @layer base {
   :root {
-    --color-warm-taupe: #9A8E78;
-    --color-muted-mocha: #93826E;
+    --color-terracotta: #A85F49;
+    --color-ivory: #F7F1E9;
+    --color-chocolate: #593D30;
+    --color-sand: #D7C5AF;
+    --color-taupe: #8E8172;
+    --color-white: #FFFFFF;
+
+    --color-burnt-terracotta: #A85F49;
+    --color-warm-ivory: #F7F1E9;
+    --color-deep-chocolate: #593D30;
+    --color-soft-sand: #D7C5AF;
+    --color-muted-taupe: #8E8172;
     --color-pure-white: #FFFFFF;
-    --color-soft-stone: #E4E1DB;
-    --color-muted-charcoal: #6C6658;
-    --color-text-charcoal: #6C6658;
-    --color-text-muted: #9A8E78;
+
+    --color-warm-taupe: #8E8172;
+    --color-muted-mocha: #A85F49;
+    --color-soft-stone: #F7F1E9;
+    --color-muted-charcoal: #593D30;
+    --color-text-charcoal: #593D30;
+    --color-text-muted: #8E8172;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: #FFFFFF;
-    color: #6C6658;
+    color: #593D30;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -32,20 +57,20 @@
   }
 }
 
-/* Custom scrollbar matching Warm Taupe and Muted Mocha */
+/* Custom scrollbar matching Soft Sand and Burnt Terracotta */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FFFFFF;
+  background: #F7F1E9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #9A8E78;
+  background: #D7C5AF;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #93826E;
+  background: #A85F49;
 }
 
 @keyframes fadeIn {

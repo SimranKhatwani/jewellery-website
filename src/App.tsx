@@ -111,7 +111,7 @@ export default function App() {
   const anklets = PRODUCTS.filter((p) => p.category === 'anklets');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#6C6658] selection:bg-[#93826E] selection:text-[#FFFFFF]">
+    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF]">
       {/* 1 & 2. Announcement Strip & Minimal Navigation Header */}
       <Header
         wishlistCount={wishlistIds.length}

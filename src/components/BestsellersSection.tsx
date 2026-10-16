@@ -19,16 +19,16 @@ export const BestsellersSection: React.FC<BestsellersSectionProps> = ({
 
   return (
     <section id="bestsellers" aria-label="Aurelle Bestsellers" className="py-20 md:py-28 px-6 max-w-7xl mx-auto bg-[#FFFFFF]">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 border-b border-[#9A8E78]/20 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 border-b border-[#D7C5AF]/30 pb-6">
         <div>
-          <span className="text-xs uppercase tracking-[0.25em] text-[#9A8E78] font-medium block mb-2">
+          <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-2">
             The Signatures
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#6C6658] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#593D30] tracking-tight">
             Curated Bestsellers
           </h2>
         </div>
-        <p className="text-xs sm:text-sm text-[#6C6658]/75 max-w-md font-light self-start md:self-end leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#8E8172] max-w-md font-light self-start md:self-end leading-relaxed">
           The pieces most cherished by collectors: sculpted molten bands and fluid curb chains celebrated for tactile weight and timeless design.
         </p>
       </div>

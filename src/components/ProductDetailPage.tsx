@@ -89,25 +89,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const emailUrl = `mailto:?subject=${encodeURIComponent(`Aurelle Studio Inquiry: ${product.name} (${product.sku})`)}&body=${encodeURIComponent(inquiryMessage)}`;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#6C6658] py-8 md:py-12 px-6">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#593D30] py-8 md:py-12 px-6">
       <div className="max-w-7xl mx-auto">
         
         {/* Navigation Breadcrumb / Back Bar */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#9A8E78]/15">
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#D7C5AF]/30">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#6C6658] hover:text-[#93826E] transition-colors group"
+            className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#593D30] hover:text-[#A85F49] transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <span>Return to Catalogue</span>
           </button>
 
-          <div className="flex items-center gap-2 text-xs text-[#9A8E78] tracking-wider uppercase">
+          <div className="flex items-center gap-2 text-xs text-[#8E8172] tracking-wider uppercase">
             <span>Aurelle</span>
             <span>/</span>
             <span>{product.category === 'rings' ? 'Silver Rings' : 'Silver Anklets'}</span>
             <span>/</span>
-            <span className="text-[#6C6658] font-medium">{product.name}</span>
+            <span className="text-[#593D30] font-medium">{product.name}</span>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             
             {/* Primary Large Image with Magnifier Zoom */}
             <div
-              className="relative aspect-square sm:aspect-4/3 lg:aspect-square w-full bg-[#E4E1DB]/40 border border-[#9A8E78]/15 overflow-hidden rounded-xs cursor-crosshair group shadow-xs"
+              className="relative aspect-square sm:aspect-4/3 lg:aspect-square w-full bg-[#F7F1E9] border border-[#D7C5AF]/40 overflow-hidden rounded-xs cursor-crosshair group shadow-xs"
               onMouseEnter={() => setIsZoomed(true)}
               onMouseLeave={() => setIsZoomed(false)}
               onMouseMove={handleMouseMove}
@@ -140,7 +140,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 }
               />
 
-              {/* Prev / Next Controls: Muted Mocha #93826E hover */}
+              {/* Prev / Next Controls: Burnt Terracotta hover */}
               {images.length > 1 && (
                 <>
                   <button
@@ -148,7 +148,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       e.stopPropagation();
                       handlePrevImage();
                     }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#FFFFFF]/90 text-[#6C6658] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#93826E] hover:text-[#FFFFFF] shadow-xs"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#FFFFFF]/90 text-[#593D30] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#A85F49] hover:text-[#FFFFFF] shadow-xs"
                     aria-label="Previous photograph"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -158,7 +158,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       e.stopPropagation();
                       handleNextImage();
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#FFFFFF]/90 text-[#6C6658] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#93826E] hover:text-[#FFFFFF] shadow-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#FFFFFF]/90 text-[#593D30] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#A85F49] hover:text-[#FFFFFF] shadow-xs"
                     aria-label="Next photograph"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -172,13 +172,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   e.stopPropagation();
                   setIsLightboxOpen(true);
                 }}
-                className="absolute bottom-3 right-3 p-2 rounded-full bg-[#FFFFFF]/90 text-[#6C6658] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#93826E] hover:text-[#FFFFFF] shadow-xs"
+                className="absolute bottom-3 right-3 p-2 rounded-full bg-[#FFFFFF]/90 text-[#593D30] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#A85F49] hover:text-[#FFFFFF] shadow-xs"
                 title="Open fullscreen view"
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
 
-              <div className="absolute bottom-3 left-3 pointer-events-none opacity-70 group-hover:opacity-0 transition-opacity text-[10px] uppercase tracking-wider text-[#6C6658] bg-[#FFFFFF]/90 px-2 py-0.5 rounded-xs">
+              <div className="absolute bottom-3 left-3 pointer-events-none opacity-70 group-hover:opacity-0 transition-opacity text-[10px] uppercase tracking-wider text-[#593D30] bg-[#FFFFFF]/90 px-2 py-0.5 rounded-xs">
                 Hover to magnify details
               </div>
             </div>
@@ -192,8 +192,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     onClick={() => setActiveImageIndex(idx)}
                     className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-xs overflow-hidden border transition-all shrink-0 ${
                       activeImageIndex === idx
-                        ? 'border-[#93826E] ring-2 ring-[#93826E]/40'
-                        : 'border-[#9A8E78]/25 hover:border-[#93826E] opacity-75 hover:opacity-100'
+                        ? 'border-[#A85F49] ring-2 ring-[#A85F49]/40'
+                        : 'border-[#D7C5AF]/60 hover:border-[#A85F49] opacity-75 hover:opacity-100'
                     }`}
                   >
                     <img
@@ -209,11 +209,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Editorial Quote */}
             {product.editorialQuote && (
-              <div className="p-6 bg-[#FFFFFF] border border-[#9A8E78]/20 rounded-xs shadow-xs">
-                <span className="text-[11px] uppercase tracking-[0.25em] text-[#9A8E78] block mb-2 font-medium">
+              <div className="p-6 bg-[#F7F1E9] border border-[#D7C5AF]/40 rounded-xs shadow-xs">
+                <span className="text-[11px] uppercase tracking-[0.25em] text-[#8E8172] block mb-2 font-medium">
                   Design Note
                 </span>
-                <p className="font-serif-display text-lg italic text-[#6C6658] leading-relaxed">
+                <p className="font-serif-display text-lg italic text-[#593D30] leading-relaxed">
                   “{product.editorialQuote}”
                 </p>
               </div>
@@ -227,21 +227,21 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             {/* Header info */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-[0.25em] text-[#9A8E78] font-medium">
+                <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium">
                   {product.category === 'rings' ? 'Silver Ring' : 'Silver Anklet'} · Solid 925
                 </span>
-                <span className="text-[11px] font-mono text-[#9A8E78]">
+                <span className="text-[11px] font-mono text-[#8E8172]">
                   SKU: {product.sku}
                 </span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-serif-display text-[#6C6658] font-light mt-2 tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-serif-display text-[#593D30] font-light mt-2 tracking-tight">
                 {product.name}
               </h1>
 
               {/* Price & availability */}
               <div className="flex items-baseline gap-4 mt-3">
-                <span className="text-2xl font-mono tabular-nums font-medium text-[#6C6658]">
+                <span className="text-2xl font-mono tabular-nums font-medium text-[#593D30]">
                   ${product.priceUSD} USD
                 </span>
                 <span className="text-xs text-emerald-800 font-medium flex items-center gap-1">
@@ -249,17 +249,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </span>
               </div>
 
-              <p className="text-sm text-[#6C6658]/80 mt-4 leading-relaxed font-light">
+              <p className="text-sm text-[#8E8172] mt-4 leading-relaxed font-light">
                 {product.description}
               </p>
             </div>
 
-            {/* Options Selector A: Surface Finish (Muted Mocha #93826E active) */}
+            {/* Options Selector A: Surface Finish (Burnt Terracotta #A85F49 active) */}
             {product.finishes.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-[#9A8E78]/15">
+              <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/30">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="uppercase tracking-wider text-[#9A8E78] font-medium">Surface Finish</span>
-                  <span className="text-[#6C6658] font-medium">{selectedFinish}</span>
+                  <span className="uppercase tracking-wider text-[#8E8172] font-medium">Surface Finish</span>
+                  <span className="text-[#593D30] font-medium">{selectedFinish}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {product.finishes.map((finish) => (
@@ -268,8 +268,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       onClick={() => setSelectedFinish(finish)}
                       className={`px-3 py-2 text-xs rounded-xs border transition-all ${
                         selectedFinish === finish
-                          ? 'border-[#93826E] bg-[#93826E] text-[#FFFFFF] font-medium shadow-xs'
-                          : 'border-[#9A8E78]/25 bg-[#FFFFFF] text-[#6C6658] hover:border-[#93826E]'
+                          ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF] font-medium shadow-xs'
+                          : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49]'
                       }`}
                     >
                       {finish}
@@ -280,14 +280,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             )}
 
             {/* Options Selector B: Size or Length */}
-            <div className="space-y-2 pt-2 border-t border-[#9A8E78]/15">
+            <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/30">
               <div className="flex justify-between items-center text-xs">
-                <span className="uppercase tracking-wider text-[#9A8E78] font-medium">
+                <span className="uppercase tracking-wider text-[#8E8172] font-medium">
                   {product.options.name}
                 </span>
                 <button
                   onClick={() => onOpenSizeGuide(product.category)}
-                  className="flex items-center gap-1 text-[#93826E] hover:text-[#9A8E78] underline underline-offset-4 font-medium"
+                  className="flex items-center gap-1 text-[#A85F49] hover:text-[#8E4D3A] underline underline-offset-4 font-medium"
                 >
                   <Ruler className="w-3.5 h-3.5" />
                   <span>Size & Drape Guide</span>
@@ -301,8 +301,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     onClick={() => setSelectedOption(val)}
                     className={`py-2 px-2 text-xs text-center rounded-xs border transition-all truncate ${
                       selectedOption === val
-                        ? 'border-[#93826E] bg-[#93826E] text-[#FFFFFF] font-medium shadow-xs'
-                        : 'border-[#9A8E78]/25 bg-[#FFFFFF] text-[#6C6658] hover:border-[#93826E]'
+                        ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF] font-medium shadow-xs'
+                        : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49]'
                     }`}
                     title={val}
                   >
@@ -312,14 +312,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Save to Favourites Action: Muted Mocha #93826E button */}
+            {/* Save to Favourites Action */}
             <div className="pt-2">
               <button
                 onClick={(e) => onToggleWishlist(product.id, e)}
                 className={`w-full py-2.5 px-4 rounded-xs border text-xs uppercase tracking-wider font-medium flex items-center justify-center gap-2 transition-colors ${
                   isWishlisted
-                    ? 'border-[#93826E] bg-[#93826E] text-[#FFFFFF]'
-                    : 'border-[#9A8E78]/30 bg-[#FFFFFF] text-[#6C6658] hover:border-[#93826E] hover:text-[#93826E]'
+                    ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF]'
+                    : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49] hover:text-[#A85F49]'
                 }`}
               >
                 <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -327,17 +327,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </button>
             </div>
 
-            {/* Persistent Purchase Information Line for RKB Enterprises: Pure White with Warm Taupe border */}
-            <div className="p-5 bg-[#FFFFFF] border-2 border-[#9A8E78]/35 rounded-xs shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-medium text-[#9A8E78]">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#93826E]" />
+            {/* Persistent Purchase Information Line for RKB Enterprises: Warm Ivory with Terracotta border */}
+            <div className="p-5 bg-[#F7F1E9] border-2 border-[#A85F49]/35 rounded-xs shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-medium text-[#A85F49]">
+                <ShoppingBag className="w-3.5 h-3.5 text-[#A85F49]" />
                 <span>Purchase Information</span>
               </div>
-              <p className="text-sm font-medium text-[#6C6658] leading-relaxed">
+              <p className="text-sm font-medium text-[#593D30] leading-relaxed">
                 To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.
               </p>
-              <p className="text-xs text-[#6C6658]/70 leading-relaxed font-light">
-                Please reference item name <strong className="font-medium text-[#6C6658]">{product.name}</strong> ({product.sku}) with your selected {product.options.name.toLowerCase()} ({selectedOption}) and finish ({selectedFinish}).
+              <p className="text-xs text-[#8E8172] leading-relaxed font-light">
+                Please reference item name <strong className="font-medium text-[#593D30]">{product.name}</strong> ({product.sku}) with your selected {product.options.name.toLowerCase()} ({selectedOption}) and finish ({selectedFinish}).
               </p>
 
               {/* Direct Inquiry Triggers for RKB Enterprises */}
@@ -346,14 +346,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 py-2.5 px-3 bg-[#93826E] text-[#FFFFFF] text-xs uppercase tracking-wider font-medium rounded-xs hover:bg-[#9A8E78] transition-colors flex items-center justify-center gap-2 shadow-xs"
+                  className="flex-1 py-2.5 px-3 bg-[#A85F49] text-[#FFFFFF] text-xs uppercase tracking-wider font-medium rounded-xs hover:bg-[#8E4D3A] transition-colors flex items-center justify-center gap-2 shadow-xs"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>Inquire on WhatsApp</span>
                 </a>
                 <a
                   href={emailUrl}
-                  className="flex-1 py-2.5 px-3 bg-[#FFFFFF] text-[#6C6658] border border-[#9A8E78]/40 text-xs uppercase tracking-wider font-medium rounded-xs hover:border-[#93826E] hover:text-[#93826E] transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-3 bg-[#FFFFFF] text-[#593D30] border border-[#D7C5AF] text-xs uppercase tracking-wider font-medium rounded-xs hover:border-[#A85F49] hover:text-[#A85F49] transition-colors flex items-center justify-center gap-2"
                 >
                   <Mail className="w-3.5 h-3.5" />
                   <span>Inquire via Email</span>
@@ -362,45 +362,45 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {/* Accordion Tabs for Specifications, Care, and Shipping */}
-            <div className="mt-2 border-t border-[#9A8E78]/20 divide-y divide-[#9A8E78]/15">
+            <div className="mt-2 border-t border-[#D7C5AF]/30 divide-y divide-[#D7C5AF]/20">
               
               {/* Tab 1: Specifications */}
               <div className="py-3">
                 <button
                   onClick={() => setActiveTab(activeTab === 'specifications' ? 'care' : 'specifications')}
-                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#6C6658] py-1"
+                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#593D30] py-1"
                 >
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#93826E]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#A85F49]" />
                     <span>Materials & Technical Specifications</span>
                   </div>
-                  <span className="text-[#9A8E78]">{activeTab === 'specifications' ? '−' : '+'}</span>
+                  <span className="text-[#8E8172]">{activeTab === 'specifications' ? '−' : '+'}</span>
                 </button>
 
                 {activeTab === 'specifications' && (
-                  <div className="mt-3 space-y-2 text-xs text-[#6C6658]/85 animate-fade-in pl-5">
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Purity</span>
+                  <div className="mt-3 space-y-2 text-xs text-[#593D30]/90 animate-fade-in pl-5">
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Purity</span>
                       <span className="font-medium text-right">{product.specifications.purity}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Hallmark</span>
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Hallmark</span>
                       <span className="font-medium text-right">{product.specifications.hallmark}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Weight</span>
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Weight</span>
                       <span className="font-mono tabular-nums text-right">{product.specifications.weight}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Dimensions</span>
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Dimensions</span>
                       <span className="font-mono tabular-nums text-right">{product.specifications.dimensions}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Hypoallergenic</span>
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Hypoallergenic</span>
                       <span className="text-right">{product.specifications.hypoallergenic}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[#9A8E78]/10">
-                      <span className="text-[#9A8E78]">Finish Protection</span>
+                    <div className="flex justify-between py-1 border-b border-[#D7C5AF]/20">
+                      <span className="text-[#8E8172]">Finish Protection</span>
                       <span className="text-right">{product.specifications.protection}</span>
                     </div>
                   </div>
@@ -411,17 +411,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <div className="py-3">
                 <button
                   onClick={() => setActiveTab(activeTab === 'care' ? 'specifications' : 'care')}
-                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#6C6658] py-1"
+                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#593D30] py-1"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-[#93826E]" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#A85F49]" />
                     <span>Silver Care & Preservation</span>
                   </div>
-                  <span className="text-[#9A8E78]">{activeTab === 'care' ? '−' : '+'}</span>
+                  <span className="text-[#8E8172]">{activeTab === 'care' ? '−' : '+'}</span>
                 </button>
 
                 {activeTab === 'care' && (
-                  <ul className="mt-3 space-y-2 text-xs text-[#6C6658]/80 animate-fade-in pl-5 list-disc list-outside">
+                  <ul className="mt-3 space-y-2 text-xs text-[#8E8172] animate-fade-in pl-5 list-disc list-outside">
                     {product.careInstructions.map((instruction, idx) => (
                       <li key={idx} className="leading-relaxed">
                         {instruction}
@@ -435,21 +435,21 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <div className="py-3">
                 <button
                   onClick={() => setActiveTab(activeTab === 'shipping' ? 'specifications' : 'shipping')}
-                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#6C6658] py-1"
+                  className="w-full flex items-center justify-between text-left text-xs uppercase tracking-wider font-medium text-[#593D30] py-1"
                 >
                   <div className="flex items-center gap-2">
-                    <Package className="w-3.5 h-3.5 text-[#93826E]" />
+                    <Package className="w-3.5 h-3.5 text-[#A85F49]" />
                     <span>Packaging & Verification</span>
                   </div>
-                  <span className="text-[#9A8E78]">{activeTab === 'shipping' ? '−' : '+'}</span>
+                  <span className="text-[#8E8172]">{activeTab === 'shipping' ? '−' : '+'}</span>
                 </button>
 
                 {activeTab === 'shipping' && (
-                  <div className="mt-3 space-y-2 text-xs text-[#6C6658]/80 animate-fade-in pl-5">
+                  <div className="mt-3 space-y-2 text-xs text-[#8E8172] animate-fade-in pl-5">
                     <p className="leading-relaxed">
                       Every Aurelle piece is presented in a signature archival gift box with anti-tarnish microfibre suede pouch and care cloth.
                     </p>
-                    <p className="leading-relaxed text-[#9A8E78]">
+                    <p className="leading-relaxed text-[#593D30] font-medium">
                       Insured express dispatch with certificate of 925 silver metallurgical purity.
                     </p>
                   </div>
@@ -464,13 +464,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
         {/* Bottom Section: Related Pieces: Pure White #FFFFFF cards */}
         {relatedProducts.length > 0 && (
-          <div className="mt-24 pt-12 border-t border-[#9A8E78]/20">
+          <div className="mt-24 pt-12 border-t border-[#D7C5AF]/30">
             <div className="flex justify-between items-end mb-8">
               <div>
-                <span className="text-xs uppercase tracking-[0.25em] text-[#9A8E78] font-medium block mb-1">
+                <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-1">
                   Catalogue Curation
                 </span>
-                <h3 className="text-2xl font-serif-display text-[#6C6658]">
+                <h3 className="text-2xl font-serif-display text-[#593D30]">
                   Complementary {product.category === 'rings' ? 'Silver Rings' : 'Silver Anklets'}
                 </h3>
               </div>
@@ -481,9 +481,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <div
                   key={rel.id}
                   onClick={() => onSelectProduct(rel)}
-                  className="group cursor-pointer flex flex-col bg-[#FFFFFF] p-4 rounded-xs border border-[#9A8E78]/20 hover:border-[#93826E] transition-all shadow-xs"
+                  className="group cursor-pointer flex flex-col bg-[#FFFFFF] p-4 rounded-xs border border-[#D7C5AF]/40 hover:border-[#A85F49] transition-all shadow-xs"
                 >
-                  <div className="aspect-square bg-[#E4E1DB]/40 overflow-hidden rounded-xs mb-3">
+                  <div className="aspect-square bg-[#F7F1E9] overflow-hidden rounded-xs mb-3">
                     <img
                       src={rel.primaryImage}
                       alt={rel.name}
@@ -491,13 +491,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
                     />
                   </div>
-                  <span className="text-[10px] uppercase tracking-widest text-[#9A8E78]">
+                  <span className="text-[10px] uppercase tracking-widest text-[#8E8172]">
                     Solid 925 Silver
                   </span>
-                  <h4 className="text-sm font-serif-display text-[#6C6658] mt-0.5 group-hover:text-[#93826E] transition-colors line-clamp-1">
+                  <h4 className="text-sm font-serif-display text-[#593D30] mt-0.5 group-hover:text-[#A85F49] transition-colors line-clamp-1">
                     {rel.name}
                   </h4>
-                  <span className="text-xs font-mono font-medium mt-1 text-[#6C6658]">
+                  <span className="text-xs font-mono font-medium mt-1 text-[#593D30]">
                     ${rel.priceUSD} USD
                   </span>
                 </div>
@@ -510,7 +510,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
       {/* Lightbox Modal */}
       {isLightboxOpen && (
-        <div className="fixed inset-0 z-50 bg-[#6C6658]/95 backdrop-blur-md flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 bg-[#593D30]/95 backdrop-blur-md flex items-center justify-center p-6">
           <button
             onClick={() => setIsLightboxOpen(false)}
             className="absolute top-6 right-6 p-2 rounded-full bg-[#FFFFFF]/10 text-[#FFFFFF] hover:bg-[#FFFFFF]/25 transition-colors"
