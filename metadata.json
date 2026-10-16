@@ -1,0 +1,6 @@
+{
+  "name": "AURELLE — Fine Silver Jewellery",
+  "description": "Art-directed luxury silver jewellery brand discovering sculptural solid 925 sterling silver rings and delicate chain anklets with immersive 3D craftsmanship reveals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

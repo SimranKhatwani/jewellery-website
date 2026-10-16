@@ -1,0 +1,52 @@
+import React from 'react';
+import { Product } from '../types/jewellery';
+import { ProductCard } from './ProductCard';
+
+interface NewArrivalsSectionProps {
+  products: Product[];
+  onSelectProduct: (product: Product) => void;
+  wishlistIds: string[];
+  onToggleWishlist: (id: string, e: React.MouseEvent) => void;
+}
+
+export const NewArrivalsSection: React.FC<NewArrivalsSectionProps> = ({
+  products,
+  onSelectProduct,
+  wishlistIds,
+  onToggleWishlist,
+}) => {
+  const newArrivals = products.filter((p) => p.isNewArrival);
+
+  return (
+    <section id="new-arrivals" aria-label="Aurelle New Arrivals" className="py-20 md:py-28 bg-[#9A8E78] text-[#FFFFFF]">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-[#FFFFFF]/25 pb-6">
+          <div>
+            <span className="text-xs uppercase tracking-[0.25em] text-[#FFFFFF]/80 font-medium block mb-2">
+              Recent Casts
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#FFFFFF] tracking-tight">
+              New Editions & Silhouettes
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-[#FFFFFF]/85 max-w-md font-light self-start md:self-end leading-relaxed">
+            Exploring dual-twist contour waves and satellite beaded anklets. Cast in limited studio batches for precise quality control.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          {newArrivals.map((product) => (
+            <div key={product.id} className="[&_article]:bg-[#FFFFFF] [&_h3]:text-[#6C6658]">
+              <ProductCard
+                product={product}
+                onSelectProduct={onSelectProduct}
+                isWishlisted={wishlistIds.includes(product.id)}
+                onToggleWishlist={onToggleWishlist}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
