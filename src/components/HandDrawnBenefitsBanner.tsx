@@ -57,7 +57,7 @@ export const HandDrawnBenefitsBanner: React.FC = () => {
   return (
     <section 
       aria-label="AURELLE Craft and Service Principles" 
-      className="w-full bg-[#FFFFFF] border-y border-[#D7C5AF]/30 py-16 md:py-24 px-4 sm:px-8 lg:px-12"
+      className="w-full bg-[#FFFFFF] py-14 md:py-20 px-4 sm:px-8 lg:px-12"
     >
       <div className="w-full max-w-[1600px] mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 sm:gap-8 lg:gap-10 items-start justify-items-center w-full">
