@@ -111,9 +111,6 @@ export const RingsSection: React.FC<RingsSectionProps> = ({
               <h3 className="text-2xl sm:text-3xl font-serif-display font-light text-[#FFFFFF]">
                 {heroRing.name}
               </h3>
-              <p className="text-xs sm:text-sm text-[#F7F1E9]/90 font-light leading-relaxed line-clamp-2">
-                {heroRing.subtitle}
-              </p>
               
               <div className="pt-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#FFFFFF] group-hover:text-[#F7F1E9] transition-colors">
                 <span className="underline underline-offset-4">View Full Details & Specs</span>

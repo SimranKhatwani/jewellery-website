@@ -73,9 +73,6 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
               <h3 className="text-2xl sm:text-3xl font-serif-display text-[#593D30] group-hover:text-[#A85F49] transition-colors">
                 {featuredAnklet.name}
               </h3>
-              <p className="text-sm text-[#8E8172] font-light leading-relaxed">
-                {featuredAnklet.subtitle}
-              </p>
               
               <div className="pt-2 flex items-center justify-between border-t border-[#D7C5AF]/30">
                 <div>

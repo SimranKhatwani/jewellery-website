@@ -10,7 +10,6 @@ import {
   ShieldCheck, 
   Package, 
   Ruler, 
-  Check,
   ShoppingBag
 } from 'lucide-react';
 import { Product } from '../types/jewellery';
@@ -232,19 +231,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 {product.name}
               </h1>
 
-              {/* Price & availability */}
-              <div className="flex items-baseline gap-4 mt-3">
+              {/* Price */}
+              <div className="mt-3">
                 <span className="text-2xl font-mono tabular-nums font-medium text-[#593D30]">
                   ${product.priceUSD} USD
                 </span>
-                <span className="text-xs text-emerald-800 font-medium flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Authentic Studio Catalogue
-                </span>
               </div>
-
-              <p className="text-sm text-[#8E8172] mt-3 leading-relaxed font-light">
-                {product.subtitle}
-              </p>
             </div>
 
             {/* Options Selector A: Surface Finish (Burnt Terracotta #A85F49 active) */}
