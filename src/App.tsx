@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PRODUCTS } from './data/products';
 import { Product } from './types/jewellery';
 import { Header } from './components/Header';
-import { HeroSlideshow } from './components/HeroSlideshow';
+import { CampaignHeroVideo } from './components/CampaignHeroVideo';
 import { HandDrawnBenefitsBanner } from './components/HandDrawnBenefitsBanner';
 import { RingsSection } from './components/RingsSection';
 import { ShopByCategory } from './components/ShopByCategory';
@@ -142,8 +142,8 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 3. Full-width photographic hero slideshow */}
-            <HeroSlideshow onExploreClick={handleExploreHeroTarget} />
+            {/* 3. Integrated Luxury Jewellery Campaign Video Hero */}
+            <CampaignHeroVideo onExploreClick={handleExploreHeroTarget} />
 
             {/* 4. Hand-drawn benefits banner (placed immediately below hero slideshow) */}
             <HandDrawnBenefitsBanner />

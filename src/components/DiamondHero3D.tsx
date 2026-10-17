@@ -19,7 +19,7 @@ const HERO_PAGES: HeroPage[] = [
   {
     id: 1,
     badge: '01 / 04 · AURELLE FINE SILVER',
-    title: 'Brilliance in Motion',
+    title: 'A Little Extraordinary',
     subtitle: 'Faceted prismatic light suspended in harmony with solid 925 sterling silver craftsmanship.',
     buttonText: 'Explore Collection',
     targetId: 'rings',
