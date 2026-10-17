@@ -93,10 +93,24 @@ export const CampaignHeroVideo: React.FC<CampaignHeroVideoProps> = ({ onExploreC
     const standbyVideo = nextBuffer === 'B' ? videoRefB.current : videoRefA.current;
 
     if (activeVideo) {
-      activeVideo.currentTime = currentScene.startTime;
-      activeVideo.play().catch(() => {
-        // Autoplay policy fallback
-      });
+      const playVideo = () => {
+        try {
+          if (activeVideo.readyState >= 1) {
+            activeVideo.currentTime = currentScene.startTime;
+          }
+        } catch {
+          // ignore seek error
+        }
+        activeVideo.play().catch(() => {
+          // Autoplay policy fallback
+        });
+      };
+
+      if (activeVideo.readyState >= 1) {
+        playVideo();
+      } else {
+        activeVideo.addEventListener('loadedmetadata', playVideo, { once: true });
+      }
     }
 
     // Preload next scene in standby buffer
@@ -105,7 +119,13 @@ export const CampaignHeroVideo: React.FC<CampaignHeroVideoProps> = ({ onExploreC
       if (standbyVideo.src !== nextScene.videoSrc) {
         standbyVideo.src = nextScene.videoSrc;
       }
-      standbyVideo.currentTime = nextScene.startTime;
+      try {
+        if (standbyVideo.readyState >= 1) {
+          standbyVideo.currentTime = nextScene.startTime;
+        }
+      } catch {
+        // ignore seek error
+      }
     }
 
     // Schedule next cut
@@ -140,11 +160,12 @@ export const CampaignHeroVideo: React.FC<CampaignHeroVideoProps> = ({ onExploreC
             <video
               ref={videoRefA}
               src={CAMPAIGN_SCENES[0].videoSrc}
+              autoPlay
               muted
               playsInline
               loop={false}
               preload="auto"
-              onError={() => setHasVideoError(true)}
+              onError={() => goToNextScene()}
               className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ease-in-out ${
                 activeBuffer === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
               }`}
@@ -154,11 +175,12 @@ export const CampaignHeroVideo: React.FC<CampaignHeroVideoProps> = ({ onExploreC
             <video
               ref={videoRefB}
               src={CAMPAIGN_SCENES[1].videoSrc}
+              autoPlay
               muted
               playsInline
               loop={false}
               preload="auto"
-              onError={() => setHasVideoError(true)}
+              onError={() => goToNextScene()}
               className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ease-in-out ${
                 activeBuffer === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
               }`}
