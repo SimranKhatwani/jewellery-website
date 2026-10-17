@@ -29,9 +29,7 @@ export const NewArrivalsSection: React.FC<NewArrivalsSectionProps> = ({
               New Editions & Silhouettes
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-[#8E8172] max-w-md font-light self-start md:self-end leading-relaxed">
-            Exploring dual-twist contour waves and satellite beaded anklets. Cast in limited studio batches for precise quality control.
-          </p>
+          
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">

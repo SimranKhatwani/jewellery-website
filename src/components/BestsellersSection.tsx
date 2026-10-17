@@ -28,9 +28,7 @@ export const BestsellersSection: React.FC<BestsellersSectionProps> = ({
             Curated Bestsellers
           </h2>
         </div>
-        <p className="text-xs sm:text-sm text-[#8E8172] max-w-md font-light self-start md:self-end leading-relaxed">
-          The pieces most cherished by collectors: sculpted molten bands and fluid curb chains celebrated for tactile weight and timeless design.
-        </p>
+       
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">

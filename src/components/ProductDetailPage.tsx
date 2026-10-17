@@ -11,9 +11,7 @@ import {
   Package, 
   Ruler, 
   Check,
-  ShoppingBag,
-  MessageCircle,
-  Mail
+  ShoppingBag
 } from 'lucide-react';
 import { Product } from '../types/jewellery';
 
@@ -82,11 +80,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id && p.category === product.category)
     .slice(0, 3);
-
-  // Dynamic pre-filled inquiry message for international buyers contacting RKB Enterprises
-  const inquiryMessage = `Hello RKB Enterprises, I would like to inquire about the Aurelle piece: ${product.name} (SKU: ${product.sku}). Selected ${product.options.name}: ${selectedOption}. Finish: ${selectedFinish}. Listed Price: $${product.priceUSD} USD. Please share international availability & ordering details.`;
-  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(inquiryMessage)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent(`Aurelle Studio Inquiry: ${product.name} (${product.sku})`)}&body=${encodeURIComponent(inquiryMessage)}`;
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#593D30] py-8 md:py-12 px-6">
@@ -249,8 +242,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </span>
               </div>
 
-              <p className="text-sm text-[#8E8172] mt-4 leading-relaxed font-light">
-                {product.description}
+              <p className="text-sm text-[#8E8172] mt-3 leading-relaxed font-light">
+                {product.subtitle}
               </p>
             </div>
 
@@ -279,11 +272,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             )}
 
-            {/* Options Selector B: Size or Length */}
+            {/* Options Selector B: Available Size or Length */}
             <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/30">
               <div className="flex justify-between items-center text-xs">
                 <span className="uppercase tracking-wider text-[#8E8172] font-medium">
-                  {product.options.name}
+                  Available {product.category === 'rings' ? 'Ring Size (US)' : 'Size / Fit'}
                 </span>
                 <button
                   onClick={() => onOpenSizeGuide(product.category)}
@@ -328,7 +321,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {/* Persistent Purchase Information Line for RKB Enterprises: Warm Ivory with Terracotta border */}
-            <div className="p-5 bg-[#F7F1E9] border-2 border-[#A85F49]/35 rounded-xs shadow-xs space-y-3">
+            <div className="p-5 bg-[#F7F1E9] border border-[#A85F49]/35 rounded-xs shadow-xs space-y-2">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-medium text-[#A85F49]">
                 <ShoppingBag className="w-3.5 h-3.5 text-[#A85F49]" />
                 <span>Purchase Information</span>
@@ -337,28 +330,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.
               </p>
               <p className="text-xs text-[#8E8172] leading-relaxed font-light">
-                Please reference item name <strong className="font-medium text-[#593D30]">{product.name}</strong> ({product.sku}) with your selected {product.options.name.toLowerCase()} ({selectedOption}) and finish ({selectedFinish}).
+                Please reference item name <strong className="font-medium text-[#593D30]">{product.name}</strong> ({product.sku}) with your selected {product.category === 'rings' ? 'ring size' : 'size'} ({selectedOption}) and finish ({selectedFinish}).
               </p>
-
-              {/* Direct Inquiry Triggers for RKB Enterprises */}
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-2.5 px-3 bg-[#A85F49] text-[#FFFFFF] text-xs uppercase tracking-wider font-medium rounded-xs hover:bg-[#8E4D3A] transition-colors flex items-center justify-center gap-2 shadow-xs"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Inquire on WhatsApp</span>
-                </a>
-                <a
-                  href={emailUrl}
-                  className="flex-1 py-2.5 px-3 bg-[#FFFFFF] text-[#593D30] border border-[#D7C5AF] text-xs uppercase tracking-wider font-medium rounded-xs hover:border-[#A85F49] hover:text-[#A85F49] transition-colors flex items-center justify-center gap-2"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Inquire via Email</span>
-                </a>
-              </div>
             </div>
 
             {/* Accordion Tabs for Specifications, Care, and Shipping */}

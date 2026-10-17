@@ -74,7 +74,7 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
                 {featuredAnklet.name}
               </h3>
               <p className="text-sm text-[#8E8172] font-light leading-relaxed">
-                {featuredAnklet.description}
+                {featuredAnklet.subtitle}
               </p>
               
               <div className="pt-2 flex items-center justify-between border-t border-[#D7C5AF]/30">
