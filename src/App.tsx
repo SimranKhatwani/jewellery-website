@@ -69,7 +69,7 @@ export default function App() {
   const handleSelectProduct = useCallback((product: Product) => {
     setSelectedProduct(product);
     window.location.hash = `product/${product.slug}`;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
   const handleBackToCatalogue = useCallback(() => {

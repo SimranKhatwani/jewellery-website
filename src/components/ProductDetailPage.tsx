@@ -57,7 +57,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setActiveImageIndex(0);
     setSelectedOption(product.options.default);
     setSelectedFinish(product.finishes[0] || 'High Polish');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [product.id]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -81,11 +81,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#593D30] py-8 md:py-12 px-6">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#593D30] pt-4 md:pt-6 pb-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         
         {/* Navigation Breadcrumb / Back Bar */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#D7C5AF]/30">
+        <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#D7C5AF]/30">
           <button
             onClick={onBack}
             className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#593D30] hover:text-[#A85F49] transition-colors group"
@@ -103,15 +103,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
         </div>
 
-        {/* Main Product Stage: 2-Column Desktop Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+        {/* Main Product Stage: Balanced 2-Column Desktop Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left Column: Image Gallery (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col gap-4 lg:sticky lg:top-28">
+          {/* Left Column: Image Gallery (6 cols) */}
+          <div className="lg:col-span-6 flex flex-col gap-3 lg:sticky lg:top-24">
             
-            {/* Primary Large Image with Magnifier Zoom */}
+            {/* Primary Large Image with Magnifier Zoom: Height-fitted to viewport so entire image is visible without scrolling */}
             <div
-              className="relative aspect-square sm:aspect-4/3 lg:aspect-square w-full bg-[#F7F1E9] border border-[#D7C5AF]/40 overflow-hidden rounded-xs cursor-crosshair group shadow-xs"
+              className="relative w-full aspect-square max-h-[calc(100vh-210px)] max-w-[500px] mx-auto bg-[#F7F1E9] border border-[#D7C5AF]/40 overflow-hidden rounded-xs cursor-crosshair group shadow-xs"
               onMouseEnter={() => setIsZoomed(true)}
               onMouseLeave={() => setIsZoomed(false)}
               onMouseMove={handleMouseMove}
@@ -177,12 +177,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Thumbnail Strip */}
             {images.length > 1 && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1 justify-center lg:justify-start">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-xs overflow-hidden border transition-all shrink-0 ${
+                    className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-xs overflow-hidden border transition-all shrink-0 ${
                       activeImageIndex === idx
                         ? 'border-[#A85F49] ring-2 ring-[#A85F49]/40'
                         : 'border-[#D7C5AF]/60 hover:border-[#A85F49] opacity-75 hover:opacity-100'
@@ -201,11 +201,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Editorial Quote */}
             {product.editorialQuote && (
-              <div className="p-6 bg-[#F7F1E9] border border-[#D7C5AF]/40 rounded-xs shadow-xs">
-                <span className="text-[11px] uppercase tracking-[0.25em] text-[#8E8172] block mb-2 font-medium">
+              <div className="p-5 bg-[#F7F1E9] border border-[#D7C5AF]/40 rounded-xs shadow-xs">
+                <span className="text-[11px] uppercase tracking-[0.25em] text-[#8E8172] block mb-1.5 font-medium">
                   Design Note
                 </span>
-                <p className="font-serif-display text-lg italic text-[#593D30] leading-relaxed">
+                <p className="font-serif-display text-base sm:text-lg italic text-[#593D30] leading-relaxed">
                   “{product.editorialQuote}”
                 </p>
               </div>
@@ -213,8 +213,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
           </div>
 
-          {/* Right Column: Product Information & Purchase Notice (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
+          {/* Right Column: Product Information & Purchase Notice (6 cols) */}
+          <div className="lg:col-span-6 flex flex-col gap-5">
             
             {/* Header info */}
             <div>
