@@ -28,9 +28,9 @@ export const RingsSection: React.FC<RingsSectionProps> = ({
   const heroRing = rings[0]; // The Sculpted Molten Band as editorial anchor
 
   return (
-    <section id="rings" aria-label="Silver Rings Collection" className="py-20 md:py-28 px-6 max-w-7xl mx-auto bg-[#FFFFFF]">
+    <section id="rings" aria-label="Silver Rings Collection" className="pt-8 md:pt-12 pb-16 md:pb-20 px-6 max-w-7xl mx-auto bg-[#FFFFFF]">
       {/* Section Header with Editorial Typography */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-[#D7C5AF]/30 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
           <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-2">
             Collection 01
