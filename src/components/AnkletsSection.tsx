@@ -35,9 +35,7 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
         {/* Header & Sub-narrative */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-2">
-              Collection 02
-            </span>
+            
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#593D30] tracking-tight">
               Delicate Silver Anklets
             </h2>

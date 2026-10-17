@@ -32,9 +32,7 @@ export const RingsSection: React.FC<RingsSectionProps> = ({
       {/* Section Header with Editorial Typography */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
-          <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-2">
-            Collection 01
-          </span>
+          
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#593D30] tracking-tight">
             Sculptural Silver Rings
           </h2>
@@ -81,29 +79,28 @@ export const RingsSection: React.FC<RingsSectionProps> = ({
       {/* Asymmetrical Editorial Showcase Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Large Editorial Product Anchor: Deep Chocolate #593D30 background */}
+        {/* Left Column: Large Editorial Product Anchor */}
         {heroRing && (
           <div 
             onClick={() => onSelectProduct(heroRing)}
-            className="lg:col-span-5 bg-[#593D30] text-[#FFFFFF] rounded-sm p-6 sm:p-8 flex flex-col justify-between group cursor-pointer overflow-hidden relative shadow-md min-h-[500px]"
+            className="lg:col-span-5 bg-[#1A1917] text-[#FFFFFF] rounded-sm p-6 sm:p-8 flex flex-col justify-between group cursor-pointer overflow-hidden relative shadow-md min-h-[500px]"
           >
-            {/* Background image with subtle overlay */}
-            <div className="absolute inset-0 opacity-40 group-hover:opacity-50 transition-opacity duration-700">
+            {/* Crystal-clear ring image */}
+            <div className="absolute inset-0">
               <img
-                src={heroRing.secondaryImage || heroRing.primaryImage}
+                src={heroRing.primaryImage}
                 alt={heroRing.name}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#593D30] via-[#593D30]/60 to-transparent" />
+
+            {/* Clean subtle bottom gradient for text contrast (ring remains completely crisp and untinted) */}
+            <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
 
             <div className="relative z-10 flex justify-between items-start">
               <span className="text-[11px] uppercase tracking-[0.25em] text-[#FFFFFF] bg-[#A85F49] px-2.5 py-1 font-medium shadow-xs">
                 Signature Piece
-              </span>
-              <span className="text-sm font-mono tabular-nums text-[#FFFFFF] font-medium">
-                ${heroRing.priceUSD} USD
               </span>
             </div>
 
