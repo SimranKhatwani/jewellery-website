@@ -241,7 +241,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Options Selector A: Surface Finish (Burnt Terracotta #A85F49 active) */}
             {product.finishes.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/30">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="uppercase tracking-wider text-[#8E8172] font-medium">Surface Finish</span>
                   <span className="text-[#593D30] font-medium">{selectedFinish}</span>
@@ -265,7 +265,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             )}
 
             {/* Options Selector B: Available Size or Length */}
-            <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/30">
+            <div className={`space-y-2 ${product.finishes.length > 0 ? 'pt-2 border-t border-[#D7C5AF]/30' : ''}`}>
               <div className="flex justify-between items-center text-xs">
                 <span className="uppercase tracking-wider text-[#8E8172] font-medium">
                   Available {product.category === 'rings' ? 'Ring Size (US)' : 'Size / Fit'}
