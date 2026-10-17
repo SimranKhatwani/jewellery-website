@@ -13,7 +13,7 @@ export const ShopByCategory: React.FC<ShopByCategoryProps> = ({
   ankletCount,
 }) => {
   return (
-    <section aria-label="Shop by Jewellery Category" className="py-16 md:py-20 px-6 max-w-7xl mx-auto bg-[#FFFFFF]">
+    <section aria-label="Shop by Jewellery Category" className="py-12 md:py-16 px-6 max-w-7xl mx-auto bg-[#FFFFFF]">
       <div className="text-center max-w-xl mx-auto mb-10">
         <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-2">
           Curated Silhouettes

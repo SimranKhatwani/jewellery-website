@@ -44,49 +44,7 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
             </p>
           </div>
 
-          {/* Segmented Filter: Burnt Terracotta #A85F49 active tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-[#FFFFFF] border border-[#D7C5AF]/40 rounded-xs self-start md:self-end overflow-x-auto max-w-full">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === 'all'
-                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
-                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
-              }`}
-            >
-              All Anklets ({anklets.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('curb')}
-              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === 'curb'
-                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
-                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
-              }`}
-            >
-              Curb & Teardrop
-            </button>
-            <button
-              onClick={() => setActiveTab('snake')}
-              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === 'snake'
-                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
-                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
-              }`}
-            >
-              Snake Ribbon
-            </button>
-            <button
-              onClick={() => setActiveTab('beaded')}
-              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === 'beaded'
-                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
-                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
-              }`}
-            >
-              Beaded Orbit
-            </button>
-          </div>
+          
         </div>
 
         {/* Feature Spotlight: The Fluid Drape Banner (Pure White card #FFFFFF) */}
@@ -134,6 +92,52 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
             </div>
           </div>
         )}
+
+        {/* Segmented Filter */}
+        <div className="flex justify-start sm:justify-end mb-8">
+          <div className="inline-flex items-center gap-1.5 p-1 bg-[#FFFFFF] border border-[#D7C5AF]/40 rounded-xs overflow-x-auto max-w-full shadow-xs">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'all'
+                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
+                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
+              }`}
+            >
+              All Anklets ({anklets.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('curb')}
+              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'curb'
+                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
+                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
+              }`}
+            >
+              Curb & Teardrop
+            </button>
+            <button
+              onClick={() => setActiveTab('snake')}
+              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'snake'
+                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
+                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
+              }`}
+            >
+              Snake Ribbon
+            </button>
+            <button
+              onClick={() => setActiveTab('beaded')}
+              className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-medium rounded-xs transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === 'beaded'
+                  ? 'bg-[#A85F49] text-[#FFFFFF] shadow-xs'
+                  : 'text-[#593D30]/80 hover:text-[#A85F49]'
+              }`}
+            >
+              Beaded Orbit
+            </button>
+          </div>
+        </div>
 
         {/* Curated Product Grid: Pure White #FFFFFF Product Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
