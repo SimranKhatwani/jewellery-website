@@ -16,8 +16,22 @@ import { SearchModal } from './components/SearchModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
 import { Footer } from './components/Footer';
+import { AdminApp } from './admin/AdminApp';
+import { getPublishedProducts, subscribeCatalogueChanges } from './services/productService';
 
 export default function App() {
+  // Determine if user is accessing Admin Panel via /admin or #admin
+  const [isAdminView, setIsAdminView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.location.pathname.startsWith('/admin') ||
+      window.location.hash.startsWith('#admin')
+    );
+  });
+
+  // Dynamic products state fetched from MongoDB backend API (with local catalogue fallback)
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+
   // Selected product for PDP view
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -36,6 +50,43 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [sizeGuideCategory, setSizeGuideCategory] = useState<'rings' | 'anklets' | null>(null);
 
+  // Synchronize route changes for /admin and #admin
+  useEffect(() => {
+    const handleRouteCheck = () => {
+      const isCurrentlyAdmin =
+        window.location.pathname.startsWith('/admin') ||
+        window.location.hash.startsWith('#admin');
+      setIsAdminView(isCurrentlyAdmin);
+    };
+
+    window.addEventListener('popstate', handleRouteCheck);
+    window.addEventListener('hashchange', handleRouteCheck);
+    return () => {
+      window.removeEventListener('popstate', handleRouteCheck);
+      window.removeEventListener('hashchange', handleRouteCheck);
+    };
+  }, []);
+
+  // Fetch catalogue from backend API and subscribe to live admin updates
+  const refreshCatalogue = useCallback(async () => {
+    try {
+      const res = await getPublishedProducts();
+      if (res.products && res.products.length > 0) {
+        setProducts(res.products);
+      }
+    } catch (err) {
+      console.warn('[Aurelle] Failed to load backend products:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCatalogue();
+    const unsubscribe = subscribeCatalogueChanges(() => {
+      refreshCatalogue();
+    });
+    return unsubscribe;
+  }, [refreshCatalogue]);
+
   // Synchronize Wishlist with localStorage
   useEffect(() => {
     try {
@@ -51,7 +102,7 @@ export default function App() {
       const hash = window.location.hash;
       if (hash.startsWith('#product/')) {
         const slug = hash.replace('#product/', '');
-        const found = PRODUCTS.find((p) => p.slug === slug);
+        const found = products.find((p) => p.slug === slug || p.id === slug);
         if (found) {
           setSelectedProduct(found);
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -64,7 +115,7 @@ export default function App() {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [products]);
 
   const handleSelectProduct = useCallback((product: Product) => {
     setSelectedProduct(product);
@@ -107,8 +158,21 @@ export default function App() {
     }, 100);
   };
 
-  const rings = PRODUCTS.filter((p) => p.category === 'rings');
-  const anklets = PRODUCTS.filter((p) => p.category === 'anklets');
+  // Exit Admin Panel handler
+  const handleExitAdmin = () => {
+    setIsAdminView(false);
+    window.location.hash = '';
+    window.history.pushState(null, '', '/');
+  };
+
+  // Render Admin Panel if on /admin route
+  if (isAdminView) {
+    return <AdminApp onExitAdmin={handleExitAdmin} />;
+  }
+
+  // Filter products by category for public catalogue
+  const rings = products.filter((p) => p.category === 'rings');
+  const anklets = products.filter((p) => p.category === 'anklets');
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF]">
@@ -133,7 +197,7 @@ export default function App() {
         {selectedProduct ? (
           <ProductDetailPage
             product={selectedProduct}
-            allProducts={PRODUCTS}
+            allProducts={products}
             onBack={handleBackToCatalogue}
             onSelectProduct={handleSelectProduct}
             isWishlisted={wishlistIds.includes(selectedProduct.id)}
@@ -176,14 +240,14 @@ export default function App() {
 
             {/* 8. Curated Bestsellers & New arrivals */}
             <BestsellersSection
-              products={PRODUCTS}
+              products={products}
               onSelectProduct={handleSelectProduct}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
             />
 
             <NewArrivalsSection
-              products={PRODUCTS}
+              products={products}
               onSelectProduct={handleSelectProduct}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
@@ -212,7 +276,7 @@ export default function App() {
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        products={PRODUCTS}
+        products={products}
         onSelectProduct={handleSelectProduct}
       />
 
@@ -221,7 +285,7 @@ export default function App() {
         isOpen={isWishlistOpen}
         onClose={() => setIsWishlistOpen(false)}
         wishlistIds={wishlistIds}
-        products={PRODUCTS}
+        products={products}
         onSelectProduct={handleSelectProduct}
         onRemoveFromWishlist={handleRemoveFromWishlist}
       />

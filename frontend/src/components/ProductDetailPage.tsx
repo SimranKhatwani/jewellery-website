@@ -271,7 +271,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   Available {product.category === 'rings' ? 'Ring Size (US)' : 'Size / Fit'}
                 </span>
                 <button
-                  onClick={() => onOpenSizeGuide(product.category)}
+                  onClick={() => onOpenSizeGuide(product.category === 'anklets' ? 'anklets' : 'rings')}
                   className="flex items-center gap-1 text-[#A85F49] hover:text-[#8E4D3A] underline underline-offset-4 font-medium"
                 >
                   <Ruler className="w-3.5 h-3.5" />

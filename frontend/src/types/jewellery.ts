@@ -1,4 +1,4 @@
-export type JewelleryCategory = 'rings' | 'anklets';
+export type JewelleryCategory = 'rings' | 'anklets' | string;
 
 export interface ProductSpecification {
   purity: string; // e.g. "Solid 925 Sterling Silver"
@@ -19,6 +19,7 @@ export interface ProductOption {
 
 export interface Product {
   id: string;
+  _id?: string;
   slug: string;
   name: string;
   category: JewelleryCategory;
@@ -28,6 +29,8 @@ export interface Product {
   editorialQuote?: string;
   isBestseller?: boolean;
   isNewArrival?: boolean;
+  isPublished?: boolean;
+  displayOrder?: number;
   inStock: boolean;
   sku: string;
   primaryImage: string;
@@ -39,4 +42,6 @@ export interface Product {
   specifications: ProductSpecification;
   careInstructions: string[];
   stockistInquiryAvailable: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
