@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRODUCTS } from './data/products';
 import { Product } from './types/jewellery';
 import { Header } from './components/Header';
@@ -17,7 +17,13 @@ import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
 import { Footer } from './components/Footer';
 import { AdminApp } from './admin/AdminApp';
-import { getPublishedProducts, subscribeCatalogueChanges } from './services/productService';
+import {
+  getPublishedProducts,
+  subscribeCatalogueChanges,
+  isProductWishlisted,
+  normalizeWishlistIds,
+  LEGACY_WISHLIST_MAP,
+} from './services/productService';
 
 export default function App() {
   // Determine if user is accessing Admin Panel via /admin or #admin
@@ -39,11 +45,16 @@ export default function App() {
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('aurelle_wishlist_ids');
-      return saved ? JSON.parse(saved) : ['ring-01', 'anklet-01'];
+      return saved ? JSON.parse(saved) : ['sculpted-molten-band', 'fluid-curb-chain-anklet'];
     } catch {
-      return ['ring-01', 'anklet-01'];
+      return ['sculpted-molten-band', 'fluid-curb-chain-anklet'];
     }
   });
+
+  // Dynamically compute wishlisted products from the currently loaded catalogue
+  const wishlistedProducts = useMemo(() => {
+    return products.filter((p) => isProductWishlisted(p, wishlistIds));
+  }, [products, wishlistIds]);
 
   // Modal states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -86,6 +97,19 @@ export default function App() {
     });
     return unsubscribe;
   }, [refreshCatalogue]);
+
+  // Clean and harmonize any legacy or orphaned IDs in wishlist on load
+  useEffect(() => {
+    if (products.length > 0 && wishlistIds.length > 0) {
+      const normalized = normalizeWishlistIds(products, wishlistIds);
+      if (
+        normalized.length !== wishlistIds.length ||
+        !normalized.every((id) => wishlistIds.includes(id))
+      ) {
+        setWishlistIds(normalized);
+      }
+    }
+  }, [products]);
 
   // Synchronize Wishlist with localStorage
   useEffect(() => {
@@ -130,14 +154,43 @@ export default function App() {
 
   const handleToggleWishlist = useCallback((productId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setWishlistIds((prev) =>
-      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    const targetProduct = products.find(
+      (p) => p.id === productId || p.slug === productId || String(p._id) === productId
     );
-  }, []);
+    const canonicalId = targetProduct?.slug || targetProduct?.id || productId;
+    const isCurrentlySaved = targetProduct
+      ? isProductWishlisted(targetProduct, wishlistIds)
+      : wishlistIds.includes(canonicalId);
+
+    setWishlistIds((prev) => {
+      if (isCurrentlySaved) {
+        return prev.filter((id) => {
+          if (id === canonicalId) return false;
+          if (targetProduct && (id === targetProduct.id || id === targetProduct.slug || String(targetProduct._id) === id)) return false;
+          if (targetProduct && LEGACY_WISHLIST_MAP[id] === targetProduct.slug) return false;
+          return true;
+        });
+      } else {
+        return [...prev.filter((id) => id !== canonicalId), canonicalId];
+      }
+    });
+  }, [products, wishlistIds]);
 
   const handleRemoveFromWishlist = useCallback((productId: string) => {
-    setWishlistIds((prev) => prev.filter((id) => id !== productId));
-  }, []);
+    const targetProduct = products.find(
+      (p) => p.id === productId || p.slug === productId || String(p._id) === productId
+    );
+    const canonicalId = targetProduct?.slug || targetProduct?.id || productId;
+
+    setWishlistIds((prev) =>
+      prev.filter((id) => {
+        if (id === canonicalId) return false;
+        if (targetProduct && (id === targetProduct.id || id === targetProduct.slug || String(targetProduct._id) === id)) return false;
+        if (targetProduct && LEGACY_WISHLIST_MAP[id] === targetProduct.slug) return false;
+        return true;
+      })
+    );
+  }, [products]);
 
   const handleExploreHeroTarget = (target: 'rings' | 'anklets' | 'bestsellers') => {
     const el = document.getElementById(target);
@@ -178,7 +231,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF]">
       {/* 1 & 2. Announcement Strip & Minimal Navigation Header */}
       <Header
-        wishlistCount={wishlistIds.length}
+        wishlistCount={wishlistedProducts.length}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onNavigateHome={handleBackToCatalogue}
@@ -200,7 +253,7 @@ export default function App() {
             allProducts={products}
             onBack={handleBackToCatalogue}
             onSelectProduct={handleSelectProduct}
-            isWishlisted={wishlistIds.includes(selectedProduct.id)}
+            isWishlisted={isProductWishlisted(selectedProduct, wishlistIds)}
             onToggleWishlist={handleToggleWishlist}
             onOpenSizeGuide={(cat) => setSizeGuideCategory(cat)}
           />

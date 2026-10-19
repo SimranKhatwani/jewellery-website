@@ -2,7 +2,7 @@ import { Product } from '../types/jewellery';
 
 export const PRODUCTS: Product[] = [
   {
-    id: 'ring-01',
+    id: 'sculpted-molten-band',
     slug: 'sculpted-molten-band',
     name: 'The Sculpted Molten Band',
     category: 'rings',
@@ -42,7 +42,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'ring-02',
+    id: 'wave-contour-ring',
     slug: 'wave-contour-ring',
     name: 'The Wave Contour Ring',
     category: 'rings',
@@ -81,7 +81,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'ring-03',
+    id: 'architectural-signet-ring',
     slug: 'architectural-signet-ring',
     name: 'The Architectural Signet Ring',
     category: 'rings',
@@ -120,7 +120,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'ring-04',
+    id: 'caldera-statement-band',
     slug: 'caldera-statement-band',
     name: 'The Caldera Statement Band',
     category: 'rings',
@@ -157,7 +157,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'anklet-01',
+    id: 'fluid-curb-chain-anklet',
     slug: 'fluid-curb-chain-anklet',
     name: 'The Fluid Curb Chain Anklet',
     category: 'anklets',
@@ -196,7 +196,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'anklet-02',
+    id: 'polished-teardrop-clasp-anklet',
     slug: 'polished-teardrop-clasp-anklet',
     name: 'The Polished Teardrop Clasp Anklet',
     category: 'anklets',
@@ -234,7 +234,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'anklet-03',
+    id: 'liquid-snake-ribbon-anklet',
     slug: 'liquid-snake-ribbon-anklet',
     name: 'The Liquid Snake Ribbon Anklet',
     category: 'anklets',
@@ -271,7 +271,7 @@ export const PRODUCTS: Product[] = [
     stockistInquiryAvailable: true,
   },
   {
-    id: 'anklet-04',
+    id: 'orbit-satellite-beaded-anklet',
     slug: 'orbit-satellite-beaded-anklet',
     name: 'The Orbit Satellite Beaded Anklet',
     category: 'anklets',

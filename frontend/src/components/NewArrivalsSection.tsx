@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product } from '../types/jewellery';
 import { ProductCard } from './ProductCard';
+import { isProductWishlisted } from '../services/productService';
 
 interface NewArrivalsSectionProps {
   products: Product[];
@@ -37,7 +38,7 @@ export const NewArrivalsSection: React.FC<NewArrivalsSectionProps> = ({
               <ProductCard
                 product={product}
                 onSelectProduct={onSelectProduct}
-                isWishlisted={wishlistIds.includes(product.id)}
+                isWishlisted={isProductWishlisted(product, wishlistIds)}
                 onToggleWishlist={onToggleWishlist}
               />
             </div>

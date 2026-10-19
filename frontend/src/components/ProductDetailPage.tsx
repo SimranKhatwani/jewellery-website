@@ -300,7 +300,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             {/* Save to Favourites Action */}
             <div className="pt-2">
               <button
-                onClick={(e) => onToggleWishlist(product.id, e)}
+                onClick={(e) => onToggleWishlist(product.slug || product.id, e)}
                 className={`w-full py-2.5 px-4 rounded-xs border text-xs uppercase tracking-wider font-medium flex items-center justify-center gap-2 transition-colors ${
                   isWishlisted
                     ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF]'

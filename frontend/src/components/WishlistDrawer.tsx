@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Heart, Trash2, ArrowRight } from 'lucide-react';
 import { Product } from '../types/jewellery';
+import { isProductWishlisted } from '../services/productService';
 
 interface WishlistDrawerProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const wishlistedProducts = products.filter((p) => wishlistIds.includes(p.id));
+  const wishlistedProducts = products.filter((p) => isProductWishlisted(p, wishlistIds));
 
   return (
     <div className="fixed inset-0 z-50 bg-[#593D30]/70 backdrop-blur-xs flex justify-end">
@@ -100,7 +101,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                       <ArrowRight className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() => onRemoveFromWishlist(product.id)}
+                      onClick={() => onRemoveFromWishlist(product.slug || product.id)}
                       className="text-[11px] text-[#8E8172] hover:text-red-700 flex items-center gap-1 transition-colors"
                     >
                       <Trash2 className="w-3 h-3" />

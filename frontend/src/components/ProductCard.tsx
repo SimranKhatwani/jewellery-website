@@ -52,7 +52,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Wishlist Button: Burnt Terracotta #A85F49 accent */}
         <button
-          onClick={(e) => onToggleWishlist(product.id, e)}
+          onClick={(e) => onToggleWishlist(product.slug || product.id, e)}
           className="absolute top-3 right-3 z-10 p-2 rounded-full bg-[#FFFFFF]/90 backdrop-blur-xs text-[#593D30] hover:text-[#A85F49] hover:bg-[#FFFFFF] transition-transform duration-200 active:scale-90 shadow-xs"
           title={isWishlisted ? "Remove from favourites" : "Save to favourites"}
           aria-label={isWishlisted ? "Remove from favourites" : "Save to favourites"}

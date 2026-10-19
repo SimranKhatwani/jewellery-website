@@ -125,10 +125,11 @@ export function resolveMediaUrl(url?: string): string {
  * Normalise product objects coming from backend or MongoDB
  */
 function formatProduct(raw: any): Product {
+  const canonicalId = raw.slug || raw.id || (raw._id ? String(raw._id) : '');
   return {
-    id: raw.id || raw.slug || raw._id,
+    id: canonicalId,
     _id: raw._id,
-    slug: raw.slug,
+    slug: raw.slug || canonicalId,
     name: raw.name,
     category: raw.category,
     priceUSD: Number(raw.priceUSD) || 0,
@@ -183,4 +184,60 @@ export function subscribeCatalogueChanges(callback: () => void) {
   return () => {
     window.removeEventListener('aurelle_catalogue_updated', callback);
   };
+}
+
+// Legacy static ID mappings to canonical slugs
+export const LEGACY_WISHLIST_MAP: Record<string, string> = {
+  'ring-01': 'sculpted-molten-band',
+  'ring-02': 'wave-contour-ring',
+  'ring-03': 'architectural-signet-ring',
+  'ring-04': 'caldera-statement-band',
+  'anklet-01': 'fluid-curb-chain-anklet',
+  'anklet-02': 'polished-teardrop-clasp-anklet',
+  'anklet-03': 'liquid-snake-ribbon-anklet',
+  'anklet-04': 'orbit-satellite-beaded-anklet',
+};
+
+/**
+ * Checks whether a product is in the wishlist array, robustly matching
+ * canonical slug, id, mongo _id, or legacy static IDs.
+ */
+export function isProductWishlisted(product: Product, wishlistIds: string[]): boolean {
+  if (!product || !Array.isArray(wishlistIds) || wishlistIds.length === 0) return false;
+  const id = product.id;
+  const slug = product.slug;
+  const _id = product._id ? String(product._id) : undefined;
+
+  return wishlistIds.some((storedId) => {
+    if (storedId === id || (slug && storedId === slug) || (_id && storedId === _id)) {
+      return true;
+    }
+    const mapped = LEGACY_WISHLIST_MAP[storedId];
+    if (mapped && (mapped === slug || mapped === id)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Normalizes a list of wishlist IDs against the active products:
+ * 1. Converts legacy IDs (e.g. 'ring-01') to canonical slugs ('sculpted-molten-band')
+ * 2. Prunes phantom/orphaned IDs that don't match any product in the catalogue
+ * 3. Deduplicates IDs
+ */
+export function normalizeWishlistIds(products: Product[], wishlistIds: string[]): string[] {
+  if (!Array.isArray(products) || products.length === 0 || !Array.isArray(wishlistIds)) {
+    return wishlistIds || [];
+  }
+
+  const matchedSlugs = new Set<string>();
+
+  for (const product of products) {
+    if (isProductWishlisted(product, wishlistIds)) {
+      matchedSlugs.add(product.slug || product.id);
+    }
+  }
+
+  return Array.from(matchedSlugs);
 }

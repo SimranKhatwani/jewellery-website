@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product } from '../types/jewellery';
 import { ProductCard } from './ProductCard';
+import { isProductWishlisted } from '../services/productService';
 
 interface BestsellersSectionProps {
   products: Product[];
@@ -36,7 +37,7 @@ export const BestsellersSection: React.FC<BestsellersSectionProps> = ({
             key={product.id}
             product={product}
             onSelectProduct={onSelectProduct}
-            isWishlisted={wishlistIds.includes(product.id)}
+            isWishlisted={isProductWishlisted(product, wishlistIds)}
             onToggleWishlist={onToggleWishlist}
           />
         ))}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../types/jewellery';
 import { ProductCard } from './ProductCard';
 import { ArrowUpRight } from 'lucide-react';
+import { isProductWishlisted } from '../services/productService';
 
 interface RingsSectionProps {
   rings: Product[];
@@ -127,7 +128,7 @@ export const RingsSection: React.FC<RingsSectionProps> = ({
               key={ring.id}
               product={ring}
               onSelectProduct={onSelectProduct}
-              isWishlisted={wishlistIds.includes(ring.id)}
+              isWishlisted={isProductWishlisted(ring, wishlistIds)}
               onToggleWishlist={onToggleWishlist}
             />
           ))}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../types/jewellery';
 import { ProductCard } from './ProductCard';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { isProductWishlisted } from '../services/productService';
 
 interface AnkletsSectionProps {
   anklets: Product[];
@@ -143,7 +144,7 @@ export const AnkletsSection: React.FC<AnkletsSectionProps> = ({
               key={anklet.id}
               product={anklet}
               onSelectProduct={onSelectProduct}
-              isWishlisted={wishlistIds.includes(anklet.id)}
+              isWishlisted={isProductWishlisted(anklet, wishlistIds)}
               onToggleWishlist={onToggleWishlist}
             />
           ))}
