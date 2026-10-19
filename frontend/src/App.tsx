@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRODUCTS } from './data/products';
 import { Product } from './types/jewellery';
 import { Header } from './components/Header';
-import { CampaignHeroVideo } from './components/CampaignHeroVideo';
+import { RotatingRingHero } from './components/RotatingRingHero';
 import { HandDrawnBenefitsBanner } from './components/HandDrawnBenefitsBanner';
 import { RingsSection } from './components/RingsSection';
 import { ShopByCategory } from './components/ShopByCategory';
@@ -228,7 +228,7 @@ export default function App() {
   const anklets = products.filter((p) => p.category === 'anklets');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF]">
+    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF] overflow-x-hidden">
       {/* 1 & 2. Announcement Strip & Minimal Navigation Header */}
       <Header
         wishlistCount={wishlistedProducts.length}
@@ -259,8 +259,8 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 3. Integrated Luxury Jewellery Campaign Video Hero */}
-            <CampaignHeroVideo onExploreClick={handleExploreHeroTarget} />
+            {/* 3. Realistic 3D Rotating Silver Solitaire Ring Hero */}
+            <RotatingRingHero onExploreClick={handleExploreHeroTarget} />
 
             {/* 4. Hand-drawn benefits banner (placed immediately below hero slideshow) */}
             <HandDrawnBenefitsBanner />
