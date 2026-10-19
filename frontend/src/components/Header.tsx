@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Navigation Links: Deep Chocolate #593D30 with Terracotta #A85F49 Hover */}
-          <nav className="hidden md:flex items-center gap-8 text-xs uppercase tracking-[0.18em] font-medium text-[#593D30]/90">
+          <nav className="hidden md:flex items-center gap-8 text-sm uppercase tracking-[0.18em] font-medium text-[#593D30]/90">
             <button
               onClick={onNavigateHome}
               className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 py-1"

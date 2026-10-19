@@ -21,7 +21,7 @@ export const ShopByCategory: React.FC<ShopByCategoryProps> = ({
         <h2 className="text-3xl sm:text-4xl font-serif-display font-light text-[#593D30] tracking-tight">
           Shop by Category
         </h2>
-        <p className="text-xs sm:text-sm text-[#8E8172] mt-2 font-light">
+        <p className="text-sm md:text-base text-[#8E8172] mt-2 font-light">
           Sculptural statement bands and delicate chain drape, crafted in pure 925 sterling silver.
         </p>
       </div>
