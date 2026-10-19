@@ -1,7 +1,14 @@
 import { PRODUCTS } from '../data/products';
 import { Product } from '../types/jewellery';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+function getApiBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  if (!raw || raw === '/') return '/api';
+  if (raw.endsWith('/api')) return raw;
+  return `${raw}/api`;
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface CatalogueResponse {
   products: Product[];
@@ -101,6 +108,20 @@ export async function getCategories(): Promise<CategoryItem[]> {
 }
 
 /**
+ * Resolve relative media URLs (like /api/media/...) to full backend URLs if VITE_API_BASE_URL is remote
+ */
+export function resolveMediaUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('/api/')) {
+    const raw = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+    if (!raw || raw === '/api') return url;
+    const backendOrigin = raw.replace(/\/api$/, '');
+    return backendOrigin ? `${backendOrigin}${url}` : url;
+  }
+  return url;
+}
+
+/**
  * Normalise product objects coming from backend or MongoDB
  */
 function formatProduct(raw: any): Product {
@@ -120,10 +141,10 @@ function formatProduct(raw: any): Product {
     displayOrder: raw.displayOrder || 0,
     inStock: raw.inStock !== false,
     sku: raw.sku || '',
-    primaryImage: raw.primaryImage || '',
-    secondaryImage: raw.secondaryImage || '',
-    detailImage: raw.detailImage || '',
-    lifestyleImage: raw.lifestyleImage || '',
+    primaryImage: resolveMediaUrl(raw.primaryImage),
+    secondaryImage: resolveMediaUrl(raw.secondaryImage),
+    detailImage: resolveMediaUrl(raw.detailImage),
+    lifestyleImage: resolveMediaUrl(raw.lifestyleImage),
     options: raw.options || {
       type: 'size',
       name: 'Available Size',

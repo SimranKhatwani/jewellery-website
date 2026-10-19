@@ -1,6 +1,13 @@
 import { Product } from '../types/jewellery';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+function getApiBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  if (!raw || raw === '/') return '/api';
+  if (raw.endsWith('/api')) return raw;
+  return `${raw}/api`;
+}
+
+const API_BASE_URL = getApiBaseUrl();
 const TOKEN_KEY = 'aurelle_admin_token';
 const ADMIN_USER_KEY = 'aurelle_admin_user';
 
@@ -55,20 +62,50 @@ async function authFetch(endpoint: string, options: RequestInit = {}): Promise<R
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return fetch(`${API_BASE_URL}${endpoint}`, {
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
+
+  const contentType = res.headers.get('content-type') || '';
+  if (!res.ok && !contentType.includes('application/json')) {
+    if (res.status === 404) {
+      throw new Error(
+        `API endpoint not found (HTTP 404 at ${API_BASE_URL}${endpoint}). The backend is not responding on this domain.`
+      );
+    }
+    throw new Error(`Backend server error (HTTP ${res.status}).`);
+  }
+
+  return res;
 }
 
 // ----------------- Auth API -----------------
-export async function adminLogin(email: string, password: string): Promise<{ success: boolean; token?: string; admin?: AdminUser; message?: string }> {
+export async function adminLogin(
+  email: string,
+  password: string
+): Promise<{ success: boolean; token?: string; admin?: AdminUser; message?: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      if (res.status === 404) {
+        return {
+          success: false,
+          message:
+            'Backend API not found (HTTP 404). If you are on Vercel, the Express backend is not running on this domain. Please test on localhost (http://localhost:3000/admin) or configure backend deployment on Vercel / Render.',
+        };
+      }
+      return {
+        success: false,
+        message: `Backend returned unexpected response (HTTP ${res.status}). Make sure backend server is active.`,
+      };
+    }
 
     const data = await res.json();
     if (!res.ok || !data.success) {
@@ -78,7 +115,13 @@ export async function adminLogin(email: string, password: string): Promise<{ suc
     setAdminAuth(data.token, data.admin);
     return { success: true, token: data.token, admin: data.admin };
   } catch (err: any) {
-    return { success: false, message: err?.message || 'Network error connecting to backend server.' };
+    return {
+      success: false,
+      message:
+        err?.message?.includes('Failed to fetch') || err?.name === 'TypeError'
+          ? 'Unable to connect to backend server. If deployed on Render free tier, it may take 30–50 seconds to wake up from idle on the first request. Please wait 30 seconds and try again.'
+          : err?.message || 'Network error connecting to backend server.',
+    };
   }
 }
 

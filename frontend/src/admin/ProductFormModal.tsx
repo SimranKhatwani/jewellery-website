@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Product } from '../types/jewellery';
 import { uploadMediaImage } from './api';
+import { resolveMediaUrl } from '../services/productService';
 
 interface ProductFormModalProps {
   product: Product | null; // null for Create, Product object for Edit
@@ -394,7 +395,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 <div className="w-full h-44 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs flex items-center justify-center overflow-hidden relative">
                   {primaryImage ? (
                     <img
-                      src={primaryImage}
+                      src={resolveMediaUrl(primaryImage)}
                       alt="Product preview"
                       className="w-full h-full object-cover"
                       onError={(e) => {

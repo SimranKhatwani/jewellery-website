@@ -10,7 +10,7 @@ import {
   adminLogout,
 } from './api';
 import { ProductFormModal } from './ProductFormModal';
-import { notifyCatalogueChanged } from '../services/productService';
+import { notifyCatalogueChanged, resolveMediaUrl } from '../services/productService';
 
 interface AdminDashboardProps {
   admin: AdminUser;
@@ -374,7 +374,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="flex items-center gap-3">
                             <div className="w-11 h-11 shrink-0 rounded-xs bg-[#FAF7F2] border border-[#D7C5AF]/60 overflow-hidden">
                               <img
-                                src={p.primaryImage}
+                                src={resolveMediaUrl(p.primaryImage)}
                                 alt={p.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
