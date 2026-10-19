@@ -36,12 +36,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
     }
   };
 
-  const handleFillDemoCreds = () => {
-    setEmail('admin@aurelle.com');
-    setPassword('AurelleAdmin2026!');
-    setErrorMsg(null);
-  };
-
   return (
     <div className="min-h-screen bg-[#F7F1E9] flex flex-col justify-center items-center px-4 py-12 selection:bg-[#A85F49] selection:text-[#FFFFFF]">
       <div className="w-full max-w-md bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-sm shadow-xl p-8 sm:p-10">
@@ -118,20 +112,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
             )}
           </button>
         </form>
-
-        {/* Demo Credentials Quick Fill */}
-        <div className="mt-6 pt-6 border-t border-[#D7C5AF]/40 text-center">
-          <p className="text-[11px] text-[#8E8172] mb-2 font-sans">
-            Initial setup or testing default account?
-          </p>
-          <button
-            type="button"
-            onClick={handleFillDemoCreds}
-            className="text-xs text-[#A85F49] hover:underline font-medium tracking-wide"
-          >
-            Prefill default seed credentials (admin@aurelle.com)
-          </button>
-        </div>
 
         {/* Back to Storefront Link */}
         <div className="mt-6 text-center">
