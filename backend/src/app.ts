@@ -10,10 +10,17 @@ export const createApp = (): Application => {
   const app = express();
 
   // Configure CORS
+  const extraOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
   const allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    process.env.FRONTEND_URL,
+    'https://jewellery-website-eta-flax.vercel.app',
+    'http://jewellery-website-eta-flax.vercel.app',
+    ...extraOrigins,
     process.env.ADMIN_URL,
   ].filter(Boolean) as string[];
 
@@ -21,7 +28,15 @@ export const createApp = (): Application => {
     cors({
       origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps, curl, or same-origin)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+
+        const isExactMatch = allowedOrigins.includes(origin);
+        const isVercelPreview = /^https:\/\/jewellery-website-[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
+
+        if (isExactMatch || isVercelPreview) {
           callback(null, true);
         } else {
           callback(null, true); // Dev-friendly fallback
