@@ -12,6 +12,7 @@ import { NewArrivalsSection } from './components/NewArrivalsSection';
 import { BrandStorySection } from './components/BrandStorySection';
 import { ContactSection } from './components/ContactSection';
 import { ProductDetailPage } from './components/ProductDetailPage';
+import { ReturnPolicyPage } from './components/ReturnPolicyPage';
 import { SearchModal } from './components/SearchModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
@@ -33,6 +34,12 @@ export default function App() {
       window.location.pathname.startsWith('/admin') ||
       window.location.hash.startsWith('#admin')
     );
+  });
+
+  // State for Return Policy separate page view
+  const [isReturnPolicyView, setIsReturnPolicyView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.hash === '#return-policy';
   });
 
   // Dynamic products state fetched from MongoDB backend API (with local catalogue fallback)
@@ -120,11 +127,16 @@ export default function App() {
     }
   }, [wishlistIds]);
 
-  // Handle URL hash changes for deep linking (e.g. #product/sculpted-molten-band)
+  // Handle URL hash changes for deep linking (e.g. #product/sculpted-molten-band or #return-policy)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
-      if (hash.startsWith('#product/')) {
+      if (hash === '#return-policy') {
+        setIsReturnPolicyView(true);
+        setSelectedProduct(null);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (hash.startsWith('#product/')) {
+        setIsReturnPolicyView(false);
         const slug = hash.replace('#product/', '');
         const found = products.find((p) => p.slug === slug || p.id === slug);
         if (found) {
@@ -132,6 +144,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       } else if (!hash || hash === '#') {
+        setIsReturnPolicyView(false);
         setSelectedProduct(null);
       }
     };
@@ -142,6 +155,7 @@ export default function App() {
   }, [products]);
 
   const handleSelectProduct = useCallback((product: Product) => {
+    setIsReturnPolicyView(false);
     setSelectedProduct(product);
     window.location.hash = `product/${product.slug}`;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -149,7 +163,16 @@ export default function App() {
 
   const handleBackToCatalogue = useCallback(() => {
     setSelectedProduct(null);
+    setIsReturnPolicyView(false);
     window.history.pushState(null, '', window.location.pathname);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleOpenReturnPolicy = useCallback(() => {
+    setSelectedProduct(null);
+    setIsReturnPolicyView(true);
+    window.location.hash = 'return-policy';
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
   const handleToggleWishlist = useCallback((productId: string, e: React.MouseEvent) => {
@@ -200,7 +223,7 @@ export default function App() {
   };
 
   const handleNavigateSection = (sectionId: string) => {
-    if (selectedProduct) {
+    if (selectedProduct || isReturnPolicyView) {
       handleBackToCatalogue();
     }
     setTimeout(() => {
@@ -236,7 +259,7 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onNavigateHome={handleBackToCatalogue}
         onNavigateCategory={(cat) => {
-          if (selectedProduct) handleBackToCatalogue();
+          if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
           setTimeout(() => {
             const el = document.getElementById(cat);
             if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -247,7 +270,9 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1">
-        {selectedProduct ? (
+        {isReturnPolicyView ? (
+          <ReturnPolicyPage onBack={handleBackToCatalogue} />
+        ) : selectedProduct ? (
           <ProductDetailPage
             product={selectedProduct}
             allProducts={products}
@@ -316,13 +341,14 @@ export default function App() {
       {/* 10. Footer */}
       <Footer
         onNavigateCategory={(cat) => {
-          if (selectedProduct) handleBackToCatalogue();
+          if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
           setTimeout(() => {
             document.getElementById(cat)?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
         }}
         onOpenSizeGuide={(cat) => setSizeGuideCategory(cat)}
         onNavigateSection={handleNavigateSection}
+        onOpenReturnPolicy={handleOpenReturnPolicy}
       />
 
       {/* Search Modal */}

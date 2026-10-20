@@ -5,12 +5,14 @@ interface FooterProps {
   onNavigateCategory: (category: 'rings' | 'anklets' | 'all') => void;
   onOpenSizeGuide: (category: 'rings' | 'anklets') => void;
   onNavigateSection: (sectionId: string) => void;
+  onOpenReturnPolicy?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onNavigateCategory,
   onOpenSizeGuide,
   onNavigateSection,
+  onOpenReturnPolicy,
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -91,7 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 3: Customer Care & Fitting (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <span className="text-xs uppercase tracking-[0.2em] text-[#FFFFFF] font-medium block">
-              Client Fitting & Story
+              Client Fitting & Care
             </span>
             <ul className="space-y-2 text-xs text-[#F7F1E9]/85">
               <li>
@@ -124,6 +126,14 @@ export const Footer: React.FC<FooterProps> = ({
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >
                   Contact RKB Enterprises
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onOpenReturnPolicy}
+                  className="hover:text-[#A85F49] hover:underline transition-colors text-left"
+                >
+                  Return & Exchange Policy
                 </button>
               </li>
             </ul>
@@ -169,7 +179,13 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Row: Legal & Plain-text Purchase Notice */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#F7F1E9]/75">
           <p>© {new Date().getFullYear()} AURELLE. Distributed by RKB Enterprises.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6">
+            <button
+              onClick={onOpenReturnPolicy}
+              className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
+            >
+              Return Policy
+            </button>
             <span>Solid 925 Sterling Silver</span>
             <span>Hallmarked Quality</span>
             <span>Amazon and Flipkart</span>
