@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Search, Heart, Menu, X, ShoppingBag, User } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Heart, Menu, X, ShoppingBag, User, Bell, CheckCheck, Sparkles } from 'lucide-react';
+import {
+  fetchCustomerNotifications,
+  markCustomerNotificationRead,
+  markAllCustomerNotificationsRead,
+  getCustomerToken,
+} from '../services/storefrontService';
+import { initSocket } from '../services/socketService';
 
 export const Header = ({
   wishlistCount,
@@ -15,6 +22,71 @@ export const Header = ({
   onNavigateSection,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadNotifications = useCallback(async () => {
+    if (!customerUser) return;
+    try {
+      const data = await fetchCustomerNotifications({ limit: 10 });
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount ?? 0);
+    } catch (err) {
+      console.warn('Failed to fetch customer notifications:', err);
+    }
+  }, [customerUser]);
+
+  useEffect(() => {
+    if (customerUser) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 45000);
+
+      const token = getCustomerToken();
+      const socket = initSocket(token);
+
+      const handleLiveNotification = () => {
+        loadNotifications();
+      };
+
+      socket.on('notification:order_placed', handleLiveNotification);
+      socket.on('notification:order_status', handleLiveNotification);
+      socket.on('notification:order_cancelled', handleLiveNotification);
+
+      return () => {
+        clearInterval(interval);
+        socket.off('notification:order_placed', handleLiveNotification);
+        socket.off('notification:order_status', handleLiveNotification);
+        socket.off('notification:order_cancelled', handleLiveNotification);
+      };
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationsOpen(false);
+    }
+  }, [customerUser, loadNotifications]);
+
+  const handleMarkAsRead = async (notifId) => {
+    try {
+      await markCustomerNotificationRead(notifId);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notifId ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch (err) {
+      console.warn('Failed to mark notification read:', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllCustomerNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.warn('Failed to mark all read:', err);
+    }
+  };
 
   return (
     <div className="sticky top-0 z-40 w-full transition-colors">
@@ -146,6 +218,106 @@ export const Header = ({
                 </span>
               )}
             </button>
+
+            {/* Customer In-App Notification Bell */}
+            {customerUser && (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    const next = !notificationsOpen;
+                    setNotificationsOpen(next);
+                    if (next) loadNotifications();
+                  }}
+                  className="relative p-2 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full transition-colors"
+                  title="Notifications"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[0.95rem] h-[0.95rem] px-0.5 bg-[#A85F49] text-[#FFFFFF] text-[9px] font-mono font-bold rounded-full flex items-center justify-center leading-none">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Popover */}
+                {notificationsOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setNotificationsOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-xs shadow-2xl z-50 overflow-hidden animate-fade-in text-xs">
+                      <div className="p-3 bg-[#F7F1E9] border-b border-[#D7C5AF]/40 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-serif-display font-medium text-[#593D30]">
+                          <Bell className="w-3.5 h-3.5 text-[#A85F49]" />
+                          <span>Notifications</span>
+                          {unreadCount > 0 && (
+                            <span className="px-1.5 py-0.2 bg-[#A85F49] text-[#FFFFFF] rounded-full text-[9px] font-mono">
+                              {unreadCount} new
+                            </span>
+                          )}
+                        </div>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-[11px] text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
+                          >
+                            <CheckCheck className="w-3 h-3" />
+                            <span>Mark all read</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto divide-y divide-[#D7C5AF]/25">
+                        {notifications.length > 0 ? (
+                          notifications.map((n) => (
+                            <div
+                              key={n._id}
+                              onClick={() => {
+                                if (!n.isRead) handleMarkAsRead(n._id);
+                                if (onOpenProfile) onOpenProfile();
+                                setNotificationsOpen(false);
+                              }}
+                              className={`p-3 cursor-pointer transition-colors hover:bg-[#F7F1E9]/60 flex items-start gap-2.5 ${
+                                !n.isRead ? 'bg-[#FAF7F2]' : 'bg-[#FFFFFF]'
+                              }`}
+                            >
+                              <div className="mt-1 shrink-0">
+                                {!n.isRead ? (
+                                  <div className="w-2 h-2 rounded-full bg-[#A85F49]" />
+                                ) : (
+                                  <div className="w-2 h-2 rounded-full bg-stone-300" />
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-[#593D30] block">
+                                    {n.title}
+                                  </span>
+                                  <span className="text-[10px] text-[#8E8172] font-mono">
+                                    {new Date(n.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-[#8E8172] leading-relaxed">
+                                  {n.message}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center space-y-1">
+                            <Sparkles className="w-6 h-6 text-[#D7C5AF] mx-auto" />
+                            <p className="text-[#8E8172] text-[11px]">No notifications yet</p>
+                            <p className="text-[10px] text-[#8E8172]/70">Updates regarding your jewellery orders will appear here.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Customer Account Button */}
             <button

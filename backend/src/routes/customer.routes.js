@@ -3,6 +3,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import * as customerController from '../controllers/customer.controller.js';
 import * as addressController from '../controllers/address.controller.js';
 import * as orderController from '../controllers/order.controller.js';
+import * as notificationController from '../controllers/notification.controller.js';
 
 const router = Router();
 
@@ -49,5 +50,19 @@ router.post('/me/orders/:orderId/cancel', orderController.cancelCustomerOrder);
 router.get('/orders', orderController.getCustomerOrders);
 router.get('/orders/:orderId', orderController.getCustomerOrderDetails);
 router.post('/orders/:orderId/cancel', orderController.cancelCustomerOrder);
+
+/**
+ * Customer In-App Notification Endpoints
+ */
+router.get('/me/notifications', notificationController.getCustomerNotifications);
+router.get('/me/notifications/unread-count', notificationController.getCustomerUnreadCount);
+router.patch('/me/notifications/:notificationId/read', notificationController.markCustomerNotificationRead);
+router.post('/me/notifications/mark-all-read', notificationController.markAllCustomerNotificationsRead);
+
+// Aliases for notifications
+router.get('/notifications', notificationController.getCustomerNotifications);
+router.get('/notifications/unread-count', notificationController.getCustomerUnreadCount);
+router.patch('/notifications/:notificationId/read', notificationController.markCustomerNotificationRead);
+router.post('/notifications/mark-all-read', notificationController.markAllCustomerNotificationsRead);
 
 export default router;

@@ -325,3 +325,57 @@ export async function cancelAdminOrder(orderId, reason = '') {
   return data.order;
 }
 
+// ----------------- Notifications API (Phase 6.1) -----------------
+export async function getAdminNotifications(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.unreadOnly) query.set('unreadOnly', params.unreadOnly);
+
+  const qs = query.toString();
+  const res = await authFetch(`/notifications${qs ? `?${qs}` : ''}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load notifications: ${res.statusText}`);
+  }
+  const data = await res.json();
+  return {
+    notifications: data.notifications || [],
+    pagination: data.pagination || { total: 0, page: 1, limit: 20, pages: 1 },
+    unreadCount: data.unreadCount ?? 0,
+  };
+}
+
+export async function getAdminUnreadNotificationCount() {
+  try {
+    const res = await authFetch('/notifications/unread-count');
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.unreadCount ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function markAdminNotificationRead(notificationId) {
+  const res = await authFetch(`/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to mark notification as read');
+  }
+  return data.notification;
+}
+
+export async function markAllAdminNotificationsRead() {
+  const res = await authFetch('/notifications/mark-all-read', {
+    method: 'POST',
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to mark all notifications as read');
+  }
+  return data;
+}
+
+

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Package, Receipt } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Package, Receipt, Bell, CheckCheck, Sparkles, X } from 'lucide-react';
 import {
   getAdminProducts,
   createProduct,
@@ -7,10 +7,15 @@ import {
   deleteProduct,
   toggleProductPublish,
   adminLogout,
+  getAdminNotifications,
+  markAdminNotificationRead,
+  markAllAdminNotificationsRead,
+  getAdminToken,
 } from './api';
 import { ProductFormModal } from './ProductFormModal';
 import { OrdersManager } from './OrdersManager';
 import { notifyCatalogueChanged, resolveMediaUrl } from '../services/productService';
+import { initSocket } from '../services/socketService';
 
 export const AdminDashboard = ({
   admin,
@@ -33,6 +38,115 @@ export const AdminDashboard = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // In-App Notifications (Phase 6.1 + Real-time Socket.io)
+  const [adminNotificationsOpen, setAdminNotificationsOpen] = useState(false);
+  const [adminNotifications, setAdminNotifications] = useState([]);
+  const [adminUnreadCount, setAdminUnreadCount] = useState(0);
+  const [realtimeToast, setRealtimeToast] = useState(null);
+
+  const loadAdminNotifications = useCallback(async () => {
+    try {
+      const data = await getAdminNotifications({ limit: 10 });
+      setAdminNotifications(data.notifications || []);
+      setAdminUnreadCount(data.unreadCount ?? 0);
+    } catch (err) {
+      console.warn('Failed to fetch admin notifications:', err);
+    }
+  }, []);
+
+  // Real-time WebSocket Order Alerts via Socket.io
+  useEffect(() => {
+    loadAdminNotifications();
+    const interval = setInterval(loadAdminNotifications, 45000);
+
+    const token = getAdminToken();
+    const socket = initSocket(token);
+
+    const handleNewOrder = (data) => {
+      // 1. Instantly increment unread badge
+      setAdminUnreadCount((c) => c + 1);
+
+      // 2. Prepend live notification to dropdown list
+      const notifItem = {
+        _id: data.notification?._id || `rt_${Date.now()}`,
+        title: data.notification?.title || `New Order Received: #${data.order?.orderNumber}`,
+        message: data.notification?.message || `New order #${data.order?.orderNumber} placed.`,
+        relatedEntityType: 'Order',
+        relatedEntityId: data.order?._id,
+        metadata: data.notification?.metadata || {
+          orderNumber: data.order?.orderNumber,
+          totalPayable: data.order?.totalPayable,
+          currencySymbol: data.order?.currencySymbol,
+          customerName: data.order?.customerInfo?.name,
+          isGuest: Boolean(data.order?.customerInfo?.isGuest),
+        },
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      setAdminNotifications((prev) => [notifItem, ...prev]);
+
+      // 3. Show live popup toast alert
+      setRealtimeToast({
+        id: Date.now(),
+        title: notifItem.title,
+        message: notifItem.message,
+        isGuest: Boolean(notifItem.metadata?.isGuest),
+        orderNumber: data.order?.orderNumber,
+        totalPayable: data.order?.totalPayable,
+        currencySymbol: data.order?.currencySymbol || '₹',
+        customerName: data.order?.customerInfo?.name || 'Guest Shopper',
+      });
+
+      // 4. Auto dismiss toast after 8 seconds
+      setTimeout(() => {
+        setRealtimeToast((curr) => (curr?.orderNumber === data.order?.orderNumber ? null : curr));
+      }, 8000);
+    };
+
+    const handleStatusUpdate = () => {
+      loadAdminNotifications();
+    };
+
+    const handleOrderCancelled = () => {
+      setAdminUnreadCount((c) => c + 1);
+      loadAdminNotifications();
+    };
+
+    socket.on('notification:new_order', handleNewOrder);
+    socket.on('order:status_updated', handleStatusUpdate);
+    socket.on('notification:order_cancelled', handleOrderCancelled);
+
+    return () => {
+      clearInterval(interval);
+      socket.off('notification:new_order', handleNewOrder);
+      socket.off('order:status_updated', handleStatusUpdate);
+      socket.off('notification:order_cancelled', handleOrderCancelled);
+    };
+  }, [loadAdminNotifications]);
+
+  const handleMarkAdminRead = async (notifId) => {
+    try {
+      await markAdminNotificationRead(notifId);
+      setAdminNotifications((prev) =>
+        prev.map((n) => (n._id === notifId ? { ...n, isRead: true } : n))
+      );
+      setAdminUnreadCount((c) => Math.max(0, c - 1));
+    } catch (err) {
+      console.warn('Failed to mark read:', err);
+    }
+  };
+
+  const handleMarkAllAdminRead = async () => {
+    try {
+      await markAllAdminNotificationsRead();
+      setAdminNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setAdminUnreadCount(0);
+    } catch (err) {
+      console.warn('Failed to mark all read:', err);
+    }
+  };
 
   // Load products from backend
   const loadProducts = async () => {
@@ -154,6 +268,55 @@ export const AdminDashboard = ({
 
   return (
     <div className="min-h-screen bg-[#F7F1E9] text-[#593D30] font-sans selection:bg-[#A85F49] selection:text-[#FFFFFF]">
+      {/* Real-time Order Alert Toast (Socket.io) */}
+      {realtimeToast && (
+        <div className="fixed top-20 right-4 z-50 max-w-md w-full bg-[#FFFFFF] border-2 border-[#A85F49] shadow-2xl rounded-xs p-4 flex items-start gap-3 text-xs animate-fade-in">
+          <div className="w-8 h-8 rounded-full bg-[#A85F49]/15 flex items-center justify-center shrink-0 text-[#A85F49]">
+            <Bell className="w-4 h-4 animate-pulse" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-[#593D30]">
+                  {realtimeToast.title}
+                </span>
+                {realtimeToast.isGuest && (
+                  <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] font-mono rounded-xs font-semibold">
+                    Guest Checkout
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setRealtimeToast(null)}
+                className="text-[#8E8172] hover:text-[#593D30] p-0.5 rounded-xs"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-[11px] text-[#8E8172] leading-relaxed">
+              {realtimeToast.message}
+            </p>
+            <div className="pt-1 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setActiveTab('orders');
+                  setRealtimeToast(null);
+                }}
+                className="px-2.5 py-1 bg-[#A85F49] text-[#FFFFFF] font-medium rounded-xs hover:bg-[#8D4B37] transition-colors text-[10px]"
+              >
+                View in Orders &rarr;
+              </button>
+              <button
+                onClick={() => setRealtimeToast(null)}
+                className="text-[10px] text-[#8E8172] hover:underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Top Navigation Bar */}
       <header className="bg-[#FFFFFF] border-b border-[#D7C5AF]/60 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -189,6 +352,116 @@ export const AdminDashboard = ({
               </svg>
               <span className="hidden sm:inline">Storefront</span>
             </button>
+
+            {/* Store Admin In-App Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const next = !adminNotificationsOpen;
+                  setAdminNotificationsOpen(next);
+                  if (next) loadAdminNotifications();
+                }}
+                className="relative p-2 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full transition-colors"
+                title="Store Notifications"
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {adminUnreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[0.95rem] h-[0.95rem] px-0.5 bg-[#A85F49] text-[#FFFFFF] text-[9px] font-mono font-bold rounded-full flex items-center justify-center leading-none animate-pulse">
+                    {adminUnreadCount > 9 ? '9+' : adminUnreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Popover */}
+              {adminNotificationsOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setAdminNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-xs shadow-2xl z-50 overflow-hidden animate-fade-in text-xs">
+                    <div className="p-3 bg-[#F7F1E9] border-b border-[#D7C5AF]/40 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-semibold text-[#593D30]">
+                        <Bell className="w-3.5 h-3.5 text-[#A85F49]" />
+                        <span>Store Notifications</span>
+                        {adminUnreadCount > 0 && (
+                          <span className="px-1.5 py-0.2 bg-[#A85F49] text-[#FFFFFF] rounded-full text-[9px] font-mono">
+                            {adminUnreadCount} new
+                          </span>
+                        )}
+                      </div>
+                      {adminUnreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllAdminRead}
+                          className="text-[11px] text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
+                        >
+                          <CheckCheck className="w-3 h-3" />
+                          <span>Mark all read</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto divide-y divide-[#D7C5AF]/25">
+                      {adminNotifications.length > 0 ? (
+                        adminNotifications.map((n) => (
+                          <div
+                            key={n._id}
+                            onClick={() => {
+                              if (!n.isRead) handleMarkAdminRead(n._id);
+                              setActiveTab('orders');
+                              setAdminNotificationsOpen(false);
+                            }}
+                            className={`p-3 cursor-pointer transition-colors hover:bg-[#F7F1E9]/60 flex items-start gap-2.5 ${
+                              !n.isRead ? 'bg-[#FAF7F2]' : 'bg-[#FFFFFF]'
+                            }`}
+                          >
+                            <div className="mt-1 shrink-0">
+                              {!n.isRead ? (
+                                <div className="w-2 h-2 rounded-full bg-[#A85F49]" />
+                              ) : (
+                                <div className="w-2 h-2 rounded-full bg-stone-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-semibold text-[#593D30] block">
+                                    {n.title}
+                                  </span>
+                                  {n.metadata?.isGuest && (
+                                    <span className="px-1.5 py-0.2 bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-mono rounded-xs">
+                                      Guest
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-[#8E8172] font-mono shrink-0">
+                                  {new Date(n.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#8E8172] leading-relaxed">
+                                {n.message}
+                              </p>
+                              {n.relatedEntityType === 'Order' && (
+                                <span className="inline-block text-[10px] text-[#A85F49] font-medium underline">
+                                  View in Orders &rarr;
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center space-y-1">
+                          <Sparkles className="w-6 h-6 text-[#D7C5AF] mx-auto" />
+                          <p className="text-[#8E8172] text-[11px]">No notifications yet</p>
+                          <p className="text-[10px] text-[#8E8172]/70">New customer orders and cancellation requests will appear here.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="hidden md:flex flex-col text-right">
               <span className="text-xs font-medium text-[#593D30]">{admin.name}</span>

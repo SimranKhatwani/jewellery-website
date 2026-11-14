@@ -19,6 +19,8 @@
     "test:phase4": "node src/scripts/testPhase4CustomerCommerce.js",
     "test:remediation": "node src/scripts/testPhase3Phase4Remediation.js",
     "test:phase5": "node src/scripts/testPhase5Orders.js",
+    "test:phase6": "node src/scripts/testPhase6Notifications.js",
+    "test:socket": "node src/scripts/testPhase6SocketNotifications.js",
     "cleanup:test": "node src/scripts/cleanupTestData.js"
   },
   "dependencies": {
@@ -30,6 +32,8 @@
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4"
   }
 }

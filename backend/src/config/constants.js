@@ -198,3 +198,20 @@ export const ORDER_STATUS = {
   CANCELLED: 'cancelled',
 };
 
+export const RECIPIENT_TYPES = {
+  CUSTOMER: 'customer',
+  ADMIN: 'admin',
+};
+
+export const NOTIFICATION_TYPES = {
+  ORDER_PLACED: 'order_placed',
+  ORDER_CONFIRMED: 'order_confirmed',
+  ORDER_PROCESSING: 'order_processing',
+  ORDER_SHIPPED: 'order_shipped',
+  ORDER_DELIVERED: 'order_delivered',
+  ORDER_CANCELLED: 'order_cancelled',
+  ADMIN_NEW_ORDER: 'admin_new_order',
+  ADMIN_ORDER_CANCELLED: 'admin_order_cancelled',
+  ADMIN_ORDER_UPDATED: 'admin_order_updated',
+};
+

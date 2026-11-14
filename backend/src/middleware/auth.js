@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { Admin } from '../models/Admin.js';
 import { USER_STATUS } from '../config/constants.js';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import { config } from '../config/env.js';
@@ -36,7 +37,21 @@ export const authenticateAdmin = async (req, res, next) => {
       }
     }
     if (!req.user && decoded.email) {
-      const userByEmail = await User.findOne({ email: String(decoded.email).toLowerCase().trim() });
+      const email = String(decoded.email).toLowerCase().trim();
+      let userByEmail = await User.findOne({ email });
+      if (!userByEmail) {
+        // Auto-bridge legacy Admin model into unified User model
+        const adminDoc = await Admin.findOne({ email });
+        if (adminDoc) {
+          userByEmail = await User.create({
+            name: adminDoc.name || 'Aurelle Admin',
+            email: adminDoc.email,
+            passwordHash: adminDoc.passwordHash,
+            isSuperAdmin: adminDoc.role === 'superadmin',
+            status: USER_STATUS.ACTIVE,
+          });
+        }
+      }
       if (userByEmail) {
         req.user = userByEmail;
       }

@@ -13,6 +13,7 @@ import {
 } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
+import * as notificationService from './notification.service.js';
 
 /**
  * Generate a unique, tamper-resistant order number.
@@ -410,6 +411,13 @@ export async function placeStorefrontOrder({
       req,
     });
 
+    // 8.7 Safe in-app notification creation
+    try {
+      await notificationService.notifyOrderPlaced({ order: createdOrder, tenant, req });
+    } catch (notifErr) {
+      console.error('[NotificationService] Failed to generate order placed notifications:', notifErr.message);
+    }
+
     return { order: createdOrder, isDuplicate: false };
   } catch (error) {
     await session.abortTransaction();
@@ -633,6 +641,18 @@ export async function updateTenantOrderStatus(tenantId, orderId, { newStatus, no
     req,
   });
 
+  try {
+    await notificationService.notifyOrderStatusUpdated({
+      order,
+      previousStatus,
+      newStatus: normalizedStatus,
+      updatedBy: adminUser?._id,
+      req,
+    });
+  } catch (notifErr) {
+    console.error('[NotificationService] Failed to notify order status update:', notifErr.message);
+  }
+
   return order;
 }
 
@@ -734,6 +754,18 @@ export async function cancelOrderInternal(order, { cancelledBy = null, role = 's
       },
       req,
     });
+
+    try {
+      await notificationService.notifyOrderCancelled({
+        order,
+        cancelledBy,
+        role,
+        reason,
+        req,
+      });
+    } catch (notifErr) {
+      console.error('[NotificationService] Failed to notify order cancelled:', notifErr.message);
+    }
 
     return order;
   } catch (error) {

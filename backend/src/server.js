@@ -1,6 +1,8 @@
+import http from 'http';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 import { createApp } from './app.js';
+import { initSocketServer } from './socket.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,10 +21,15 @@ const startServer = async () => {
     }
 
     const app = createApp();
+    const server = http.createServer(app);
 
-    app.listen(PORT, () => {
+    // Initialize real-time WebSocket server
+    initSocketServer(server);
+
+    server.listen(PORT, () => {
       console.log(`[AURELLE Backend] Server listening on http://localhost:${PORT}`);
       console.log(`[AURELLE Backend] API Health: http://localhost:${PORT}/api/health`);
+      console.log(`[AURELLE Backend] Socket.io WebSocket active on port ${PORT}`);
     });
   } catch (error) {
     console.error('[AURELLE Backend] Fatal startup error:', error);

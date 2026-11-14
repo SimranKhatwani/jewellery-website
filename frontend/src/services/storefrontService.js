@@ -412,6 +412,80 @@ export async function cancelCustomerOrder(orderId, reason = '') {
 }
 
 // -------------------------------------------------------------
+// CUSTOMER NOTIFICATIONS APIS (PHASE 6.1)
+// -------------------------------------------------------------
+
+export async function fetchCustomerNotifications({ page = 1, limit = 20, unreadOnly = false } = {}) {
+  const token = getCustomerToken();
+  if (!token) return { notifications: [], unreadCount: 0 };
+
+  const res = await fetch(
+    `${API_BASE_URL}/v1/customers/me/notifications?page=${page}&limit=${limit}&unreadOnly=${unreadOnly}`,
+    {
+      headers: getStorefrontHeaders(),
+    }
+  );
+
+  if (!res.ok) return { notifications: [], unreadCount: 0 };
+  const data = await res.json();
+  return {
+    notifications: data.notifications || [],
+    unreadCount: data.unreadCount ?? 0,
+    pagination: data.pagination,
+  };
+}
+
+export async function fetchCustomerUnreadNotificationCount() {
+  const token = getCustomerToken();
+  if (!token) return 0;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/customers/me/notifications/unread-count`, {
+      headers: getStorefrontHeaders(),
+    });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.unreadCount ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function markCustomerNotificationRead(notificationId) {
+  const token = getCustomerToken();
+  if (!token) return null;
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+    headers: getStorefrontHeaders(),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || 'Failed to mark notification as read');
+  }
+  const data = await res.json();
+  return data.notification;
+}
+
+export async function markAllCustomerNotificationsRead() {
+  const token = getCustomerToken();
+  if (!token) return { updatedCount: 0 };
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/notifications/mark-all-read`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || 'Failed to mark all notifications as read');
+  }
+  const data = await res.json();
+  return data;
+}
+
+// -------------------------------------------------------------
 // CUSTOMER AUTH & PROFILE APIS
 // -------------------------------------------------------------
 
