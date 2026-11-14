@@ -1,7 +1,5 @@
 import * as authService from '../services/auth.service.js';
 import { sendSuccess } from '../utils/response.js';
-import { logAudit } from '../utils/audit.js';
-import { AUDIT_ACTIONS } from '../config/constants.js';
 
 export const register = async (req, res, next) => {
   try {
@@ -46,19 +44,32 @@ export const getProfile = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
-    if (req.user) {
-      await logAudit({
-        userId: req.user._id,
-        action: AUDIT_ACTIONS.USER_LOGOUT,
-        resource: 'User',
-        resourceId: req.user._id,
-        req,
-      });
-    }
-
-    return sendSuccess(res, null, 'Logged out successfully.');
+    await authService.logoutUser(req.user._id, req);
+    return sendSuccess(res, null, 'Logged out successfully. All active sessions have been invalidated.');
   } catch (error) {
     next(error);
   }
 };
 
+export const getInvitation = async (req, res, next) => {
+  try {
+    const details = await authService.getInvitationDetails(req.params.token);
+    return sendSuccess(res, details, 'Invitation details verified.');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const acceptInvitation = async (req, res, next) => {
+  try {
+    const result = await authService.acceptInvitation({
+      token: req.body.token,
+      name: req.body.name,
+      password: req.body.password,
+      req,
+    });
+    return sendSuccess(res, result, 'Invitation accepted successfully. Account configured.');
+  } catch (error) {
+    next(error);
+  }
+};

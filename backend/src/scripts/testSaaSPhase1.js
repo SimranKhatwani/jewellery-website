@@ -7,6 +7,8 @@ import { Tenant } from '../models/Tenant.js';
 import { Role } from '../models/Role.js';
 import { TenantMembership } from '../models/TenantMembership.js';
 import { AuditLog } from '../models/AuditLog.js';
+import { SubscriptionPlan } from '../models/SubscriptionPlan.js';
+import { Subscription } from '../models/Subscription.js';
 import { USER_STATUS, TENANT_STATUS, MEMBERSHIP_STATUS } from '../config/constants.js';
 
 dotenv.config();
@@ -287,8 +289,22 @@ const runPhase1Tests = async () => {
     if (inviteRes.status !== 201) {
       throw new Error(`Staff invite failed: ${JSON.stringify(inviteRes.body)}`);
     }
-    const staffMembershipId = inviteRes.body.data._id;
     console.log(`  -> Invited staff member: ${staffEmail} (Role: store_viewer)`);
+
+    // Staff accepts invitation to establish membership
+    const acceptRes = await request(app, 'POST', '/api/v1/auth/accept-invitation', {
+      body: {
+        token: inviteRes.body.data.inviteToken,
+        name: 'Bob Staff',
+        password: 'StaffPass123!',
+      },
+    });
+    if (acceptRes.status !== 200) {
+      throw new Error(`Accept invite failed: ${JSON.stringify(acceptRes.body)}`);
+    }
+    const staffUser = await User.findOne({ email: staffEmail });
+    const staffMembership = await TenantMembership.findOne({ tenantId: tenantA._id, userId: staffUser._id });
+    const staffMembershipId = staffMembership._id;
 
     // 5d. Store Admin lists staff
     const listStaffRes = await request(app, 'GET', '/api/v1/tenants/staff', {
@@ -308,6 +324,16 @@ const runPhase1Tests = async () => {
     // TEST 6: Dynamic Tenant Roles & Granular Permission Checks
     // -------------------------------------------------------------------------
     console.log('[TEST 6/8] Testing Dynamic Staff Roles & Permission Checks...');
+
+    // Upgrade Store A to Growth plan to enable dynamic custom roles feature
+    const growthPlan = await SubscriptionPlan.findOne({ slug: 'growth' });
+    if (growthPlan) {
+      await Subscription.findOneAndUpdate(
+        { tenantId: tenantA._id },
+        { $set: { planId: growthPlan._id, status: 'active' } },
+        { upsert: true }
+      );
+    }
 
     // 6a. Store Admin creates a custom dynamic role: "catalog-manager"
     const createRoleRes = await request(app, 'POST', '/api/v1/roles', {
@@ -345,10 +371,6 @@ const runPhase1Tests = async () => {
     console.log(`  -> Assigned custom role '${customRole.name}' to staff member.`);
 
     // 6c. Staff member logs in
-    const staffUser = await User.findOne({ email: staffEmail });
-    staffUser.passwordHash = await (await import('bcryptjs')).default.hash('StaffPass123!', 10);
-    await staffUser.save();
-
     const staffLoginRes = await request(app, 'POST', '/api/v1/auth/login', {
       body: { email: staffEmail, password: 'StaffPass123!' },
     });
@@ -479,6 +501,7 @@ const runPhase1Tests = async () => {
     await TenantMembership.deleteMany({ tenantId: { $in: [tenantA._id, tenantB._id] } });
     await Role.deleteMany({ tenantId: { $in: [tenantA._id, tenantB._id] } });
     await AuditLog.deleteMany({ tenantId: { $in: [tenantA._id, tenantB._id] } });
+    await Subscription.deleteMany({ tenantId: { $in: [tenantA._id, tenantB._id] } });
 
     console.log('================================================================');
     console.log(`  ALL ${passedTests}/${totalTests} TESTS PASSED CLEANLY! (100% SUCCESS)`);

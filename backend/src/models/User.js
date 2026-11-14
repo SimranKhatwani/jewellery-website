@@ -47,6 +47,11 @@ const UserSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
   },
   {
     timestamps: true,

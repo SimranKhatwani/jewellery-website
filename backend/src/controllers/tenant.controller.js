@@ -99,3 +99,18 @@ export const removeStaff = async (req, res, next) => {
   }
 };
 
+export const transferOwnership = async (req, res, next) => {
+  try {
+    const result = await tenantService.transferTenantOwnership({
+      tenantId: req.tenant._id,
+      currentOwnerId: req.user._id,
+      newOwnerId: req.body.newOwnerId,
+      isSuperAdmin: req.user.isSuperAdmin,
+      req,
+    });
+    return sendSuccess(res, result, 'Store ownership transferred successfully.');
+  } catch (error) {
+    next(error);
+  }
+};
+

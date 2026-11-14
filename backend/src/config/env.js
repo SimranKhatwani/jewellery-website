@@ -21,9 +21,9 @@ export const config = {
       .filter(Boolean),
   },
   superAdmin: {
-    email: process.env.SUPERADMIN_EMAIL || 'superadmin@aurelle.com',
-    password: process.env.SUPERADMIN_PASSWORD || 'SuperAdminAurelle2026!',
-    name: process.env.SUPERADMIN_NAME || 'Aurelle Platform Super Admin',
+    email: process.env.SUPERADMIN_EMAIL ? process.env.SUPERADMIN_EMAIL.trim() : '',
+    password: process.env.SUPERADMIN_PASSWORD || '',
+    name: process.env.SUPERADMIN_NAME ? process.env.SUPERADMIN_NAME.trim() : 'Aurelle Platform Super Admin',
   },
 };
 

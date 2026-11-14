@@ -58,6 +58,84 @@ export const DEFAULT_PERMISSIONS = [
   { key: 'audit:view', name: 'View Store Audit Logs', module: 'audit', description: 'View security and change history' },
 ];
 
+export const DEFAULT_PLAN_FEATURES = [
+  { key: 'products:read', name: 'View Products', category: 'catalog', description: 'Browse and view products', type: 'boolean' },
+  { key: 'products:write', name: 'Product Management', category: 'catalog', description: 'Add and edit products', type: 'boolean' },
+  { key: 'inventory:advanced', name: 'Advanced Inventory', category: 'inventory', description: 'Variant tracking, low-stock alerts', type: 'boolean' },
+  { key: 'analytics:advanced', name: 'Advanced Analytics', category: 'analytics', description: 'Revenue breakdowns, conversion funnels', type: 'boolean' },
+  { key: 'staff:custom_roles', name: 'Custom Staff Roles', category: 'staff', description: 'Create dynamic roles with custom permissions', type: 'boolean' },
+  { key: 'marketing:campaigns', name: 'Marketing Campaigns', category: 'marketing', description: 'Discounts, coupon codes, and banners', type: 'boolean' },
+  { key: 'domain:custom', name: 'Custom Domain', category: 'domain', description: 'Connect branded custom domain', type: 'boolean' },
+];
+
+export const DEFAULT_SUBSCRIPTION_PLANS = [
+  {
+    name: 'Starter Trial',
+    slug: 'starter',
+    description: 'Essential luxury storefront features for boutique jewellers',
+    price: 0,
+    currency: 'INR',
+    billingInterval: 'monthly',
+    trialDays: 14,
+    features: ['products:read', 'products:write'],
+    limits: {
+      maxProducts: 50,
+      maxStaff: 2,
+      maxStorageMB: 500,
+      customDomainAllowed: false,
+    },
+    displayOrder: 1,
+    isActive: true,
+    isPublic: true,
+  },
+  {
+    name: 'Growth',
+    slug: 'growth',
+    description: 'Comprehensive features for expanding jewellery retail brands',
+    price: 2999,
+    currency: 'INR',
+    billingInterval: 'monthly',
+    trialDays: 0,
+    features: ['products:read', 'products:write', 'inventory:advanced', 'staff:custom_roles', 'domain:custom'],
+    limits: {
+      maxProducts: 500,
+      maxStaff: 10,
+      maxStorageMB: 5000,
+      customDomainAllowed: true,
+    },
+    displayOrder: 2,
+    isActive: true,
+    isPublic: true,
+  },
+  {
+    name: 'Enterprise',
+    slug: 'enterprise',
+    description: 'Unlimited capability and dedicated support for high-volume flagship maisons',
+    price: 9999,
+    currency: 'INR',
+    billingInterval: 'monthly',
+    trialDays: 0,
+    features: [
+      'products:read',
+      'products:write',
+      'inventory:advanced',
+      'analytics:advanced',
+      'staff:custom_roles',
+      'marketing:campaigns',
+      'domain:custom',
+    ],
+    limits: {
+      maxProducts: -1, // Unlimited
+      maxStaff: -1,   // Unlimited
+      maxStorageMB: -1, // Unlimited
+      customDomainAllowed: true,
+    },
+    displayOrder: 3,
+    isActive: true,
+    isPublic: true,
+  },
+];
+
 export const AUDIT_ACTIONS = {
   USER_REGISTER: 'USER_REGISTER',
   USER_LOGIN: 'USER_LOGIN',
@@ -72,6 +150,15 @@ export const AUDIT_ACTIONS = {
   ROLE_CREATE: 'ROLE_CREATE',
   ROLE_UPDATE: 'ROLE_UPDATE',
   ROLE_DELETE: 'ROLE_DELETE',
+  TENANT_OWNERSHIP_TRANSFER: 'TENANT_OWNERSHIP_TRANSFER',
+  INVITATION_CREATE: 'INVITATION_CREATE',
+  INVITATION_ACCEPT: 'INVITATION_ACCEPT',
+  INVITATION_REVOKE: 'INVITATION_REVOKE',
+  SUBSCRIPTION_CREATE: 'SUBSCRIPTION_CREATE',
+  SUBSCRIPTION_UPDATE: 'SUBSCRIPTION_UPDATE',
+  SUBSCRIPTION_CANCEL: 'SUBSCRIPTION_CANCEL',
+  SUBSCRIPTION_PAYMENT_SUCCESS: 'SUBSCRIPTION_PAYMENT_SUCCESS',
+  SUBSCRIPTION_PAYMENT_FAILED: 'SUBSCRIPTION_PAYMENT_FAILED',
   UNAUTHORIZED_ACCESS_ATTEMPT: 'UNAUTHORIZED_ACCESS_ATTEMPT',
 };
 

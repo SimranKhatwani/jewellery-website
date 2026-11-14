@@ -25,6 +25,11 @@ const TenantSchema = new Schema(
       sparse: true,
       unique: true,
     },
+    customDomainVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     status: {
       type: String,
       enum: Object.values(TENANT_STATUS),

@@ -77,6 +77,12 @@ export const authenticateUser = async (req, res, next) => {
       );
     }
 
+    // Token version check (Session invalidation on logout / password change)
+    const tokenVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
+    if (tokenVersion !== (user.tokenVersion || 0)) {
+      throw new UnauthorizedError('Session has expired or was revoked. Please log in again.');
+    }
+
     // Attach user entity to request
     req.user = user;
     next();

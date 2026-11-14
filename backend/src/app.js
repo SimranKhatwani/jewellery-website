@@ -10,11 +10,13 @@ import productRoutes from './routes/product.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import mediaRoutes from './routes/media.routes.js';
 
-// Multi-Tenant SaaS Routes (Phase 1)
+// Multi-Tenant SaaS Routes (Phase 1 & Phase 2)
 import saasAuthRoutes from './routes/saasAuth.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import platformRoutes from './routes/platform.routes.js';
+import planPlatformRoutes from './routes/planPlatform.routes.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -81,11 +83,13 @@ export const createApp = () => {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/media', mediaRoutes);
 
-  // Mount SaaS Platform & Tenant Routes (Phase 1)
+  // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);
   app.use('/api/v1/tenants', tenantRoutes);
   app.use('/api/v1/roles', roleRoutes);
+  app.use('/api/v1/platform/plans', planPlatformRoutes);
   app.use('/api/v1/platform', platformRoutes);
+  app.use('/api/v1/subscriptions', subscriptionRoutes);
 
   // 404 Route Handler
   app.use(notFoundHandler);

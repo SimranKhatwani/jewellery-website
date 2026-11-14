@@ -9,10 +9,13 @@ const router = Router();
 // Public auth endpoints
 router.post('/register', authLimiter, validateRegister, saasAuthController.register);
 router.post('/login', authLimiter, validateLogin, saasAuthController.login);
-router.post('/logout', saasAuthController.logout);
 
-// Protected user profile
+// Public invitation onboarding
+router.get('/invitation/:token', saasAuthController.getInvitation);
+router.post('/accept-invitation', authLimiter, saasAuthController.acceptInvitation);
+
+// Protected endpoints
+router.post('/logout', authenticateUser, saasAuthController.logout);
 router.get('/me', authenticateUser, saasAuthController.getProfile);
 
 export default router;
-

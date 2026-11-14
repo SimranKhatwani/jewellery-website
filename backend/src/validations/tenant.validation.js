@@ -26,8 +26,14 @@ export const validateInviteStaff = validate({
 
 export const validateUpdateStaffStatus = validate({
   body: {
-    status: { required: true, type: 'string', enum: Object.values(MEMBERSHIP_STATUS) },
+    status: { required: false, type: 'string', enum: Object.values(MEMBERSHIP_STATUS) },
     roleId: { required: false, type: 'string' },
+  },
+});
+
+export const validateTransferOwnership = validate({
+  body: {
+    newOwnerId: { required: true, type: 'string' },
   },
 });
 

@@ -11,7 +11,9 @@
     "seed": "node src/scripts/seedProducts.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:saas": "node src/scripts/seedSaaS.js",
-    "test:phase1": "node src/scripts/testSaaSPhase1.js"
+    "test:phase1": "node src/scripts/testSaaSPhase1.js",
+    "test:security": "node src/scripts/testPhase1Hardening.js",
+    "test:phase2": "node src/scripts/testPhase2Subscriptions.js"
   },
   "dependencies": {
     "aurelle-workspace": "file:..",

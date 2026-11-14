@@ -5,7 +5,15 @@ import { connectDB } from '../config/db.js';
 import { User } from '../models/User.js';
 import { Permission } from '../models/Permission.js';
 import { Role } from '../models/Role.js';
-import { DEFAULT_PERMISSIONS, SYSTEM_ROLE_SLUGS, USER_STATUS } from '../config/constants.js';
+import { PlanFeature } from '../models/PlanFeature.js';
+import { SubscriptionPlan } from '../models/SubscriptionPlan.js';
+import {
+  DEFAULT_PERMISSIONS,
+  DEFAULT_PLAN_FEATURES,
+  DEFAULT_SUBSCRIPTION_PLANS,
+  SYSTEM_ROLE_SLUGS,
+  USER_STATUS,
+} from '../config/constants.js';
 import { config } from '../config/env.js';
 
 dotenv.config();
@@ -98,30 +106,56 @@ const seedSaaSFoundation = async () => {
     }
     console.log(`[Seed SaaS] ${systemRoles.length} system roles verified/seeded.`);
 
-    // 3. Seed Platform Super Admin
-    console.log('[Seed SaaS] Seeding Platform Super Admin user...');
-    const superAdminEmail = (config.superAdmin.email || 'superadmin@aurelle.com').toLowerCase().trim();
-    const superAdminPassword = config.superAdmin.password || 'SuperAdminAurelle2026!';
+    // 3. Seed Plan Features
+    console.log('[Seed SaaS] Seeding plan features...');
+    for (const feat of DEFAULT_PLAN_FEATURES) {
+      await PlanFeature.findOneAndUpdate(
+        { key: feat.key },
+        { $set: feat },
+        { upsert: true, new: true }
+      );
+    }
+    console.log(`[Seed SaaS] ${DEFAULT_PLAN_FEATURES.length} plan features verified/seeded.`);
+
+    // 4. Seed SaaS Subscription Plans
+    console.log('[Seed SaaS] Seeding subscription plans...');
+    for (const planDef of DEFAULT_SUBSCRIPTION_PLANS) {
+      await SubscriptionPlan.findOneAndUpdate(
+        { slug: planDef.slug },
+        { $set: planDef },
+        { upsert: true, new: true }
+      );
+    }
+    console.log(`[Seed SaaS] ${DEFAULT_SUBSCRIPTION_PLANS.length} subscription plans verified/seeded.`);
+
+    // 5. Seed Platform Super Admin
+    console.log('[Seed SaaS] Verifying Platform Super Admin user...');
+    const superAdminEmail = (config.superAdmin.email || '').toLowerCase().trim();
+    const superAdminPassword = config.superAdmin.password || '';
     const superAdminName = config.superAdmin.name || 'Aurelle Platform Super Admin';
 
-    let superAdmin = await User.findOne({ email: superAdminEmail });
-    if (!superAdmin) {
-      const salt = await bcrypt.genSalt(12);
-      const passwordHash = await bcrypt.hash(superAdminPassword, salt);
-
-      superAdmin = await User.create({
-        name: superAdminName,
-        email: superAdminEmail,
-        passwordHash,
-        isSuperAdmin: true,
-        status: USER_STATUS.ACTIVE,
-      });
-      console.log(`[Seed SaaS] Super Admin user created: ${superAdminEmail}`);
+    if (!superAdminEmail || !superAdminPassword) {
+      console.warn('[Seed SaaS] Warning: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD not set. Skipping Super Admin provisioning.');
     } else {
-      superAdmin.isSuperAdmin = true;
-      superAdmin.status = USER_STATUS.ACTIVE;
-      await superAdmin.save();
-      console.log(`[Seed SaaS] Super Admin user verified: ${superAdminEmail}`);
+      let superAdmin = await User.findOne({ email: superAdminEmail });
+      if (!superAdmin) {
+        const salt = await bcrypt.genSalt(12);
+        const passwordHash = await bcrypt.hash(superAdminPassword, salt);
+
+        superAdmin = await User.create({
+          name: superAdminName,
+          email: superAdminEmail,
+          passwordHash,
+          isSuperAdmin: true,
+          status: USER_STATUS.ACTIVE,
+        });
+        console.log(`[Seed SaaS] Super Admin user created: ${superAdminEmail}`);
+      } else {
+        superAdmin.isSuperAdmin = true;
+        superAdmin.status = USER_STATUS.ACTIVE;
+        await superAdmin.save();
+        console.log(`[Seed SaaS] Super Admin user verified: ${superAdminEmail}`);
+      }
     }
 
     console.log('[Seed SaaS] Foundation seed completed successfully.');

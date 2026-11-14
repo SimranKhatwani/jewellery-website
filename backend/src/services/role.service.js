@@ -42,14 +42,19 @@ export const createCustomTenantRole = async ({
     throw new ConflictError(`A role with slug '${normalizedSlug}' already exists.`);
   }
 
-  // 2. Validate permission keys against valid permissions
+  // 2. F-06: Forbid wildcard '*' in custom tenant roles
+  if (permissions.includes('*')) {
+    throw new BadRequestError("Wildcard '*' permission cannot be assigned to custom roles. Universal access is reserved for system store_admin.");
+  }
+
+  // 3. Validate permission keys against valid permissions registry
   const validPermissions = (await listAllPermissions()).map((p) => p.key);
-  const invalidPerms = permissions.filter((p) => p !== '*' && !validPermissions.includes(p));
+  const invalidPerms = permissions.filter((p) => !validPermissions.includes(p));
   if (invalidPerms.length > 0) {
     throw new BadRequestError(`Invalid permissions specified: ${invalidPerms.join(', ')}`);
   }
 
-  // 3. Create custom dynamic role
+  // 4. Create custom dynamic role
   const role = await Role.create({
     tenantId,
     name: name.trim(),
@@ -90,12 +95,28 @@ export const updateCustomTenantRole = async ({
     throw new ForbiddenError('System-defined roles cannot be modified.');
   }
 
+  // F-02: Self-escalation prevention - cannot edit a role currently assigned to caller
+  const selfAssigned = await TenantMembership.exists({
+    tenantId,
+    userId,
+    roleId,
+    status: 'active',
+  });
+  if (selfAssigned) {
+    throw new ForbiddenError('Cannot modify a role that is currently assigned to your own active membership.');
+  }
+
   if (name) role.name = name.trim();
   if (description !== undefined) role.description = description.trim();
 
   if (permissions) {
+    // F-06: Forbid wildcard '*' in custom tenant roles
+    if (permissions.includes('*')) {
+      throw new BadRequestError("Wildcard '*' permission cannot be assigned to custom roles. Universal access is reserved for system store_admin.");
+    }
+
     const validPermissions = (await listAllPermissions()).map((p) => p.key);
-    const invalidPerms = permissions.filter((p) => p !== '*' && !validPermissions.includes(p));
+    const invalidPerms = permissions.filter((p) => !validPermissions.includes(p));
     if (invalidPerms.length > 0) {
       throw new BadRequestError(`Invalid permissions specified: ${invalidPerms.join(', ')}`);
     }
@@ -127,6 +148,16 @@ export const deleteCustomTenantRole = async ({ tenantId, roleId, userId, req = n
     throw new ForbiddenError('System-defined roles cannot be deleted.');
   }
 
+  // F-02: Prevent self-deletion of caller's own role
+  const selfAssigned = await TenantMembership.exists({
+    tenantId,
+    userId,
+    roleId,
+  });
+  if (selfAssigned) {
+    throw new ForbiddenError('Cannot delete a role that is currently assigned to your own membership.');
+  }
+
   // Ensure no active memberships are using this role
   const assignedCount = await TenantMembership.countDocuments({
     tenantId,
@@ -151,4 +182,3 @@ export const deleteCustomTenantRole = async ({ tenantId, roleId, userId, req = n
 
   return { message: 'Custom role deleted successfully.' };
 };
-
