@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Package, Receipt, Bell, CheckCheck, Sparkles, X } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import {
   getAdminProducts,
   createProduct,
@@ -11,10 +11,16 @@ import {
   markAdminNotificationRead,
   markAllAdminNotificationsRead,
   getAdminToken,
+  getAdminOrders,
 } from './api';
-import { ProductFormModal } from './ProductFormModal';
+import { AdminSidebar } from './AdminSidebar';
+import { AdminHeader } from './AdminHeader';
+import { AdminOverview } from './AdminOverview';
+import { CatalogueManager } from './CatalogueManager';
 import { OrdersManager } from './OrdersManager';
-import { notifyCatalogueChanged, resolveMediaUrl } from '../services/productService';
+import { AdminNotificationsView } from './AdminNotificationsView';
+import { AdminPlaceholder } from './AdminPlaceholder';
+import { notifyCatalogueChanged } from '../services/productService';
 import { initSocket } from '../services/socketService';
 
 export const AdminDashboard = ({
@@ -23,10 +29,37 @@ export const AdminDashboard = ({
   onViewStorefront,
   onGoToSuperAdmin,
 }) => {
-  const [activeTab, setActiveTab] = useState('catalogue'); // 'catalogue' | 'orders'
+  // Navigation State with LocalStorage Persistence
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aurelle_admin_active_tab');
+      if (['overview', 'catalogue', 'orders', 'notifications', 'analytics', 'reports'].includes(saved)) {
+        return saved;
+      }
+    } catch {
+      // fallback
+    }
+    return 'overview';
+  });
+
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  // Sync active tab to localStorage
+  const handleSelectTab = useCallback((tabId) => {
+    setActiveTab(tabId);
+    try {
+      localStorage.setItem('aurelle_admin_active_tab', tabId);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // -------------------------------------------------------------
+  // PRODUCTS & CATALOGUE STATE
+  // -------------------------------------------------------------
   const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productErrorMsg, setProductErrorMsg] = useState(null);
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +72,25 @@ export const AdminDashboard = ({
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // In-App Notifications (Phase 6.1 + Real-time Socket.io)
+  // -------------------------------------------------------------
+  // ORDERS SUMMARY METRIC
+  // -------------------------------------------------------------
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  const loadOrdersCount = useCallback(async () => {
+    try {
+      const data = await getAdminOrders({ limit: 1 });
+      if (data.metrics?.pendingOrders !== undefined) {
+        setPendingOrdersCount(data.metrics.pendingOrders);
+      }
+    } catch (err) {
+      console.warn('Orders count fetch notice:', err.message);
+    }
+  }, []);
+
+  // -------------------------------------------------------------
+  // IN-APP NOTIFICATIONS & REAL-TIME SOCKET.IO ALERTS
+  // -------------------------------------------------------------
   const [adminNotificationsOpen, setAdminNotificationsOpen] = useState(false);
   const [adminNotifications, setAdminNotifications] = useState([]);
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
@@ -47,18 +98,23 @@ export const AdminDashboard = ({
 
   const loadAdminNotifications = useCallback(async () => {
     try {
-      const data = await getAdminNotifications({ limit: 10 });
+      const data = await getAdminNotifications({ limit: 20 });
       setAdminNotifications(data.notifications || []);
       setAdminUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
-      console.warn('Failed to fetch admin notifications:', err);
+      console.warn('Failed to fetch admin notifications:', err.message);
     }
   }, []);
 
   // Real-time WebSocket Order Alerts via Socket.io
   useEffect(() => {
     loadAdminNotifications();
-    const interval = setInterval(loadAdminNotifications, 45000);
+    loadOrdersCount();
+
+    const interval = setInterval(() => {
+      loadAdminNotifications();
+      loadOrdersCount();
+    }, 45000);
 
     const token = getAdminToken();
     const socket = initSocket(token);
@@ -66,8 +122,9 @@ export const AdminDashboard = ({
     const handleNewOrder = (data) => {
       // 1. Instantly increment unread badge
       setAdminUnreadCount((c) => c + 1);
+      setPendingOrdersCount((c) => c + 1);
 
-      // 2. Prepend live notification to dropdown list
+      // 2. Prepend live notification to list
       const notifItem = {
         _id: data.notification?._id || `rt_${Date.now()}`,
         title: data.notification?.title || `New Order Received: #${data.order?.orderNumber}`,
@@ -107,11 +164,13 @@ export const AdminDashboard = ({
 
     const handleStatusUpdate = () => {
       loadAdminNotifications();
+      loadOrdersCount();
     };
 
     const handleOrderCancelled = () => {
       setAdminUnreadCount((c) => c + 1);
       loadAdminNotifications();
+      loadOrdersCount();
     };
 
     socket.on('notification:new_order', handleNewOrder);
@@ -124,7 +183,7 @@ export const AdminDashboard = ({
       socket.off('order:status_updated', handleStatusUpdate);
       socket.off('notification:order_cancelled', handleOrderCancelled);
     };
-  }, [loadAdminNotifications]);
+  }, [loadAdminNotifications, loadOrdersCount]);
 
   const handleMarkAdminRead = async (notifId) => {
     try {
@@ -134,7 +193,7 @@ export const AdminDashboard = ({
       );
       setAdminUnreadCount((c) => Math.max(0, c - 1));
     } catch (err) {
-      console.warn('Failed to mark read:', err);
+      console.warn('Failed to mark read:', err.message);
     }
   };
 
@@ -144,32 +203,33 @@ export const AdminDashboard = ({
       setAdminNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setAdminUnreadCount(0);
     } catch (err) {
-      console.warn('Failed to mark all read:', err);
+      console.warn('Failed to mark all read:', err.message);
     }
   };
 
-  // Load products from backend
-  const loadProducts = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
+  // -------------------------------------------------------------
+  // PRODUCTS CRUD
+  // -------------------------------------------------------------
+  const loadProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+    setProductErrorMsg(null);
     try {
       const data = await getAdminProducts();
       setProducts(data);
     } catch (err) {
-      setErrorMsg(err?.message || 'Failed to connect to backend database.');
+      setProductErrorMsg(err?.message || 'Failed to connect to backend database.');
     } finally {
-      setIsLoading(false);
+      setIsLoadingProducts(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   // Filtered products calculation
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      // Search
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         !term ||
@@ -177,11 +237,9 @@ export const AdminDashboard = ({
         p.slug.toLowerCase().includes(term) ||
         p.sku.toLowerCase().includes(term);
 
-      // Category
       const matchesCategory =
         categoryFilter === 'all' || p.category.toLowerCase() === categoryFilter.toLowerCase();
 
-      // Status
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'published' && p.isPublished !== false) ||
@@ -255,7 +313,7 @@ export const AdminDashboard = ({
     onLogout();
   };
 
-  // Metrics
+  // Product Counts Metrics
   const stats = useMemo(() => {
     const total = products.length;
     const published = products.filter((p) => p.isPublished !== false).length;
@@ -267,578 +325,165 @@ export const AdminDashboard = ({
   }, [products]);
 
   return (
-    <div className="min-h-screen bg-[#F7F1E9] text-[#593D30] font-sans selection:bg-[#A85F49] selection:text-[#FFFFFF]">
-      {/* Real-time Order Alert Toast (Socket.io) */}
-      {realtimeToast && (
-        <div className="fixed top-20 right-4 z-50 max-w-md w-full bg-[#FFFFFF] border-2 border-[#A85F49] shadow-2xl rounded-xs p-4 flex items-start gap-3 text-xs animate-fade-in">
-          <div className="w-8 h-8 rounded-full bg-[#A85F49]/15 flex items-center justify-center shrink-0 text-[#A85F49]">
-            <Bell className="w-4 h-4 animate-pulse" />
-          </div>
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-[#593D30]">
-                  {realtimeToast.title}
-                </span>
-                {realtimeToast.isGuest && (
-                  <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] font-mono rounded-xs font-semibold">
-                    Guest Checkout
+    <div className="min-h-screen bg-[#F7F1E9] text-[#593D30] font-sans selection:bg-[#A85F49] selection:text-[#FFFFFF] flex">
+      {/* 1. Persistent Left Sidebar (Desktop + Mobile Drawer) */}
+      <AdminSidebar
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        admin={admin}
+        productsCount={products.length}
+        pendingOrdersCount={pendingOrdersCount}
+        unreadNotificationsCount={adminUnreadCount}
+        onLogout={handleLogoutClick}
+        onViewStorefront={onViewStorefront}
+        onGoToSuperAdmin={onGoToSuperAdmin}
+        isOpenMobile={isMobileDrawerOpen}
+        onCloseMobile={() => setIsMobileDrawerOpen(false)}
+      />
+
+      {/* 2. Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+        {/* Real-Time Push Order Alert Banner (Socket.io) */}
+        {realtimeToast && (
+          <div className="fixed top-20 right-4 z-50 max-w-md w-full bg-[#FFFFFF] border-2 border-[#A85F49] shadow-2xl rounded-xs p-4 flex items-start gap-3 text-xs animate-fade-in">
+            <div className="w-8 h-8 rounded-full bg-[#A85F49]/15 flex items-center justify-center shrink-0 text-[#A85F49]">
+              <Bell className="w-4 h-4 animate-pulse" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-[#593D30]">
+                    {realtimeToast.title}
                   </span>
-                )}
+                  {realtimeToast.isGuest && (
+                    <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] font-mono rounded-xs font-semibold">
+                      Guest Checkout
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRealtimeToast(null)}
+                  className="text-[#8E8172] hover:text-[#593D30] p-0.5 rounded-xs"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => setRealtimeToast(null)}
-                className="text-[#8E8172] hover:text-[#593D30] p-0.5 rounded-xs"
-                title="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <p className="text-[11px] text-[#8E8172] leading-relaxed">
+                {realtimeToast.message}
+              </p>
+              <div className="pt-1 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectTab('orders');
+                    setRealtimeToast(null);
+                  }}
+                  className="px-2.5 py-1 bg-[#A85F49] text-[#FFFFFF] font-medium rounded-xs hover:bg-[#8D4B37] transition-colors text-[10px]"
+                >
+                  View in Orders &rarr;
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRealtimeToast(null)}
+                  className="text-[10px] text-[#8E8172] hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
-            <p className="text-[11px] text-[#8E8172] leading-relaxed">
-              {realtimeToast.message}
-            </p>
-            <div className="pt-1 flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setActiveTab('orders');
-                  setRealtimeToast(null);
-                }}
-                className="px-2.5 py-1 bg-[#A85F49] text-[#FFFFFF] font-medium rounded-xs hover:bg-[#8D4B37] transition-colors text-[10px]"
-              >
-                View in Orders &rarr;
-              </button>
-              <button
-                onClick={() => setRealtimeToast(null)}
-                className="text-[10px] text-[#8E8172] hover:underline"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Top Navigation Bar */}
-      <header className="bg-[#FFFFFF] border-b border-[#D7C5AF]/60 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="font-serif text-2xl tracking-[0.2em] font-light text-[#593D30]">
-              AURELLE
-            </span>
-            <span className="h-4 w-px bg-[#D7C5AF]"></span>
-            <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.2em] text-[#A85F49]">
-              Portal Admin
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-4">
-            {onGoToSuperAdmin && (
-              <button
-                onClick={onGoToSuperAdmin}
-                className="px-2.5 py-1 bg-[#231F1C] hover:bg-[#342D28] text-[#D48B77] text-xs font-mono rounded-xs border border-[#A85F49]/40 transition-colors flex items-center gap-1.5"
-                title="Open Platform Super Admin Console (http://localhost:3000/sa)"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
-                /sa
-              </button>
-            )}
-
-            <button
-              onClick={onViewStorefront}
-              className="text-xs text-[#8E8172] hover:text-[#593D30] font-medium flex items-center gap-1.5 transition-colors px-2.5 py-1.5 rounded-xs"
-              title="View live website"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              <span className="hidden sm:inline">Storefront</span>
-            </button>
-
-            {/* Store Admin In-App Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  const next = !adminNotificationsOpen;
-                  setAdminNotificationsOpen(next);
-                  if (next) loadAdminNotifications();
-                }}
-                className="relative p-2 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full transition-colors"
-                title="Store Notifications"
-                aria-label="Notifications"
-              >
-                <Bell className="w-4 h-4" />
-                {adminUnreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[0.95rem] h-[0.95rem] px-0.5 bg-[#A85F49] text-[#FFFFFF] text-[9px] font-mono font-bold rounded-full flex items-center justify-center leading-none animate-pulse">
-                    {adminUnreadCount > 9 ? '9+' : adminUnreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Popover */}
-              {adminNotificationsOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setAdminNotificationsOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-xs shadow-2xl z-50 overflow-hidden animate-fade-in text-xs">
-                    <div className="p-3 bg-[#F7F1E9] border-b border-[#D7C5AF]/40 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-semibold text-[#593D30]">
-                        <Bell className="w-3.5 h-3.5 text-[#A85F49]" />
-                        <span>Store Notifications</span>
-                        {adminUnreadCount > 0 && (
-                          <span className="px-1.5 py-0.2 bg-[#A85F49] text-[#FFFFFF] rounded-full text-[9px] font-mono">
-                            {adminUnreadCount} new
-                          </span>
-                        )}
-                      </div>
-                      {adminUnreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllAdminRead}
-                          className="text-[11px] text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
-                        >
-                          <CheckCheck className="w-3 h-3" />
-                          <span>Mark all read</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto divide-y divide-[#D7C5AF]/25">
-                      {adminNotifications.length > 0 ? (
-                        adminNotifications.map((n) => (
-                          <div
-                            key={n._id}
-                            onClick={() => {
-                              if (!n.isRead) handleMarkAdminRead(n._id);
-                              setActiveTab('orders');
-                              setAdminNotificationsOpen(false);
-                            }}
-                            className={`p-3 cursor-pointer transition-colors hover:bg-[#F7F1E9]/60 flex items-start gap-2.5 ${
-                              !n.isRead ? 'bg-[#FAF7F2]' : 'bg-[#FFFFFF]'
-                            }`}
-                          >
-                            <div className="mt-1 shrink-0">
-                              {!n.isRead ? (
-                                <div className="w-2 h-2 rounded-full bg-[#A85F49]" />
-                              ) : (
-                                <div className="w-2 h-2 rounded-full bg-stone-300" />
-                              )}
-                            </div>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-semibold text-[#593D30] block">
-                                    {n.title}
-                                  </span>
-                                  {n.metadata?.isGuest && (
-                                    <span className="px-1.5 py-0.2 bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-mono rounded-xs">
-                                      Guest
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-[#8E8172] font-mono shrink-0">
-                                  {new Date(n.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-[#8E8172] leading-relaxed">
-                                {n.message}
-                              </p>
-                              {n.relatedEntityType === 'Order' && (
-                                <span className="inline-block text-[10px] text-[#A85F49] font-medium underline">
-                                  View in Orders &rarr;
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-8 text-center space-y-1">
-                          <Sparkles className="w-6 h-6 text-[#D7C5AF] mx-auto" />
-                          <p className="text-[#8E8172] text-[11px]">No notifications yet</p>
-                          <p className="text-[10px] text-[#8E8172]/70">New customer orders and cancellation requests will appear here.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-xs font-medium text-[#593D30]">{admin.name}</span>
-              <span className="text-[10px] text-[#8E8172]">{admin.email}</span>
-            </div>
-
-            <button
-              onClick={handleLogoutClick}
-              className="text-xs text-[#A85F49] hover:bg-[#A85F49]/10 font-medium px-3 py-1.5 border border-[#A85F49]/40 rounded-xs transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Navigation Sub-header (Catalogue vs Orders) */}
-      <div className="bg-[#FFFFFF] border-b border-[#D7C5AF]/60 sticky top-16 z-20 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-8">
-          <button
-            onClick={() => setActiveTab('catalogue')}
-            className={`py-3.5 text-xs uppercase tracking-[0.16em] font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'catalogue'
-                ? 'border-[#A85F49] text-[#A85F49]'
-                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>Catalogue</span>
-            <span className="text-[10px] px-1.5 py-0.2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#8E8172]">
-              {products.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`py-3.5 text-xs uppercase tracking-[0.16em] font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'orders'
-                ? 'border-[#A85F49] text-[#A85F49]'
-                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-            }`}
-          >
-            <Receipt className="w-4 h-4" />
-            <span>Orders & Fulfillment</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'orders' ? (
-          <OrdersManager admin={admin} />
-        ) : (
-          <>
-            {/* Page Title & Action */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="font-serif text-3xl font-light text-[#593D30]">
-              Catalogue Management
-            </h1>
-            <p className="text-xs text-[#8E8172] mt-1 font-sans">
-              Manage products, upload high-res images directly into GridFS, and curate homepage features.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={loadProducts}
-              disabled={isLoading}
-              className="px-3 py-2 bg-[#FFFFFF] border border-[#D7C5AF] text-[#593D30] text-xs uppercase tracking-wider rounded-xs hover:bg-[#FAF7F2] transition-colors"
-              title="Refresh catalogue data"
-            >
-              <svg className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-
-            <button
-              onClick={handleOpenCreateModal}
-              className="px-4 py-2.5 bg-[#593D30] hover:bg-[#A85F49] text-[#FFFFFF] text-xs uppercase tracking-[0.16em] font-medium rounded-xs transition-colors shadow-xs flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add New Product
-            </button>
-          </div>
-        </div>
-
-        {/* Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-8">
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#8E8172] tracking-wider block">Total Items</span>
-            <span className="font-serif text-2xl font-light text-[#593D30] mt-1 block">{stats.total}</span>
-          </div>
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#A85F49] tracking-wider block">Published Live</span>
-            <span className="font-serif text-2xl font-light text-[#A85F49] mt-1 block">{stats.published}</span>
-          </div>
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#8E8172] tracking-wider block">Draft / Hidden</span>
-            <span className="font-serif text-2xl font-light text-[#8E8172] mt-1 block">{stats.unpublished}</span>
-          </div>
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#593D30] tracking-wider block">Bestsellers</span>
-            <span className="font-serif text-2xl font-light text-[#593D30] mt-1 block">{stats.bestsellers}</span>
-          </div>
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#8E8172] tracking-wider block">Rings</span>
-            <span className="font-serif text-2xl font-light text-[#593D30] mt-1 block">{stats.rings}</span>
-          </div>
-          <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-[#8E8172] tracking-wider block">Anklets</span>
-            <span className="font-serif text-2xl font-light text-[#593D30] mt-1 block">{stats.anklets}</span>
-          </div>
-        </div>
-
-        {/* Error Notification */}
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-[#A85F49]/10 border border-[#A85F49]/30 rounded-xs text-[#A85F49] text-xs flex justify-between items-center">
-            <span>{errorMsg}</span>
-            <button onClick={loadProducts} className="underline font-semibold ml-4">Retry</button>
           </div>
         )}
 
-        {/* Toolbar: Search & Filters */}
-        <div className="bg-[#FFFFFF] p-4 border border-[#D7C5AF]/60 rounded-xs mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="w-full md:w-80 relative">
-            <svg
-              className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, SKU or slug..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-[#8E8172]">Category:</span>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-              >
-                <option value="all">All Categories</option>
-                <option value="rings">Rings</option>
-                <option value="anklets">Anklets</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-[#8E8172]">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-              >
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="unpublished">Unpublished</option>
-              </select>
-            </div>
-
-            {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setCategoryFilter('all');
-                  setStatusFilter('all');
-                }}
-                className="text-xs text-[#A85F49] hover:underline"
-              >
-                Reset Filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs shadow-xs overflow-hidden">
-          {isLoading ? (
-            <div className="py-20 text-center">
-              <svg className="animate-spin h-8 w-8 text-[#A85F49] mx-auto mb-3" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <p className="text-xs text-[#8E8172]">Loading jewellery catalogue from MongoDB...</p>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-[#593D30] font-serif">No products found matching the criteria.</p>
-              <p className="text-xs text-[#8E8172] mt-1">Try modifying your filters or create a new product.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#FAF7F2] border-b border-[#D7C5AF]/50 text-[#8E8172] uppercase font-semibold tracking-wider text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">Item</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Price</th>
-                    <th className="py-3 px-4">Order</th>
-                    <th className="py-3 px-4">Badges</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#D7C5AF]/30">
-                  {filteredProducts.map((p) => {
-                    const isPub = p.isPublished !== false;
-                    const prodId = p._id || p.id;
-
-                    return (
-                      <tr key={prodId} className="hover:bg-[#FAF7F2]/50 transition-colors">
-                        {/* Thumbnail & Title */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 shrink-0 rounded-xs bg-[#FAF7F2] border border-[#D7C5AF]/60 overflow-hidden">
-                              <img
-                                src={resolveMediaUrl(p.primaryImage)}
-                                alt={p.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    'https://placehold.co/100x100/F7F1E9/593D30?text=Ring';
-                                }}
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-serif text-sm font-medium text-[#593D30] truncate">
-                                {p.name}
-                              </div>
-                              <div className="text-[10px] text-[#8E8172] font-mono">
-                                {p.sku || p.slug}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Category */}
-                        <td className="py-3.5 px-4">
-                          <span className="capitalize px-2 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF]/60 rounded-xs text-[11px] text-[#593D30]">
-                            {p.category}
-                          </span>
-                        </td>
-
-                        {/* Price */}
-                        <td className="py-3.5 px-4 font-medium text-[#593D30]">
-                          ${p.priceUSD}
-                        </td>
-
-                        {/* Order */}
-                        <td className="py-3.5 px-4 text-[#8E8172] font-mono text-[11px]">
-                          {p.displayOrder ?? 0}
-                        </td>
-
-                        {/* Badges */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {p.isBestseller && (
-                              <span className="px-1.5 py-0.5 bg-[#A85F49]/10 text-[#A85F49] text-[9px] uppercase font-bold tracking-wider rounded-xs">
-                                Bestseller
-                              </span>
-                            )}
-                            {p.isNewArrival && (
-                              <span className="px-1.5 py-0.5 bg-[#593D30]/10 text-[#593D30] text-[9px] uppercase font-bold tracking-wider rounded-xs">
-                                New
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Status Toggle */}
-                        <td className="py-3.5 px-4">
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePublish(p)}
-                            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-xs text-[10px] uppercase font-semibold tracking-wider transition-colors ${
-                              isPub
-                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                : 'bg-neutral-100 text-neutral-600 border border-neutral-200'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isPub ? 'bg-emerald-600' : 'bg-neutral-400'
-                              }`}
-                            ></span>
-                            {isPub ? 'Published' : 'Hidden'}
-                          </button>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleOpenEditModal(p)}
-                              className="px-2.5 py-1 text-xs text-[#593D30] hover:text-[#A85F49] hover:bg-[#FAF7F2] rounded-xs transition-colors"
-                              title="Edit product"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() => setDeletingProduct(p)}
-                              className="px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 rounded-xs transition-colors"
-                              title="Delete product"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </>
-    )}
-  </main>
-
-      {/* Edit / Create Modal */}
-      {isModalOpen && (
-        <ProductFormModal
-          product={editingProduct}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveProduct}
+        {/* Top Header */}
+        <AdminHeader
+          activeTab={activeTab}
+          onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
+          admin={admin}
+          onViewStorefront={onViewStorefront}
+          onGoToSuperAdmin={onGoToSuperAdmin}
+          adminNotificationsOpen={adminNotificationsOpen}
+          setAdminNotificationsOpen={setAdminNotificationsOpen}
+          adminNotifications={adminNotifications}
+          adminUnreadCount={adminUnreadCount}
+          onMarkRead={handleMarkAdminRead}
+          onMarkAllRead={handleMarkAllAdminRead}
+          onOpenOrdersTab={() => handleSelectTab('orders')}
         />
-      )}
 
-      {/* Delete Confirmation Modal */}
-      {deletingProduct && (
-        <div className="fixed inset-0 z-50 bg-[#593D30]/60 backdrop-blur-xs flex justify-center items-center p-4">
-          <div className="bg-[#FFFFFF] w-full max-w-md p-6 rounded-sm border border-[#D7C5AF] shadow-2xl">
-            <h3 className="font-serif text-xl text-[#593D30] font-normal mb-2">
-              Confirm Product Deletion
-            </h3>
-            <p className="text-xs text-[#8E8172] leading-relaxed mb-4">
-              Are you sure you want to permanently delete{' '}
-              <strong className="text-[#593D30]">"{deletingProduct.name}"</strong> ({deletingProduct.sku})?
-              This will remove the item from the live catalogue and cannot be undone.
-            </p>
+        {/* Dynamic Module Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          {activeTab === 'overview' && (
+            <AdminOverview
+              admin={admin}
+              stats={stats}
+              adminUnreadCount={adminUnreadCount}
+              onNavigateTab={handleSelectTab}
+              onViewStorefront={onViewStorefront}
+              onOpenCreateProduct={handleOpenCreateModal}
+            />
+          )}
 
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeletingProduct(null)}
-                disabled={isDeleting}
-                className="px-3.5 py-2 border border-[#D7C5AF] text-[#593D30] text-xs font-medium uppercase tracking-wider rounded-xs hover:bg-[#FAF7F2] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-[#FFFFFF] text-xs font-medium uppercase tracking-wider rounded-xs transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Product'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          {activeTab === 'catalogue' && (
+            <CatalogueManager
+              products={products}
+              filteredProducts={filteredProducts}
+              isLoading={isLoadingProducts}
+              errorMsg={productErrorMsg}
+              stats={stats}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={setCategoryFilter}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              onRefresh={loadProducts}
+              onOpenCreateModal={handleOpenCreateModal}
+              onOpenEditModal={handleOpenEditModal}
+              onTogglePublish={handleTogglePublish}
+              onConfirmDeleteRequest={(p) => setDeletingProduct(p)}
+              isModalOpen={isModalOpen}
+              setIsModalOpen={setIsModalOpen}
+              editingProduct={editingProduct}
+              onSaveProduct={handleSaveProduct}
+              deletingProduct={deletingProduct}
+              setDeletingProduct={setDeletingProduct}
+              isDeleting={isDeleting}
+              onConfirmDelete={handleConfirmDelete}
+            />
+          )}
+
+          {activeTab === 'orders' && (
+            <OrdersManager admin={admin} />
+          )}
+
+          {activeTab === 'notifications' && (
+            <AdminNotificationsView
+              notifications={adminNotifications}
+              unreadCount={adminUnreadCount}
+              onMarkRead={handleMarkAdminRead}
+              onMarkAllRead={handleMarkAllAdminRead}
+              onNavigateOrders={() => handleSelectTab('orders')}
+              onRefresh={loadAdminNotifications}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AdminPlaceholder
+              moduleName="Analytics"
+              onNavigateCatalogue={() => handleSelectTab('catalogue')}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <AdminPlaceholder
+              moduleName="Reports"
+              onNavigateCatalogue={() => handleSelectTab('catalogue')}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 };
-
