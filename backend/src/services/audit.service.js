@@ -19,10 +19,40 @@ export const getTenantAuditLogs = async (tenantId, { page = 1, limit = 20, actio
   return { logs, total, page, limit };
 };
 
-export const getPlatformAuditLogs = async ({ page = 1, limit = 50, tenantId = null, action = null }) => {
+export const getPlatformAuditLogs = async ({
+  page = 1,
+  limit = 50,
+  tenantId = null,
+  action = null,
+  resource = null,
+  startDate = null,
+  endDate = null,
+  search = null,
+}) => {
   const query = {};
   if (tenantId) query.tenantId = tenantId;
-  if (action) query.action = action;
+  if (action && action !== 'all') query.action = action;
+  if (resource && resource !== 'all') query.resource = resource;
+
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt.$lte = end;
+    }
+  }
+
+  if (search && search.trim()) {
+    const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    query.$or = [
+      { action: { $regex: escaped, $options: 'i' } },
+      { resource: { $regex: escaped, $options: 'i' } },
+      { ipAddress: { $regex: escaped, $options: 'i' } },
+      { 'details.email': { $regex: escaped, $options: 'i' } },
+    ];
+  }
 
   const skip = (page - 1) * limit;
   const [logs, total] = await Promise.all([

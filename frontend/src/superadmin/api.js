@@ -133,6 +133,32 @@ export async function checkSuperAdminSession() {
   }
 }
 
+// ----------------- Platform Dashboard Statistics -----------------
+
+export async function getPlatformDashboardStats() {
+  const res = await superAdminFetch('/v1/platform/stats');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to retrieve platform dashboard statistics');
+  }
+  return data.data;
+}
+
+// ----------------- Platform Subscriptions Oversight -----------------
+
+export async function getPlatformSubscriptions({ page = 1, limit = 20, status } = {}) {
+  let url = `/v1/platform/subscriptions?page=${page}&limit=${limit}`;
+  if (status && status !== 'all') {
+    url += `&status=${status}`;
+  }
+  const res = await superAdminFetch(url);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to retrieve platform subscriptions');
+  }
+  return { subscriptions: data.data, meta: data.meta };
+}
+
 // ----------------- Platform Tenants Oversight -----------------
 
 export async function getPlatformTenants({ page = 1, limit = 50, status } = {}) {
@@ -187,10 +213,23 @@ export async function updatePlatformUserStatus(userId, status) {
 
 // ----------------- Platform Audit Logs -----------------
 
-export async function getPlatformAuditLogs({ page = 1, limit = 50, tenantId, action } = {}) {
+export async function getPlatformAuditLogs({
+  page = 1,
+  limit = 50,
+  tenantId = null,
+  action = null,
+  resource = null,
+  startDate = null,
+  endDate = null,
+  search = null,
+} = {}) {
   let url = `/v1/platform/audit-logs?page=${page}&limit=${limit}`;
   if (tenantId) url += `&tenantId=${tenantId}`;
   if (action && action !== 'all') url += `&action=${action}`;
+  if (resource && resource !== 'all') url += `&resource=${resource}`;
+  if (startDate) url += `&startDate=${startDate}`;
+  if (endDate) url += `&endDate=${endDate}`;
+  if (search && search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
 
   const res = await superAdminFetch(url);
   const data = await res.json();

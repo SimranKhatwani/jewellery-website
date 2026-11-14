@@ -8,9 +8,15 @@ const router = Router();
 // Protect all platform routes: Must be authenticated AND have Platform Super Admin status
 router.use(authenticateUser, requireSuperAdmin);
 
+// Dashboard Overview Statistics
+router.get('/stats', platformController.getPlatformStats);
+
 // Tenant oversight
 router.get('/tenants', platformController.listTenants);
 router.patch('/tenants/:tenantId/status', platformController.updateTenantStatus);
+
+// Subscriptions oversight
+router.get('/subscriptions', platformController.listPlatformSubscriptions);
 
 // User oversight
 router.get('/users', platformController.listUsers);
