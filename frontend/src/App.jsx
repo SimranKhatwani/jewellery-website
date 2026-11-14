@@ -17,6 +17,7 @@ import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
 import { Footer } from './components/Footer';
 import { AdminApp } from './admin/AdminApp';
+import { SuperAdminApp } from './superadmin/SuperAdminApp';
 import {
   getPublishedProducts,
   subscribeCatalogueChanges,
@@ -25,15 +26,41 @@ import {
   LEGACY_WISHLIST_MAP,
 } from './services/productService';
 
+// Route detection helpers for Store Admin (/admin) and Super Admin (/sa)
+const checkIsSuperAdminRoute = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  return (
+    path === '/sa' ||
+    path.startsWith('/sa/') ||
+    hash === '#sa' ||
+    hash.startsWith('#sa/') ||
+    path === '/superadmin' ||
+    path.startsWith('/superadmin/') ||
+    hash === '#superadmin' ||
+    hash.startsWith('#superadmin/')
+  );
+};
+
+const checkIsAdminRoute = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  return (
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    hash === '#admin' ||
+    hash.startsWith('#admin/')
+  );
+};
+
 export default function App() {
-  // Determine if user is accessing Admin Panel via /admin or #admin
-  const [isAdminView, setIsAdminView] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return (
-      window.location.pathname.startsWith('/admin') ||
-      window.location.hash.startsWith('#admin')
-    );
-  });
+  // Determine if user is accessing Super Admin Console via /sa or #sa
+  const [isSuperAdminView, setIsSuperAdminView] = useState(checkIsSuperAdminRoute);
+
+  // Determine if user is accessing Store Admin Panel via /admin or #admin
+  const [isAdminView, setIsAdminView] = useState(checkIsAdminRoute);
 
   // State for Return Policy separate page view
   const [isReturnPolicyView, setIsReturnPolicyView] = useState(() => {
@@ -67,13 +94,11 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [sizeGuideCategory, setSizeGuideCategory] = useState(null);
 
-  // Synchronize route changes for /admin and #admin
+  // Synchronize route changes for /admin, #admin, /sa, and #sa
   useEffect(() => {
     const handleRouteCheck = () => {
-      const isCurrentlyAdmin =
-        window.location.pathname.startsWith('/admin') ||
-        window.location.hash.startsWith('#admin');
-      setIsAdminView(isCurrentlyAdmin);
+      setIsSuperAdminView(checkIsSuperAdminRoute());
+      setIsAdminView(checkIsAdminRoute());
     };
 
     window.addEventListener('popstate', handleRouteCheck);
@@ -233,12 +258,24 @@ export default function App() {
     }, 100);
   };
 
+  // Exit Super Admin Console handler
+  const handleExitSuperAdmin = () => {
+    setIsSuperAdminView(false);
+    window.location.hash = '';
+    window.history.pushState(null, '', '/');
+  };
+
   // Exit Admin Panel handler
   const handleExitAdmin = () => {
     setIsAdminView(false);
     window.location.hash = '';
     window.history.pushState(null, '', '/');
   };
+
+  // Render Super Admin Console if on /sa or #sa route
+  if (isSuperAdminView) {
+    return <SuperAdminApp onExitSuperAdmin={handleExitSuperAdmin} />;
+  }
 
   // Render Admin Panel if on /admin route
   if (isAdminView) {

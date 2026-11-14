@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { adminLogin } from './api';
 
-export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
+export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -108,18 +108,31 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
           </button>
         </form>
 
-        {/* Back to Storefront Link */}
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={onBackToStore}
-            className="text-xs text-[#8E8172] hover:text-[#593D30] transition-colors inline-flex items-center gap-1.5"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Return to Public Storefront
-          </button>
+        {/* Back to Storefront Link & Super Admin Link */}
+        <div className="mt-8 pt-6 border-t border-[#D7C5AF]/40 space-y-3">
+          <div className="flex items-center justify-between text-xs text-[#8E8172]">
+            <span>Platform Super Admin?</span>
+            <button
+              type="button"
+              onClick={onGoToSuperAdmin}
+              className="text-[#A85F49] hover:underline font-mono text-xs"
+            >
+              http://localhost:3000/sa
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={onBackToStore}
+              className="text-xs text-[#8E8172] hover:text-[#593D30] transition-colors inline-flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Return to Public Storefront
+            </button>
+          </div>
         </div>
       </div>
     </div>

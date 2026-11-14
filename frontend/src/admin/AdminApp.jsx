@@ -7,6 +7,12 @@ export const AdminApp = ({ onExitAdmin }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  const handleGoToSuperAdmin = () => {
+    window.location.hash = '';
+    window.history.pushState(null, '', '/sa');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -56,6 +62,7 @@ export const AdminApp = ({ onExitAdmin }) => {
       <AdminLogin
         onLoginSuccess={(user) => setAdminUser(user)}
         onBackToStore={onExitAdmin}
+        onGoToSuperAdmin={handleGoToSuperAdmin}
       />
     );
   }
@@ -65,6 +72,7 @@ export const AdminApp = ({ onExitAdmin }) => {
       admin={adminUser}
       onLogout={() => setAdminUser(null)}
       onViewStorefront={onExitAdmin}
+      onGoToSuperAdmin={handleGoToSuperAdmin}
     />
   );
 };

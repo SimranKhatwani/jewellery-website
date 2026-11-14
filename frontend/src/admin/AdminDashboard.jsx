@@ -14,6 +14,7 @@ export const AdminDashboard = ({
   admin,
   onLogout,
   onViewStorefront,
+  onGoToSuperAdmin,
 }) => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,7 +164,18 @@ export const AdminDashboard = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {onGoToSuperAdmin && (
+              <button
+                onClick={onGoToSuperAdmin}
+                className="px-2.5 py-1 bg-[#231F1C] hover:bg-[#342D28] text-[#D48B77] text-xs font-mono rounded-xs border border-[#A85F49]/40 transition-colors flex items-center gap-1.5"
+                title="Open Platform Super Admin Console (http://localhost:3000/sa)"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                /sa
+              </button>
+            )}
+
             <button
               onClick={onViewStorefront}
               className="text-xs text-[#8E8172] hover:text-[#593D30] font-medium flex items-center gap-1.5 transition-colors px-2.5 py-1.5 rounded-xs"
