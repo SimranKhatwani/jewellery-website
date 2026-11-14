@@ -169,6 +169,32 @@ export const AUDIT_ACTIONS = {
   INVENTORY_UPDATE: 'INVENTORY_UPDATE',
   COUPON_CREATE: 'COUPON_CREATE',
   COUPON_UPDATE: 'COUPON_UPDATE',
+  ORDER_CREATE: 'ORDER_CREATE',
+  ORDER_STATUS_UPDATE: 'ORDER_STATUS_UPDATE',
+  ORDER_CANCEL: 'ORDER_CANCEL',
   UNAUTHORIZED_ACCESS_ATTEMPT: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+};
+
+export const PAYMENT_METHODS = {
+  COD: 'cod',
+  CARD: 'card',
+  UPI: 'upi',
+};
+
+export const PAYMENT_STATUS = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  FAILED: 'failed',
+  REFUNDED: 'refunded',
+  PARTIALLY_REFUNDED: 'partially_refunded',
+};
+
+export const ORDER_STATUS = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  PROCESSING: 'processing',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled',
 };
 

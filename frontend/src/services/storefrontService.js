@@ -326,6 +326,92 @@ export async function previewCheckout({ addressId, guestAddress, couponCode, ite
 }
 
 // -------------------------------------------------------------
+// ORDER PLACEMENT API
+// -------------------------------------------------------------
+
+export async function placeOrder({
+  addressId,
+  guestAddress,
+  couponCode,
+  paymentMethod = 'cod',
+  idempotencyKey = null,
+  notes = '',
+}) {
+  const storeSlug = getStoreSlug();
+  const headers = getStorefrontHeaders();
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = String(idempotencyKey);
+  }
+
+  const payload = {
+    addressId: addressId || undefined,
+    guestAddress: guestAddress || undefined,
+    couponCode: couponCode || undefined,
+    paymentMethod,
+    idempotencyKey,
+    notes,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/orders`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to place order. Please review your details.');
+  }
+
+  const order = data.order || data.data?.order || data;
+  return { order, isDuplicate: Boolean(data.isDuplicate) };
+}
+
+// -------------------------------------------------------------
+// CUSTOMER ORDER HISTORY APIS
+// -------------------------------------------------------------
+
+export async function fetchCustomerOrders({ page = 1, limit = 20 } = {}) {
+  const token = getCustomerToken();
+  if (!token) return [];
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/orders?page=${page}&limit=${limit}`, {
+    headers: getStorefrontHeaders(),
+  });
+
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.orders || data.data?.orders || [];
+}
+
+export async function fetchCustomerOrderById(orderId) {
+  const token = getCustomerToken();
+  if (!token) return null;
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/orders/${orderId}`, {
+    headers: getStorefrontHeaders(),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data.order || data.data?.order;
+}
+
+export async function cancelCustomerOrder(orderId, reason = '') {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/orders/${orderId}/cancel`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to cancel order.');
+  }
+  return data.order || data.data?.order;
+}
+
+// -------------------------------------------------------------
 // CUSTOMER AUTH & PROFILE APIS
 // -------------------------------------------------------------
 

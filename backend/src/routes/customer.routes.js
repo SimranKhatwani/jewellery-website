@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import * as customerController from '../controllers/customer.controller.js';
 import * as addressController from '../controllers/address.controller.js';
+import * as orderController from '../controllers/order.controller.js';
 
 const router = Router();
 
@@ -36,5 +37,17 @@ router.get('/addresses', addressController.listCustomerAddresses);
 router.post('/addresses', addressController.createCustomerAddress);
 router.put('/addresses/:addressId', addressController.updateCustomerAddress);
 router.delete('/addresses/:addressId', addressController.deleteCustomerAddress);
+
+/**
+ * Customer Order History & Cancellation Endpoints
+ */
+router.get('/me/orders', orderController.getCustomerOrders);
+router.get('/me/orders/:orderId', orderController.getCustomerOrderDetails);
+router.post('/me/orders/:orderId/cancel', orderController.cancelCustomerOrder);
+
+// Aliases for orders
+router.get('/orders', orderController.getCustomerOrders);
+router.get('/orders/:orderId', orderController.getCustomerOrderDetails);
+router.post('/orders/:orderId/cancel', orderController.cancelCustomerOrder);
 
 export default router;

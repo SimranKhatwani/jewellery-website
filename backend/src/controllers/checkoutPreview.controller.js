@@ -41,18 +41,22 @@ export const previewStorefrontCheckout = async (req, res, next) => {
       if (!selectedAddress) {
         throw new NotFoundError('Selected address was not found or does not belong to your account.');
       }
-    } else if (guestAddress) {
-      if (!guestAddress.name || !guestAddress.phone || !guestAddress.addressLine1 || !guestAddress.city || !guestAddress.postalCode) {
-        throw new BadRequestError('Incomplete guest delivery address details provided.');
+    } else if (guestAddress && typeof guestAddress === 'object') {
+      const hasName = Boolean(guestAddress.name && String(guestAddress.name).trim());
+      const hasAddress = Boolean(guestAddress.addressLine1 && String(guestAddress.addressLine1).trim());
+      if (hasName && hasAddress) {
+        selectedAddress = {
+          name: String(guestAddress.name).trim(),
+          phone: String(guestAddress.phone || '').trim(),
+          addressLine1: String(guestAddress.addressLine1).trim(),
+          addressLine2: String(guestAddress.addressLine2 || '').trim(),
+          city: String(guestAddress.city || '').trim(),
+          state: String(guestAddress.state || '').trim(),
+          postalCode: String(guestAddress.postalCode || '').trim(),
+          country: String(guestAddress.country || 'India').trim(),
+          isGuest: true,
+        };
       }
-      selectedAddress = {
-        name: guestAddress.name.trim(),
-        phone: guestAddress.phone.trim(),
-        addressLine1: guestAddress.addressLine1.trim(),
-        city: guestAddress.city.trim(),
-        postalCode: guestAddress.postalCode.trim(),
-        isGuest: true,
-      };
     }
 
     // 3. Revalidate every item against database (Stock, Active Status, Authoritative Price)

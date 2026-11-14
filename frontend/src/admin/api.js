@@ -256,3 +256,72 @@ export async function createAdminCategory(payload) {
   return data.category;
 }
 
+// ----------------- Orders API -----------------
+export async function getAdminOrders(params = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.orderStatus && params.orderStatus !== 'all') query.set('orderStatus', params.orderStatus);
+  if (params.paymentMethod && params.paymentMethod !== 'all') query.set('paymentMethod', params.paymentMethod);
+  if (params.paymentStatus && params.paymentStatus !== 'all') query.set('paymentStatus', params.paymentStatus);
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+
+  const qs = query.toString();
+  const res = await authFetch(`/orders${qs ? `?${qs}` : ''}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load orders: ${res.statusText}`);
+  }
+  const data = await res.json();
+  return {
+    orders: data.orders || [],
+    pagination: data.pagination || { total: 0, page: 1, limit: 20, pages: 1 },
+    metrics: data.metrics || {
+      totalRevenue: 0,
+      totalOrders: 0,
+      pendingOrders: 0,
+      confirmedOrders: 0,
+      processingOrders: 0,
+      shippedOrders: 0,
+      deliveredOrders: 0,
+      cancelledOrders: 0,
+    },
+  };
+}
+
+export async function getAdminOrderDetails(orderId) {
+  const res = await authFetch(`/orders/${orderId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load order details: ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.order;
+}
+
+export async function updateAdminOrderStatus(orderId, orderStatus, notes = '') {
+  const res = await authFetch(`/orders/${orderId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderStatus, notes }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update order status');
+  }
+  return data.order;
+}
+
+export async function cancelAdminOrder(orderId, reason = '') {
+  const res = await authFetch(`/orders/${orderId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to cancel order');
+  }
+  return data.order;
+}
+

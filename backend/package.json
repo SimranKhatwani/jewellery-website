@@ -18,6 +18,7 @@
     "test:phase3": "node src/scripts/testPhase3Catalog.js",
     "test:phase4": "node src/scripts/testPhase4CustomerCommerce.js",
     "test:remediation": "node src/scripts/testPhase3Phase4Remediation.js",
+    "test:phase5": "node src/scripts/testPhase5Orders.js",
     "cleanup:test": "node src/scripts/cleanupTestData.js"
   },
   "dependencies": {

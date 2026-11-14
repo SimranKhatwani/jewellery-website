@@ -148,6 +148,43 @@ export const resolveTenant = (options = { requireMembership: true }) => {
 };
 
 /**
+ * Resolve Legacy Tenant Middleware
+ * Resolves tenant context from headers or query for legacy routes, falling back to aurelle.
+ */
+export const resolveLegacyTenant = async (req, _res, next) => {
+  try {
+    if (req.tenant) return next();
+
+    let rawIdentifier =
+      req.headers['x-tenant-id'] ||
+      req.headers['x-store-slug'] ||
+      req.query.tenantId ||
+      req.query.storeSlug;
+
+    let tenant = null;
+    if (rawIdentifier) {
+      const id = String(rawIdentifier).trim();
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        tenant = await Tenant.findById(id);
+      } else {
+        tenant = await Tenant.findOne({ slug: id.toLowerCase() });
+      }
+    }
+
+    if (!tenant) {
+      tenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+    }
+
+    if (tenant) {
+      req.tenant = tenant;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * Authorize Legacy Admin Tenant Middleware
  * Ensures an authenticated admin user genuinely belongs to the resolved tenant.
  * Prevents cross-tenant manipulation on legacy routes by strictly validating active membership.

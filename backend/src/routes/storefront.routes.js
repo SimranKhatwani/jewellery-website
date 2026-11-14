@@ -6,6 +6,7 @@ import * as cartController from '../controllers/cart.controller.js';
 import * as wishlistController from '../controllers/wishlist.controller.js';
 import * as couponController from '../controllers/coupon.controller.js';
 import * as checkoutPreviewController from '../controllers/checkoutPreview.controller.js';
+import * as orderController from '../controllers/order.controller.js';
 
 const router = Router({ mergeParams: true });
 
@@ -46,8 +47,9 @@ router.post('/:storeSlug/coupons/validate', couponController.validateStorefrontC
 router.post('/:storeSlug/coupon/validate', couponController.validateStorefrontCoupon);
 
 /**
- * 5. Tenant-Scoped Checkout Preview
+ * 5. Tenant-Scoped Checkout Preview & Order Placement
  */
 router.post('/:storeSlug/checkout/preview', optionalAuthenticateUser, checkoutPreviewController.previewStorefrontCheckout);
+router.post('/:storeSlug/orders', optionalAuthenticateUser, orderController.placeStorefrontOrder);
 
 export default router;

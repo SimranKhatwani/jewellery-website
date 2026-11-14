@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Package, Receipt } from 'lucide-react';
 import {
   getAdminProducts,
   createProduct,
@@ -8,6 +9,7 @@ import {
   adminLogout,
 } from './api';
 import { ProductFormModal } from './ProductFormModal';
+import { OrdersManager } from './OrdersManager';
 import { notifyCatalogueChanged, resolveMediaUrl } from '../services/productService';
 
 export const AdminDashboard = ({
@@ -16,6 +18,7 @@ export const AdminDashboard = ({
   onViewStorefront,
   onGoToSuperAdmin,
 }) => {
+  const [activeTab, setActiveTab] = useState('catalogue'); // 'catalogue' | 'orders'
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -202,10 +205,46 @@ export const AdminDashboard = ({
         </div>
       </header>
 
+      {/* Navigation Sub-header (Catalogue vs Orders) */}
+      <div className="bg-[#FFFFFF] border-b border-[#D7C5AF]/60 sticky top-16 z-20 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-8">
+          <button
+            onClick={() => setActiveTab('catalogue')}
+            className={`py-3.5 text-xs uppercase tracking-[0.16em] font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'catalogue'
+                ? 'border-[#A85F49] text-[#A85F49]'
+                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Catalogue</span>
+            <span className="text-[10px] px-1.5 py-0.2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#8E8172]">
+              {products.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`py-3.5 text-xs uppercase tracking-[0.16em] font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'orders'
+                ? 'border-[#A85F49] text-[#A85F49]'
+                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Orders & Fulfillment</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title & Action */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        {activeTab === 'orders' ? (
+          <OrdersManager admin={admin} />
+        ) : (
+          <>
+            {/* Page Title & Action */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="font-serif text-3xl font-light text-[#593D30]">
               Catalogue Management
@@ -479,7 +518,9 @@ export const AdminDashboard = ({
             </div>
           )}
         </div>
-      </main>
+      </>
+    )}
+  </main>
 
       {/* Edit / Create Modal */}
       {isModalOpen && (

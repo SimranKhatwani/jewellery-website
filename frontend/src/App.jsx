@@ -582,6 +582,10 @@ export default function App() {
         customerUser={customerUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         allProducts={products}
+        onOrderPlaced={() => {
+          refreshCart();
+          setAppliedCoupon(null);
+        }}
       />
 
       {/* Customer Authentication Modal (Login / Register) */}
