@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, ArrowUpRight } from 'lucide-react';
+import { formatPrice } from '../services/storefrontService';
 
 export const ProductCard = ({
   product,
@@ -80,7 +81,7 @@ export const ProductCard = ({
 
         <div className="flex items-center justify-between mt-1 pt-1 border-t border-[#D7C5AF]/30">
           <span className="text-sm font-medium font-mono tabular-nums text-[#593D30]">
-            ${product.priceUSD} USD
+            {formatPrice(product.priceUSD || product.price)}
           </span>
           <span className="text-[11px] text-[#8E8172]">
             {product.options.type === 'size' ? '6 Sizes Available' : 'Adjustable Drape'}

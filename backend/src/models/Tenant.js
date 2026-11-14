@@ -52,6 +52,18 @@ const TenantSchema = new Schema(
         type: String,
         default: 'INR',
       },
+      currencySymbol: {
+        type: String,
+        default: '₹',
+      },
+      taxRate: {
+        type: Number,
+        default: 0,
+      },
+      shippingFee: {
+        type: Number,
+        default: 0,
+      },
       timezone: {
         type: String,
         default: 'Asia/Kolkata',

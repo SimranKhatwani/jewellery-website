@@ -23,31 +23,82 @@ const ProductSpecificationSchema = new Schema(
   { _id: false }
 );
 
+const ProductVariantSchema = new Schema(
+  {
+    sku: {
+      type: String,
+      required: [true, 'Variant SKU is required'],
+      trim: true,
+    },
+    name: {
+      type: String,
+      required: [true, 'Variant name is required'],
+      trim: true,
+    },
+    price: {
+      type: Number,
+      default: null, // null falls back to parent product priceUSD
+      min: 0,
+    },
+    attributes: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+    stockQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    inventoryStatus: {
+      type: String,
+      enum: ['in_stock', 'low_stock', 'out_of_stock', 'unknown'],
+      default: 'unknown',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true }
+);
+
 const ProductSchema = new Schema(
   {
+    tenantId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: [true, 'Tenant ID is required for product'],
+      index: true,
+    },
     slug: {
       type: String,
-      required: true,
-      unique: true,
+      required: [true, 'Product slug is required'],
       trim: true,
       lowercase: true,
       index: true,
     },
     name: {
       type: String,
-      required: true,
+      required: [true, 'Product name is required'],
       trim: true,
     },
     category: {
       type: String,
-      required: true,
+      required: [true, 'Category slug is required'],
       trim: true,
       lowercase: true,
       index: true,
     },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null,
+      index: true,
+    },
     priceUSD: {
       type: Number,
-      required: true,
+      required: [true, 'Price is required'],
       min: 0,
     },
     subtitle: {
@@ -89,14 +140,29 @@ const ProductSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    stockQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    inventoryStatus: {
+      type: String,
+      enum: ['in_stock', 'low_stock', 'out_of_stock', 'unknown'],
+      default: 'unknown',
+      index: true,
+    },
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
+    },
     sku: {
       type: String,
-      required: true,
+      required: [true, 'SKU is required'],
       trim: true,
     },
     primaryImage: {
       type: String,
-      required: true,
+      required: [true, 'Primary image is required'],
     },
     secondaryImage: {
       type: String,
@@ -123,6 +189,11 @@ const ProductSchema = new Schema(
       type: [String],
       default: ['High Polish Silver'],
     },
+    hasVariants: {
+      type: Boolean,
+      default: false,
+    },
+    variants: [ProductVariantSchema],
     specifications: {
       type: ProductSpecificationSchema,
       default: () => ({
@@ -153,11 +224,25 @@ const ProductSchema = new Schema(
       virtuals: true,
       transform: (_doc, ret) => {
         ret.id = ret.slug || ret._id;
+        if (ret.price === undefined && ret.priceUSD !== undefined) {
+          ret.price = ret.priceUSD;
+        }
         return ret;
       },
+    },
+    toObject: {
+      virtuals: true,
     },
   }
 );
 
-export const Product = mongoose.model('Product', ProductSchema);
+ProductSchema.virtual('price').get(function () {
+  return this.priceUSD;
+});
 
+// Compound unique indexes: slug and SKU must be unique per tenant
+ProductSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ tenantId: 1, sku: 1 }, { unique: true });
+ProductSchema.index({ tenantId: 1, isPublished: 1, displayOrder: 1 });
+
+export const Product = mongoose.model('Product', ProductSchema);

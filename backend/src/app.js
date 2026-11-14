@@ -17,6 +17,8 @@ import roleRoutes from './routes/role.routes.js';
 import platformRoutes from './routes/platform.routes.js';
 import planPlatformRoutes from './routes/planPlatform.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
+import storefrontRoutes from './routes/storefront.routes.js';
+import customerRoutes from './routes/customer.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -59,7 +61,7 @@ export const createApp = () => {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID', 'X-Store-Slug'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID', 'X-Store-Slug', 'X-Guest-Session-ID'],
     })
   );
 
@@ -90,6 +92,8 @@ export const createApp = () => {
   app.use('/api/v1/platform/plans', planPlatformRoutes);
   app.use('/api/v1/platform', platformRoutes);
   app.use('/api/v1/subscriptions', subscriptionRoutes);
+  app.use('/api/v1/storefront', storefrontRoutes);
+  app.use('/api/v1/customers', customerRoutes);
 
   // 404 Route Handler
   app.use(notFoundHandler);

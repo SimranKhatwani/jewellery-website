@@ -5,6 +5,7 @@ import { Subscription, SUBSCRIPTION_STATUS } from '../models/Subscription.js';
 import { SubscriptionEvent, SUBSCRIPTION_EVENTS } from '../models/SubscriptionEvent.js';
 import { Tenant } from '../models/Tenant.js';
 import { TenantMembership } from '../models/TenantMembership.js';
+import { Product } from '../models/Product.js';
 import { DEFAULT_SUBSCRIPTION_PLANS, AUDIT_ACTIONS } from '../config/constants.js';
 import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
@@ -305,8 +306,8 @@ export const getTenantUsageMetrics = async (tenantId, plan = null) => {
     status: 'active',
   });
 
-  // Placeholder for product count (connected to Product model in Phase 3)
-  const currentProducts = 0;
+  // Count actual products belonging to the tenant (connected to Product model)
+  const currentProducts = await Product.countDocuments({ tenantId });
   const currentStorageMB = 0;
 
   return {
@@ -315,6 +316,21 @@ export const getTenantUsageMetrics = async (tenantId, plan = null) => {
     currentStorageMB,
     limits: plan?.limits || {},
   };
+};
+
+export const enforceProductLimit = async (tenantId) => {
+  const subscription = await getOrCreateTenantSubscription(tenantId);
+  const plan = subscription.planId;
+  const maxProducts = plan?.limits?.maxProducts;
+  if (maxProducts !== undefined && maxProducts !== -1) {
+    const currentProducts = await Product.countDocuments({ tenantId });
+    if (currentProducts >= maxProducts) {
+      throw new ForbiddenError(
+        `Product creation limit reached for your plan (${currentProducts}/${maxProducts} products). Please upgrade your SaaS plan.`,
+        { currentProducts, maxProducts }
+      );
+    }
+  }
 };
 
 export const checkFeatureEntitlement = async (tenantId, featureKey) => {

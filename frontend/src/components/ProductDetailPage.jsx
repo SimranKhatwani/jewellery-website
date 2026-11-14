@@ -12,6 +12,7 @@ import {
   Ruler, 
   ShoppingBag
 } from 'lucide-react';
+import { formatPrice } from '../services/storefrontService';
 
 export const ProductDetailPage = ({
   product,
@@ -21,6 +22,7 @@ export const ProductDetailPage = ({
   isWishlisted,
   onToggleWishlist,
   onOpenSizeGuide,
+  onAddToCart,
 }) => {
   // Gallery state
   const images = [
@@ -37,6 +39,8 @@ export const ProductDetailPage = ({
   // Selection states
   const [selectedOption, setSelectedOption] = useState(product.options.default);
   const [selectedFinish, setSelectedFinish] = useState(product.finishes[0] || 'High Polish');
+  const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
   
   // Accordion tabs
   const [activeTab, setActiveTab] = useState('specifications');
@@ -223,7 +227,7 @@ export const ProductDetailPage = ({
               {/* Price */}
               <div className="mt-3">
                 <span className="text-2xl font-mono tabular-nums font-medium text-[#593D30]">
-                  ${product.priceUSD} USD
+                  {formatPrice(product.priceUSD || product.price)}
                 </span>
               </div>
             </div>
@@ -286,32 +290,114 @@ export const ProductDetailPage = ({
               </div>
             </div>
 
-            {/* Save to Favourites Action */}
-            <div className="pt-2">
+            {/* Inventory Status & Allocation Speed */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <span className="uppercase tracking-wider text-[#8E8172] font-medium">Availability</span>
+              {product.inventoryStatus === 'out_of_stock' ? (
+                <span className="font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-xs">
+                  Temporarily Sold Out
+                </span>
+              ) : product.inventoryStatus === 'low_stock' ? (
+                <span className="font-semibold text-[#A85F49] bg-[#A85F49]/10 border border-[#A85F49]/30 px-2 py-0.5 rounded-xs">
+                  Limited Edition · Low Stock
+                </span>
+              ) : product.inventoryStatus === 'unknown' ? (
+                <span
+                  className="font-semibold text-[#593D30] bg-[#F7F1E9] border border-[#D7C5AF] px-2 py-0.5 rounded-xs"
+                  title="Crafted upon bespoke allocation by master artisans. Tailored to order."
+                >
+                  Crafted on Allocation · Made to Order
+                </span>
+              ) : (
+                <span className="font-semibold text-[#2E7D32] bg-green-50 border border-green-200 px-2 py-0.5 rounded-xs">
+                  In Stock · Dispatches in 24 Hours
+                </span>
+              )}
+            </div>
+
+            {/* Quantity Selector & Add to Cart Action */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-stretch gap-3">
+                {/* Quantity Controls */}
+                <div className="flex items-center border border-[#D7C5AF] rounded-xs bg-[#FFFFFF] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="px-3 py-2 text-[#593D30] hover:bg-[#F7F1E9] disabled:opacity-30 transition-colors"
+                  >
+                    −
+                  </button>
+                  <span className="px-3 py-2 text-xs font-mono font-medium text-[#593D30] select-none min-w-[2.5rem] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="px-3 py-2 text-[#593D30] hover:bg-[#F7F1E9] transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Primary Add to Shopping Bag Button */}
+                <button
+                  type="button"
+                  disabled={product.inventoryStatus === 'out_of_stock' || addingToCart}
+                  onClick={async () => {
+                    if (onAddToCart) {
+                      setAddingToCart(true);
+                      try {
+                        await onAddToCart({
+                          product,
+                          selectedOption,
+                          selectedFinish,
+                          quantity,
+                        });
+                      } finally {
+                        setAddingToCart(false);
+                      }
+                    }
+                  }}
+                  className="flex-1 py-3 px-6 bg-[#A85F49] hover:bg-[#8E4D3A] disabled:opacity-40 text-[#FFFFFF] text-xs uppercase tracking-widest font-semibold rounded-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>
+                    {addingToCart
+                      ? 'Adding...'
+                      : product.inventoryStatus === 'out_of_stock'
+                      ? 'Out of Stock'
+                      : `Add to Shopping Bag • ${formatPrice((product.priceUSD || product.price) * quantity)}`}
+                  </span>
+                </button>
+              </div>
+
+              {/* Save to Favourites Action */}
               <button
+                type="button"
                 onClick={(e) => onToggleWishlist(product.slug || product.id, e)}
                 className={`w-full py-2.5 px-4 rounded-xs border text-xs uppercase tracking-wider font-medium flex items-center justify-center gap-2 transition-colors ${
                   isWishlisted
-                    ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF]'
+                    ? 'border-[#A85F49] bg-[#A85F49]/10 text-[#A85F49]'
                     : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49] hover:text-[#A85F49]'
                 }`}
               >
-                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
+                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-[#A85F49] text-[#A85F49]' : ''}`} />
                 <span>{isWishlisted ? 'Saved in Favourites' : 'Save to Favourites'}</span>
               </button>
             </div>
 
             {/* Persistent Purchase Information Line for RKB Enterprises: Warm Ivory with Terracotta border */}
-            <div className="p-5 bg-[#F7F1E9] border border-[#A85F49]/35 rounded-xs shadow-xs space-y-2">
+            <div className="p-4 bg-[#F7F1E9] border border-[#A85F49]/35 rounded-xs shadow-xs space-y-1.5">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-medium text-[#A85F49]">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#A85F49]" />
-                <span>Purchase Information</span>
+                <Package className="w-3.5 h-3.5 text-[#A85F49]" />
+                <span>Brand Inquiries & Direct Sourcing</span>
               </div>
-              <p className="text-sm font-medium text-[#593D30] leading-relaxed">
-                To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.
+              <p className="text-xs font-medium text-[#593D30] leading-relaxed">
+                Direct client assistance available through RKB Enterprises or our marketplace storefronts.
               </p>
-              <p className="text-xs text-[#8E8172] leading-relaxed font-light">
-                Please reference item name <strong className="font-medium text-[#593D30]">{product.name}</strong> ({product.sku}) with your selected {product.category === 'rings' ? 'ring size' : 'size'} ({selectedOption}) and finish ({selectedFinish}).
+              <p className="text-[11px] text-[#8E8172] leading-relaxed font-light">
+                Reference SKU <strong className="font-mono text-[#593D30]">{product.sku}</strong> with size ({selectedOption}) and finish ({selectedFinish}).
               </p>
             </div>
 
@@ -452,7 +538,7 @@ export const ProductDetailPage = ({
                     {rel.name}
                   </h4>
                   <span className="text-xs font-mono font-medium mt-1 text-[#593D30]">
-                    ${rel.priceUSD} USD
+                    {formatPrice(rel.priceUSD || rel.price)}
                   </span>
                 </div>
               ))}

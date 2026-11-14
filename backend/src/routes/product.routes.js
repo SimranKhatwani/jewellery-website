@@ -1,276 +1,167 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { Product } from '../models/Product.js';
-import { authenticateAdmin } from '../middleware/auth.js';
+import { Tenant } from '../models/Tenant.js';
+import { authenticateAdmin, authenticateUser } from '../middleware/auth.js';
+import { resolveTenant, authorizeLegacyAdminTenant } from '../middleware/tenant.js';
+import { requireTenantPermission } from '../middleware/rbac.js';
+import * as productController from '../controllers/product.controller.js';
 
 const router = Router();
 
-// Helper to generate a URL-safe slug from a product name
-const slugify = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
-    .replace(/--+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
-};
-
 /**
- * GET /api/products
- * Public endpoint: Returns all published products sorted by displayOrder
+ * Middleware: Resolves tenant context for legacy public & admin routes
  */
-router.get('/', async (req, res, next) => {
+const resolveLegacyTenant = async (req, _res, next) => {
   try {
-    const { category, search, bestseller, newArrival } = req.query;
+    if (req.tenant) return next();
 
-    const filter = {
-      isPublished: true,
-    };
+    let rawIdentifier =
+      req.headers['x-tenant-id'] ||
+      req.headers['x-store-slug'] ||
+      req.query.tenantId ||
+      req.query.storeSlug;
 
-    if (category && category !== 'all') {
-      filter.category = String(category).toLowerCase().trim();
-    }
-
-    if (bestseller === 'true') {
-      filter.isBestseller = true;
-    }
-
-    if (newArrival === 'true') {
-      filter.isNewArrival = true;
-    }
-
-    if (search && String(search).trim() !== '') {
-      const q = String(search).trim();
-      filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { subtitle: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { sku: { $regex: q, $options: 'i' } },
-      ];
-    }
-
-    const products = await Product.find(filter)
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .lean();
-
-    res.json({
-      success: true,
-      count: products.length,
-      products,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/products/admin/all
- * Protected endpoint: Returns ALL products (published & unpublished) for admin management
- */
-router.get('/admin/all', authenticateAdmin, async (_req, res, next) => {
-  try {
-    const products = await Product.find()
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .lean();
-
-    res.json({
-      success: true,
-      count: products.length,
-      products,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/products/:slugOrId
- * Public endpoint: Find a single product by slug or MongoDB ObjectId
- */
-router.get('/:slugOrId', async (req, res, next) => {
-  try {
-    const slugOrId = req.params.slugOrId || '';
-
-    const query = {
-      $or: [
-        { slug: slugOrId.toLowerCase() },
-        ...(slugOrId.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: slugOrId }] : []),
-      ],
-    };
-
-    const product = await Product.findOne(query).lean();
-
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found in catalogue.',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      product,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * POST /api/products
- * Protected endpoint: Create a new product in the database
- */
-router.post('/', authenticateAdmin, async (req, res, next) => {
-  try {
-    const payload = req.body;
-
-    if (!payload.name || !payload.category || payload.priceUSD === undefined) {
-      res.status(400).json({
-        success: false,
-        message: 'Product name, category, and priceUSD are required fields.',
-      });
-      return;
-    }
-
-    // Generate or format slug
-    let baseSlug = payload.slug ? slugify(payload.slug) : slugify(payload.name);
-    let finalSlug = baseSlug;
-    let counter = 1;
-
-    while (await Product.findOne({ slug: finalSlug })) {
-      finalSlug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-
-    payload.slug = finalSlug;
-
-    // Generate SKU if missing
-    if (!payload.sku) {
-      const catCode = payload.category.substring(0, 3).toUpperCase();
-      payload.sku = `AUR-${catCode}-${Date.now().toString().slice(-4)}`;
-    }
-
-    const newProduct = new Product(payload);
-    await newProduct.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Product successfully created and saved to catalogue.',
-      product: newProduct,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * PUT /api/products/:id
- * Protected endpoint: Update an existing product
- */
-router.put('/:id', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    // If slug is changed, ensure it is unique and slugified
-    if (updates.slug) {
-      updates.slug = slugify(updates.slug);
-      const existing = await Product.findOne({
-        slug: updates.slug,
-        _id: { $ne: id },
-      });
-      if (existing) {
-        res.status(409).json({
-          success: false,
-          message: 'Another product with this slug already exists.',
-        });
-        return;
+    let tenant = null;
+    if (rawIdentifier) {
+      const id = String(rawIdentifier).trim();
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        tenant = await Tenant.findById(id);
+      } else {
+        tenant = await Tenant.findOne({ slug: id.toLowerCase() });
       }
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updatedProduct) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found to update.',
-      });
-      return;
+    if (!tenant) {
+      // Fallback to primary official AURELLE tenant or first active store
+      tenant = await Tenant.findOne({ slug: 'aurelle' }) || await Tenant.findOne({ status: 'active' });
     }
 
-    res.json({
-      success: true,
-      message: 'Product successfully updated.',
-      product: updatedProduct,
-    });
-  } catch (error) {
-    next(error);
+    if (tenant) {
+      req.tenant = tenant;
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
+};
+
+// -------------------------------------------------------------
+// PUBLIC / STOREFRONT CATALOG ROUTES
+// -------------------------------------------------------------
+
+/**
+ * GET /api/products
+ * Public endpoint: Returns published products for resolved store
+ */
+router.get('/', resolveLegacyTenant, (req, res, next) => {
+  if (!req.tenant) {
+    return res.json({ success: true, count: 0, products: [] });
+  }
+  req.isStorefront = true;
+  return productController.listTenantProducts(req, res, next);
 });
+
+/**
+ * GET /api/products/:id
+ * Public endpoint: Get single product by slug or ID
+ */
+router.get('/:id', resolveLegacyTenant, (req, res, next) => {
+  if (!req.tenant) {
+    return res.status(404).json({ success: false, message: 'Store not found.' });
+  }
+  req.params.identifier = req.params.id;
+  req.isStorefront = true;
+  return productController.getTenantProduct(req, res, next);
+});
+
+// -------------------------------------------------------------
+// STORE ADMIN / TENANT CATALOG ROUTES
+// -------------------------------------------------------------
+
+/**
+ * GET /api/products/admin/all
+ * Store Admin endpoint: Returns all products (published + drafts)
+ */
+router.get(
+  '/admin/all',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    req.isStorefront = false;
+    return productController.listTenantProducts(req, res, next);
+  }
+);
+
+/**
+ * POST /api/products
+ * Store Admin: Create new product
+ */
+router.post(
+  '/',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return productController.createTenantProduct(req, res, next);
+  }
+);
+
+/**
+ * PUT /api/products/:id
+ * Store Admin: Update product
+ */
+router.put(
+  '/:id',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return productController.updateTenantProduct(req, res, next);
+  }
+);
 
 /**
  * DELETE /api/products/:id
- * Protected endpoint: Remove a product from the database
+ * Store Admin: Delete product
  */
-router.delete('/:id', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const deleted = await Product.findByIdAndDelete(id);
-
-    if (!deleted) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found to delete.',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: 'Product successfully deleted from catalogue.',
-      id: deleted._id,
-    });
-  } catch (error) {
-    next(error);
+router.delete(
+  '/:id',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return productController.deleteTenantProduct(req, res, next);
   }
-});
+);
 
 /**
- * PATCH /api/products/:id/toggle-publish
- * Protected endpoint: Quickly toggle publish status
+ * PATCH /api/products/:id/publish
+ * Store Admin: Toggle publication
  */
-router.patch('/:id/toggle-publish', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const product = await Product.findById(id);
-
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found.',
-      });
-      return;
-    }
-
-    product.isPublished = !product.isPublished;
-    await product.save();
-
-    res.json({
-      success: true,
-      message: `Product is now ${product.isPublished ? 'published' : 'unpublished'}.`,
-      isPublished: product.isPublished,
-    });
-  } catch (error) {
-    next(error);
+router.patch(
+  '/:id/publish',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return productController.toggleTenantProductPublish(req, res, next);
   }
-});
+);
+
+/**
+ * PATCH /api/products/:id/inventory
+ * Store Admin: Update numerical inventory
+ */
+router.patch(
+  '/:id/inventory',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return productController.updateTenantInventory(req, res, next);
+  }
+);
 
 export default router;
-

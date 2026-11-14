@@ -1,0 +1,507 @@
+/**
+ * AURELLE Multi-Tenant SaaS E-Commerce Storefront Service
+ * Handles Guest Sessions, Customer Auth, Tenant Cart, Wishlist, Coupon Validation,
+ * Customer Address Books, Dynamic Currency Formatting, and Checkout Previews.
+ */
+
+function getApiBaseUrl() {
+  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  if (!raw || raw === '/') return '/api';
+  if (raw.endsWith('/api')) return raw;
+  return `${raw}/api`;
+}
+
+const API_BASE_URL = getApiBaseUrl();
+
+/**
+ * Resolve active storefront slug dynamically.
+ * Priority:
+ * 1. Query param: ?store=<slug> or ?tenant=<slug>
+ * 2. URL path: /store/<slug>
+ * 3. Saved localStorage: aurelle_store_slug
+ * 4. Default: 'aurelle'
+ */
+export function getStoreSlug() {
+  if (typeof window === 'undefined') return 'aurelle';
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const qSlug = params.get('store') || params.get('tenant');
+    if (qSlug && qSlug.trim()) {
+      const clean = qSlug.trim().toLowerCase();
+      localStorage.setItem('aurelle_store_slug', clean);
+      return clean;
+    }
+
+    const pathMatch = window.location.pathname.match(/^\/store\/([a-zA-Z0-9_-]+)/i);
+    if (pathMatch && pathMatch[1]) {
+      const clean = pathMatch[1].toLowerCase();
+      localStorage.setItem('aurelle_store_slug', clean);
+      return clean;
+    }
+
+    const saved = localStorage.getItem('aurelle_store_slug');
+    if (saved && saved.trim()) {
+      return saved.trim().toLowerCase();
+    }
+  } catch {
+    // ignore browser storage errors
+  }
+
+  return 'aurelle';
+}
+
+// Guest session ID management
+export function getGuestSessionId() {
+  if (typeof window === 'undefined') return 'guest-ssr';
+  let sessionId = localStorage.getItem('aurelle_guest_session_id');
+  if (!sessionId) {
+    sessionId = 'guest_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
+    localStorage.setItem('aurelle_guest_session_id', sessionId);
+  }
+  return sessionId;
+}
+
+// Customer Auth Token management
+export function getCustomerToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('aurelle_customer_token') || null;
+}
+
+export function setCustomerToken(token) {
+  if (typeof window === 'undefined') return;
+  if (token) {
+    localStorage.setItem('aurelle_customer_token', token);
+  } else {
+    localStorage.removeItem('aurelle_customer_token');
+  }
+}
+
+export function getCustomerUser() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('aurelle_customer_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCustomerUser(user) {
+  if (typeof window === 'undefined') return;
+  if (user) {
+    localStorage.setItem('aurelle_customer_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('aurelle_customer_user');
+  }
+}
+
+// Request headers builder
+export function getStorefrontHeaders() {
+  const storeSlug = getStoreSlug();
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Guest-Session-ID': getGuestSessionId(),
+    'X-Tenant-ID': storeSlug,
+  };
+
+  const token = getCustomerToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+// -------------------------------------------------------------
+// DYNAMIC CURRENCY & STORE INFO
+// -------------------------------------------------------------
+
+let cachedStoreInfo = null;
+
+export async function fetchStoreInfo() {
+  try {
+    const storeSlug = getStoreSlug();
+    const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/info`, {
+      headers: getStorefrontHeaders(),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const store = data.store || data.data?.store || null;
+      if (store) {
+        cachedStoreInfo = store;
+        if (store.currency && typeof window !== 'undefined') {
+          localStorage.setItem('aurelle_store_currency', store.currency);
+        }
+        return store;
+      }
+    }
+  } catch (err) {
+    console.warn('[Storefront] Fetch store info note:', err.message);
+  }
+  return null;
+}
+
+export function getStoreCurrency() {
+  if (cachedStoreInfo?.currency) return cachedStoreInfo.currency;
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('aurelle_store_currency');
+    if (saved) return saved;
+  }
+  return 'USD';
+}
+
+/**
+ * Format price dynamically according to tenant currency (USD, INR, EUR, GBP, etc.)
+ */
+export function formatPrice(amount, currency = null) {
+  const targetCurrency = currency || getStoreCurrency() || 'USD';
+  const num = Number(amount) || 0;
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: targetCurrency,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch {
+    const sym =
+      targetCurrency === 'INR'
+        ? '₹'
+        : targetCurrency === 'EUR'
+        ? '€'
+        : targetCurrency === 'GBP'
+        ? '£'
+        : '$';
+    return `${sym}${num.toFixed(2)}`;
+  }
+}
+
+// -------------------------------------------------------------
+// CART APIS
+// -------------------------------------------------------------
+
+export async function fetchCart() {
+  try {
+    const storeSlug = getStoreSlug();
+    const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart`, {
+      headers: getStorefrontHeaders(),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.cart || data.data?.cart || { items: [], subtotal: 0, totalItems: 0 };
+  } catch (err) {
+    console.warn('[Storefront] Fetch cart fallback:', err.message);
+    return { items: [], subtotal: 0, totalItems: 0 };
+  }
+}
+
+export async function addToCart({ productId, variantId, sku, selectedOptions, quantity = 1 }) {
+  const storeSlug = getStoreSlug();
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify({ productId, variantId, sku, selectedOptions, quantity }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to add item to cart');
+  }
+  return data.cart || data.data?.cart;
+}
+
+export async function updateCartItemQuantity(itemId, quantity) {
+  const storeSlug = getStoreSlug();
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items/${itemId}`, {
+    method: 'PATCH',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify({ quantity }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update item quantity');
+  }
+  return data.cart || data.data?.cart;
+}
+
+export async function removeCartItem(itemId) {
+  const storeSlug = getStoreSlug();
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items/${itemId}`, {
+    method: 'DELETE',
+    headers: getStorefrontHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to remove item');
+  }
+  return data.cart || data.data?.cart;
+}
+
+export async function clearCart() {
+  const storeSlug = getStoreSlug();
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart`, {
+    method: 'DELETE',
+    headers: getStorefrontHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to clear cart');
+  }
+  return data.cart || data.data?.cart;
+}
+
+export async function mergeGuestCart() {
+  const guestSessionId = getGuestSessionId();
+  if (!guestSessionId) return null;
+
+  try {
+    const storeSlug = getStoreSlug();
+    const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/merge`, {
+      method: 'POST',
+      headers: getStorefrontHeaders(),
+      body: JSON.stringify({ guestSessionId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.cart || data.data?.cart;
+    }
+  } catch (err) {
+    console.warn('[Storefront] Merge guest cart note:', err.message);
+  }
+  return null;
+}
+
+// -------------------------------------------------------------
+// COUPON APIS
+// -------------------------------------------------------------
+
+export async function validateCoupon(code, orderAmount) {
+  const storeSlug = getStoreSlug();
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/coupon/validate`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify({ code, orderAmount }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Invalid or expired coupon');
+  }
+  return data.data || data;
+}
+
+// -------------------------------------------------------------
+// CHECKOUT PREVIEW API
+// -------------------------------------------------------------
+
+export async function previewCheckout({ addressId, guestAddress, couponCode, items, shippingAddress }) {
+  const storeSlug = getStoreSlug();
+  // Support both addressId/guestAddress or legacy shippingAddress parameter
+  const payload = {
+    couponCode,
+    items,
+  };
+
+  if (addressId) {
+    payload.addressId = addressId;
+  } else if (guestAddress) {
+    payload.guestAddress = guestAddress;
+  } else if (shippingAddress) {
+    if (shippingAddress._id) {
+      payload.addressId = shippingAddress._id;
+    } else {
+      payload.guestAddress = shippingAddress;
+    }
+  }
+
+  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/preview`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Checkout preview calculation failed');
+  }
+  return data;
+}
+
+// -------------------------------------------------------------
+// CUSTOMER AUTH & PROFILE APIS
+// -------------------------------------------------------------
+
+export async function customerLogin(email, password) {
+  const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+
+  // Unpack sendSuccess envelope { success: true, message, data: { token, user } }
+  const payload = data.data || data;
+  const token = payload.token || payload.accessToken;
+  const user = payload.user || payload.customer;
+
+  if (!token) {
+    throw new Error(data.message || 'Authentication succeeded but no token was provided.');
+  }
+
+  setCustomerToken(token);
+  setCustomerUser(user);
+
+  // Auto merge guest cart if any
+  await mergeGuestCart();
+
+  return { token, user };
+}
+
+export async function customerRegister({ email, password, firstName, lastName, phone }) {
+  const res = await fetch(`${API_BASE_URL}/v1/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      email,
+      password,
+      name: `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+      phoneNumber: phone,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Registration failed');
+  }
+
+  // Unpack sendSuccess envelope
+  const payload = data.data || data;
+  const token = payload.token || payload.accessToken;
+  const user = payload.user || payload.customer;
+
+  if (!token) {
+    throw new Error(data.message || 'Registration succeeded but no token was provided.');
+  }
+
+  setCustomerToken(token);
+  setCustomerUser(user);
+  await mergeGuestCart();
+
+  return { token, user };
+}
+
+export function customerLogout() {
+  setCustomerToken(null);
+  setCustomerUser(null);
+}
+
+export async function fetchCustomerProfile() {
+  const token = getCustomerToken();
+  if (!token) return null;
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me`, {
+    headers: getStorefrontHeaders(),
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      customerLogout();
+    }
+    throw new Error(`Profile fetch failed: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const payload = data.data || data;
+  const user = payload.customer || payload.user || payload;
+
+  if (user) {
+    setCustomerUser(user);
+  }
+  return user;
+}
+
+export async function updateCustomerProfile(profileData) {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me`, {
+    method: 'PUT',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify(profileData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update profile');
+  }
+  const payload = data.data || data;
+  const user = payload.customer || payload.user || payload;
+  if (user) {
+    setCustomerUser(user);
+  }
+  return user;
+}
+
+export async function changeCustomerPassword(currentPassword, newPassword) {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/change-password`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Password update failed');
+  }
+  return data.data || data;
+}
+
+// -------------------------------------------------------------
+// CUSTOMER ADDRESS APIS
+// -------------------------------------------------------------
+
+export async function fetchAddresses() {
+  const token = getCustomerToken();
+  if (!token) return [];
+
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses`, {
+    headers: getStorefrontHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const payload = data.data || data;
+  return payload.addresses || (Array.isArray(payload) ? payload : []);
+}
+
+export async function createAddress(addressData) {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses`, {
+    method: 'POST',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify(addressData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to create address');
+  }
+  const payload = data.data || data;
+  return payload.address || payload;
+}
+
+export async function updateAddress(id, addressData) {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses/${id}`, {
+    method: 'PUT',
+    headers: getStorefrontHeaders(),
+    body: JSON.stringify(addressData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update address');
+  }
+  const payload = data.data || data;
+  return payload.address || payload;
+}
+
+export async function deleteAddress(id) {
+  const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses/${id}`, {
+    method: 'DELETE',
+    headers: getStorefrontHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to delete address');
+  }
+  return true;
+}

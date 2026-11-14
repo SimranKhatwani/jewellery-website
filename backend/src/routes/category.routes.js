@@ -1,172 +1,109 @@
 import { Router } from 'express';
-import { Category } from '../models/Category.js';
+import mongoose from 'mongoose';
+import { Tenant } from '../models/Tenant.js';
 import { authenticateAdmin } from '../middleware/auth.js';
+import { authorizeLegacyAdminTenant } from '../middleware/tenant.js';
+import * as categoryController from '../controllers/category.controller.js';
 
 const router = Router();
 
-const slugify = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
-    .replace(/--+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
+const resolveLegacyTenant = async (req, _res, next) => {
+  try {
+    if (req.tenant) return next();
+
+    let rawIdentifier =
+      req.headers['x-tenant-id'] ||
+      req.headers['x-store-slug'] ||
+      req.query.tenantId ||
+      req.query.storeSlug;
+
+    let tenant = null;
+    if (rawIdentifier) {
+      const id = String(rawIdentifier).trim();
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        tenant = await Tenant.findById(id);
+      } else {
+        tenant = await Tenant.findOne({ slug: id.toLowerCase() });
+      }
+    }
+
+    if (!tenant) {
+      tenant = await Tenant.findOne({ slug: 'aurelle' }) || await Tenant.findOne({ status: 'active' });
+    }
+
+    if (tenant) {
+      req.tenant = tenant;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
  * GET /api/categories
- * Public endpoint: Return active categories
+ * Public endpoint: Returns all categories for resolved store
  */
-router.get('/', async (_req, res, next) => {
-  try {
-    const categories = await Category.find({ isActive: true })
-      .sort({ displayOrder: 1, name: 1 })
-      .lean();
-
-    res.json({
-      success: true,
-      count: categories.length,
-      categories,
-    });
-  } catch (error) {
-    next(error);
+router.get('/', resolveLegacyTenant, (req, res, next) => {
+  if (!req.tenant) {
+    return res.json({ success: true, count: 0, categories: [] });
   }
+  req.isStorefront = true;
+  return categoryController.listTenantCategories(req, res, next);
 });
 
 /**
- * GET /api/categories/admin/all
- * Protected endpoint: Return all categories for admin
+ * GET /api/categories/:id
+ * Public endpoint: Get single category by slug or ID
  */
-router.get('/admin/all', authenticateAdmin, async (_req, res, next) => {
-  try {
-    const categories = await Category.find()
-      .sort({ displayOrder: 1, name: 1 })
-      .lean();
-
-    res.json({
-      success: true,
-      count: categories.length,
-      categories,
-    });
-  } catch (error) {
-    next(error);
+router.get('/:id', resolveLegacyTenant, (req, res, next) => {
+  if (!req.tenant) {
+    return res.status(404).json({ success: false, message: 'Store not found.' });
   }
+  req.params.identifier = req.params.id;
+  return categoryController.getTenantCategory(req, res, next);
 });
 
 /**
  * POST /api/categories
- * Protected endpoint: Create category
+ * Store Admin: Create new category
  */
-router.post('/', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { name, slug, description, displayOrder, isActive } = req.body;
-
-    if (!name) {
-      res.status(400).json({
-        success: false,
-        message: 'Category name is required.',
-      });
-      return;
-    }
-
-    const finalSlug = slug ? slugify(slug) : slugify(name);
-
-    const existing = await Category.findOne({ slug: finalSlug });
-    if (existing) {
-      res.status(409).json({
-        success: false,
-        message: 'A category with this slug already exists.',
-      });
-      return;
-    }
-
-    const category = new Category({
-      name,
-      slug: finalSlug,
-      description: description || '',
-      displayOrder: displayOrder !== undefined ? displayOrder : 0,
-      isActive: isActive !== undefined ? isActive : true,
-    });
-
-    await category.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Category created successfully.',
-      category,
-    });
-  } catch (error) {
-    next(error);
+router.post(
+  '/',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return categoryController.createTenantCategory(req, res, next);
   }
-});
+);
 
 /**
  * PUT /api/categories/:id
- * Protected endpoint: Update category
+ * Store Admin: Update category
  */
-router.put('/:id', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (updates.name && !updates.slug) {
-      updates.slug = slugify(updates.name);
-    } else if (updates.slug) {
-      updates.slug = slugify(updates.slug);
-    }
-
-    const updated = await Category.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updated) {
-      res.status(404).json({
-        success: false,
-        message: 'Category not found.',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: 'Category updated successfully.',
-      category: updated,
-    });
-  } catch (error) {
-    next(error);
+router.put(
+  '/:id',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return categoryController.updateTenantCategory(req, res, next);
   }
-});
+);
 
 /**
  * DELETE /api/categories/:id
- * Protected endpoint: Delete category
+ * Store Admin: Delete category
  */
-router.delete('/:id', authenticateAdmin, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const deleted = await Category.findByIdAndDelete(id);
-    if (!deleted) {
-      res.status(404).json({
-        success: false,
-        message: 'Category not found.',
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: 'Category deleted successfully.',
-      id: deleted._id,
-    });
-  } catch (error) {
-    next(error);
+router.delete(
+  '/:id',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  (req, res, next) => {
+    return categoryController.deleteTenantCategory(req, res, next);
   }
-});
+);
 
 export default router;
-

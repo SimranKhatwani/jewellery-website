@@ -47,6 +47,10 @@ export const DEFAULT_PERMISSIONS = [
   { key: 'products:write', name: 'Manage Products', module: 'catalog', description: 'Create, update, and delete products' },
   { key: 'categories:read', name: 'View Categories', module: 'catalog', description: 'View product categories' },
   { key: 'categories:write', name: 'Manage Categories', module: 'catalog', description: 'Create, update, and delete categories' },
+  { key: 'inventory:read', name: 'View Inventory', module: 'catalog', description: 'View stock levels and inventory' },
+  { key: 'inventory:write', name: 'Manage Inventory', module: 'catalog', description: 'Update stock levels and inventory counts' },
+  { key: 'coupons:read', name: 'View Coupons', module: 'marketing', description: 'View store coupons and discount promotions' },
+  { key: 'coupons:write', name: 'Manage Coupons', module: 'marketing', description: 'Create, update, and delete store coupons' },
 
   // Orders & Customers (Defined for upcoming phases)
   { key: 'orders:read', name: 'View Orders', module: 'sales', description: 'View store orders' },
@@ -159,6 +163,12 @@ export const AUDIT_ACTIONS = {
   SUBSCRIPTION_CANCEL: 'SUBSCRIPTION_CANCEL',
   SUBSCRIPTION_PAYMENT_SUCCESS: 'SUBSCRIPTION_PAYMENT_SUCCESS',
   SUBSCRIPTION_PAYMENT_FAILED: 'SUBSCRIPTION_PAYMENT_FAILED',
+  PRODUCT_CREATE: 'PRODUCT_CREATE',
+  PRODUCT_UPDATE: 'PRODUCT_UPDATE',
+  PRODUCT_DELETE: 'PRODUCT_DELETE',
+  INVENTORY_UPDATE: 'INVENTORY_UPDATE',
+  COUPON_CREATE: 'COUPON_CREATE',
+  COUPON_UPDATE: 'COUPON_UPDATE',
   UNAUTHORIZED_ACCESS_ATTEMPT: 'UNAUTHORIZED_ACCESS_ATTEMPT',
 };
 

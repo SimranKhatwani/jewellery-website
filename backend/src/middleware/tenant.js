@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import { Tenant } from '../models/Tenant.js';
 import { TenantMembership } from '../models/TenantMembership.js';
-import { TENANT_STATUS, MEMBERSHIP_STATUS } from '../config/constants.js';
+import { User } from '../models/User.js';
+import { TENANT_STATUS, MEMBERSHIP_STATUS, USER_STATUS } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError } from '../utils/errors.js';
 
 /**
@@ -63,6 +64,9 @@ export const resolveTenant = (options = { requireMembership: true }) => {
       }
 
       if (!tenant) {
+        if (rawIdentifier) {
+          throw new NotFoundError(`Store '${rawIdentifier}' was not found.`);
+        }
         throw new BadRequestError(
           'Tenant context required. Provide X-Tenant-ID header, route parameter, or access via a verified custom domain.'
         );
@@ -141,4 +145,92 @@ export const resolveTenant = (options = { requireMembership: true }) => {
       next(error);
     }
   };
+};
+
+/**
+ * Authorize Legacy Admin Tenant Middleware
+ * Ensures an authenticated admin user genuinely belongs to the resolved tenant.
+ * Prevents cross-tenant manipulation on legacy routes by strictly validating active membership.
+ */
+export const authorizeLegacyAdminTenant = async (req, res, next) => {
+  try {
+    if (!req.tenant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant store context required.',
+      });
+    }
+
+    // Resolve user entity from req.user or req.admin
+    let user = req.user;
+    if (!user && req.admin) {
+      const userId = req.admin.userId || req.admin.id;
+      if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+        user = await User.findById(userId);
+      }
+      if (!user && req.admin.email) {
+        user = await User.findOne({ email: String(req.admin.email).toLowerCase().trim() });
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authenticated administrative identity could not be verified.',
+      });
+    }
+
+    if (user.status !== USER_STATUS.ACTIVE) {
+      return res.status(403).json({
+        success: false,
+        message: `Account is ${user.status}. Access is restricted.`,
+      });
+    }
+
+    // Platform Super Admin bypasses with universal access
+    if (user.isSuperAdmin) {
+      req.user = user;
+      req.membership = {
+        role: 'superadmin',
+        roleName: 'Platform Super Admin',
+        permissions: ['*'],
+        isSuperAdmin: true,
+        status: 'active',
+      };
+      return next();
+    }
+
+    // Verify active TenantMembership for the target tenant
+    const membership = await TenantMembership.findOne({
+      tenantId: req.tenant._id,
+      userId: user._id,
+    }).populate('roleId');
+
+    if (!membership) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. You do not have an active membership for store '${req.tenant.name}'.`,
+      });
+    }
+
+    if (membership.status !== MEMBERSHIP_STATUS.ACTIVE) {
+      return res.status(403).json({
+        success: false,
+        message: `Your membership for store '${req.tenant.name}' is ${membership.status}. Access is restricted.`,
+      });
+    }
+
+    req.user = user;
+    req.membership = {
+      id: membership._id,
+      role: membership.roleId?.slug,
+      roleName: membership.roleId?.name,
+      permissions: membership.roleId?.permissions || [],
+      status: membership.status,
+    };
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 };

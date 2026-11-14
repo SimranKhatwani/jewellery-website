@@ -15,9 +15,23 @@ import { ReturnPolicyPage } from './components/ReturnPolicyPage';
 import { SearchModal } from './components/SearchModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
+import { CartDrawer } from './components/CartDrawer';
+import { CheckoutPreviewModal } from './components/CheckoutPreviewModal';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
+import { CustomerProfileModal } from './components/CustomerProfileModal';
 import { Footer } from './components/Footer';
 import { AdminApp } from './admin/AdminApp';
 import { SuperAdminApp } from './superadmin/SuperAdminApp';
+import {
+  fetchCart,
+  addToCart,
+  updateCartItemQuantity,
+  removeCartItem,
+  clearCart,
+  validateCoupon,
+  getCustomerUser,
+  fetchStoreInfo,
+} from './services/storefrontService';
 import {
   getPublishedProducts,
   subscribeCatalogueChanges,
@@ -93,6 +107,126 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [sizeGuideCategory, setSizeGuideCategory] = useState(null);
+
+  // Phase 4: Cart and Customer E-Commerce states
+  const [cart, setCart] = useState({ items: [], subtotal: 0, totalItems: 0 });
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutPreviewOpen, setIsCheckoutPreviewOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [customerUser, setCustomerUser] = useState(getCustomerUser);
+
+  // Refresh cart from backend
+  const refreshCart = useCallback(async () => {
+    try {
+      const c = await fetchCart();
+      if (c && Array.isArray(c.items)) {
+        setCart(c);
+      }
+    } catch (err) {
+      console.warn('[Cart] Failed to load cart:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStoreInfo();
+    refreshCart();
+  }, [refreshCart]);
+
+  // Cart action handlers
+  const handleAddToCart = useCallback(async ({ product, selectedOption, selectedFinish, quantity }) => {
+    const productId = product._id || product.id;
+    const selectedOptions = {
+      ...(selectedOption ? { size: selectedOption } : {}),
+      ...(selectedFinish ? { finish: selectedFinish } : {}),
+    };
+    try {
+      const updatedCart = await addToCart({
+        productId,
+        sku: product.sku,
+        selectedOptions,
+        quantity,
+      });
+      if (updatedCart) {
+        setCart(updatedCart);
+      } else {
+        await refreshCart();
+      }
+      setIsCartOpen(true);
+    } catch (err) {
+      alert(err.message || 'Could not add piece to cart');
+    }
+  }, [refreshCart]);
+
+  const handleUpdateCartQuantity = useCallback(async (itemId, quantity) => {
+    try {
+      const updatedCart = await updateCartItemQuantity(itemId, quantity);
+      if (updatedCart) setCart(updatedCart);
+      else await refreshCart();
+    } catch (err) {
+      console.warn('Update quantity failed:', err);
+    }
+  }, [refreshCart]);
+
+  const handleRemoveCartItem = useCallback(async (itemId) => {
+    try {
+      const updatedCart = await removeCartItem(itemId);
+      if (updatedCart) setCart(updatedCart);
+      else await refreshCart();
+    } catch (err) {
+      console.warn('Remove item failed:', err);
+    }
+  }, [refreshCart]);
+
+  const handleClearCart = useCallback(async () => {
+    try {
+      await clearCart();
+      setCart({ items: [], subtotal: 0, totalItems: 0 });
+      setAppliedCoupon(null);
+    } catch (err) {
+      console.warn('Clear cart failed:', err);
+    }
+  }, []);
+
+  const handleApplyCoupon = useCallback(async (code) => {
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await validateCoupon(code, cart.subtotal);
+      if (res.valid) {
+        setAppliedCoupon({
+          code: res.code,
+          discountAmount: res.discountAmount,
+          discountType: res.discountType,
+          discountValue: res.discountValue,
+        });
+      } else {
+        setCouponError(res.message || 'Invalid coupon');
+      }
+    } catch (err) {
+      setCouponError(err.message || 'Failed to apply coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  }, [cart.subtotal]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  }, []);
+
+  const handleCustomerLoginSuccess = useCallback(async (user) => {
+    setCustomerUser(user);
+    await refreshCart();
+  }, [refreshCart]);
+
+  const handleCustomerLogout = useCallback(async () => {
+    setCustomerUser(null);
+    await refreshCart();
+  }, [refreshCart]);
 
   // Synchronize route changes for /admin, #admin, /sa, and #sa
   useEffect(() => {
@@ -292,6 +426,11 @@ export default function App() {
       <Header
         wishlistCount={wishlistedProducts.length}
         onOpenWishlist={() => setIsWishlistOpen(true)}
+        cartCount={cart.totalItems || cart.items.reduce((s, it) => s + it.quantity, 0)}
+        onOpenCart={() => setIsCartOpen(true)}
+        customerUser={customerUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onNavigateHome={handleBackToCatalogue}
         onNavigateCategory={(cat) => {
@@ -317,6 +456,7 @@ export default function App() {
             isWishlisted={isProductWishlisted(selectedProduct, wishlistIds)}
             onToggleWishlist={handleToggleWishlist}
             onOpenSizeGuide={(cat) => setSizeGuideCategory(cat)}
+            onAddToCart={handleAddToCart}
           />
         ) : (
           <>
@@ -410,6 +550,54 @@ export default function App() {
         isOpen={!!sizeGuideCategory}
         category={sizeGuideCategory || 'rings'}
         onClose={() => setSizeGuideCategory(null)}
+      />
+
+      {/* Shopping Bag / Cart Drawer */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cart={cart}
+        onUpdateQuantity={handleUpdateCartQuantity}
+        onRemoveItem={handleRemoveCartItem}
+        onClearCart={handleClearCart}
+        onProceedToCheckout={() => {
+          setIsCartOpen(false);
+          setIsCheckoutPreviewOpen(true);
+        }}
+        appliedCoupon={appliedCoupon}
+        onApplyCoupon={handleApplyCoupon}
+        onRemoveCoupon={handleRemoveCoupon}
+        couponError={couponError}
+        couponLoading={couponLoading}
+        onSelectProduct={handleSelectProduct}
+        allProducts={products}
+      />
+
+      {/* Checkout Preview & Stock Verification Modal */}
+      <CheckoutPreviewModal
+        isOpen={isCheckoutPreviewOpen}
+        onClose={() => setIsCheckoutPreviewOpen(false)}
+        cart={cart}
+        appliedCoupon={appliedCoupon}
+        customerUser={customerUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        allProducts={products}
+      />
+
+      {/* Customer Authentication Modal (Login / Register) */}
+      <CustomerAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleCustomerLoginSuccess}
+      />
+
+      {/* Customer Profile & Address Book Modal */}
+      <CustomerProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        customerUser={customerUser}
+        onUserUpdated={(u) => setCustomerUser(u)}
+        onLogout={handleCustomerLogout}
       />
     </div>
   );

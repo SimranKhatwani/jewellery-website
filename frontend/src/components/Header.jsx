@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Search, Heart, Menu, X } from 'lucide-react';
+import { Search, Heart, Menu, X, ShoppingBag, User } from 'lucide-react';
 
 export const Header = ({
   wishlistCount,
   onOpenWishlist,
+  cartCount = 0,
+  onOpenCart,
+  customerUser = null,
+  onOpenAuth,
+  onOpenProfile,
   onOpenSearch,
   onNavigateHome,
   onNavigateCategory,
@@ -102,8 +107,8 @@ export const Header = ({
             </button>
           </nav>
 
-          {/* Search & Wishlist */}
-          <div className="flex items-center gap-4 shrink-0">
+          {/* Search, Wishlist, Cart & Customer Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={onOpenSearch}
               className="p-2 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full transition-colors"
@@ -125,6 +130,34 @@ export const Header = ({
                   ({wishlistCount})
                 </span>
               )}
+            </button>
+
+            {/* Shopping Cart Button */}
+            <button
+              onClick={onOpenCart}
+              className="relative flex items-center gap-1.5 p-2 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full transition-colors"
+              title="Shopping Cart"
+              aria-label="Cart"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              {cartCount > 0 && (
+                <span className="min-w-[1.2rem] h-[1.2rem] px-1 bg-[#A85F49] text-[#FFFFFF] text-[10px] font-mono font-medium rounded-full flex items-center justify-center leading-none">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Customer Account Button */}
+            <button
+              onClick={customerUser ? onOpenProfile : onOpenAuth}
+              className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1 text-[#593D30] hover:text-[#A85F49] hover:bg-[#D7C5AF]/25 rounded-full sm:rounded-xs transition-colors border border-transparent sm:border-[#D7C5AF]/50 text-xs"
+              title={customerUser ? `Signed in as ${customerUser.firstName || customerUser.email}` : "Sign In / Register"}
+              aria-label="Account"
+            >
+              <User className="w-4 h-4 text-[#593D30]" />
+              <span className="hidden sm:inline font-medium tracking-wider uppercase text-[11px]">
+                {customerUser ? (customerUser.firstName || 'Account') : 'Sign In'}
+              </span>
             </button>
 
             {/* Mobile menu toggle */}
@@ -196,6 +229,29 @@ export const Header = ({
             >
               Contact
             </button>
+            <div className="pt-2 border-t border-[#D7C5AF]/30 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  onOpenCart();
+                  setMobileMenuOpen(false);
+                }}
+                className="text-xs uppercase tracking-wider font-semibold text-[#A85F49] flex items-center gap-1.5"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Bag ({cartCount})</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (customerUser) onOpenProfile();
+                  else onOpenAuth();
+                  setMobileMenuOpen(false);
+                }}
+                className="text-xs uppercase tracking-wider font-semibold text-[#593D30] flex items-center gap-1.5"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{customerUser ? (customerUser.firstName || 'Account') : 'Sign In'}</span>
+              </button>
+            </div>
           </div>
         )}
       </header>
