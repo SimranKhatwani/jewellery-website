@@ -9,7 +9,9 @@
     "build": "node -e \"console.log('Backend JavaScript validation passed - no compilation required')\"",
     "start": "node src/server.js",
     "seed": "node src/scripts/seedProducts.js",
-    "seed:admin": "node src/scripts/seedAdmin.js"
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:saas": "node src/scripts/seedSaaS.js",
+    "test:phase1": "node src/scripts/testSaaSPhase1.js"
   },
   "dependencies": {
     "aurelle-workspace": "file:..",

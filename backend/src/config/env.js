@@ -1,0 +1,29 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  env: process.env.NODE_ENV || 'development',
+  isProduction: process.env.NODE_ENV === 'production',
+  port: parseInt(process.env.PORT || '5000', 10),
+  mongo: {
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/aurelle',
+    dbName: process.env.MONGODB_DB_NAME || 'aurelle',
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'aurelle_luxury_jwt_secret_change_in_production_2026',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+  frontend: {
+    urls: (process.env.FRONTEND_URL || 'http://localhost:3000')
+      .split(',')
+      .map((u) => u.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  },
+  superAdmin: {
+    email: process.env.SUPERADMIN_EMAIL || 'superadmin@aurelle.com',
+    password: process.env.SUPERADMIN_PASSWORD || 'SuperAdminAurelle2026!',
+    name: process.env.SUPERADMIN_NAME || 'Aurelle Platform Super Admin',
+  },
+};
+
