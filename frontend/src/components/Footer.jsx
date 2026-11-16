@@ -37,7 +37,7 @@ export const Footer = ({
                 Purchasing Aurelle
               </span>
               <p className="text-xs text-[#593D30] leading-relaxed font-medium">
-                To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.
+                You can also find us on Amazon and Flipkart.
               </p>
             </div>
           </div>
