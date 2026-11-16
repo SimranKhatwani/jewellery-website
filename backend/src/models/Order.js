@@ -201,6 +201,7 @@ const OrderSchema = new Schema(
 // Tenant-scoped compound indexes
 OrderSchema.index({ tenantId: 1, orderNumber: 1 });
 OrderSchema.index({ tenantId: 1, createdAt: -1 });
+OrderSchema.index({ tenantId: 1, 'cancellation.isCancelled': 1, createdAt: -1 });
 OrderSchema.index({ tenantId: 1, orderStatus: 1 });
 OrderSchema.index({ tenantId: 1, paymentMethod: 1 });
 OrderSchema.index({ tenantId: 1, paymentStatus: 1 });

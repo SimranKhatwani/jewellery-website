@@ -54,17 +54,7 @@ export const AdminHeader = ({
 
         {/* Right: Quick actions, Live Bell, User identity */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {onGoToSuperAdmin && (
-            <button
-              type="button"
-              onClick={onGoToSuperAdmin}
-              className="px-2.5 py-1 bg-[#231F1C] hover:bg-[#342D28] text-[#D48B77] text-xs font-mono rounded-xs border border-[#A85F49]/40 transition-colors hidden sm:flex items-center gap-1.5"
-              title="Platform Super Admin Console"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
-              /sa
-            </button>
-          )}
+
 
           <button
             type="button"
@@ -73,7 +63,7 @@ export const AdminHeader = ({
             title="View live website"
           >
             <Store className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Storefront</span>
+            <span className="hidden sm:inline">Website</span>
           </button>
 
           {/* Notifications Bell with Popover Dropdown */}
@@ -132,9 +122,8 @@ export const AdminHeader = ({
                             if (onOpenOrdersTab) onOpenOrdersTab();
                             setAdminNotificationsOpen(false);
                           }}
-                          className={`p-3 cursor-pointer transition-colors hover:bg-[#F7F1E9]/60 flex items-start gap-2.5 ${
-                            !n.isRead ? 'bg-[#FAF7F2]' : 'bg-[#FFFFFF]'
-                          }`}
+                          className={`p-3 cursor-pointer transition-colors hover:bg-[#F7F1E9]/60 flex items-start gap-2.5 ${!n.isRead ? 'bg-[#FAF7F2]' : 'bg-[#FFFFFF]'
+                            }`}
                         >
                           <div className="mt-1 shrink-0">
                             {!n.isRead ? (

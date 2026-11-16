@@ -378,4 +378,88 @@ export async function markAllAdminNotificationsRead() {
   return data;
 }
 
+// ----------------- Analytics API (Phase 6.3) -----------------
+function buildAnalyticsQuery(params = {}) {
+  const query = new URLSearchParams();
+  if (params.preset) query.set('preset', params.preset);
+  if (params.startDate) query.set('startDate', params.startDate);
+  if (params.endDate) query.set('endDate', params.endDate);
+  if (params.groupBy) query.set('groupBy', params.groupBy);
+  if (params.sortBy) query.set('sortBy', params.sortBy);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.page) query.set('page', params.page);
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export async function getAnalyticsOverview(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/overview${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch analytics overview');
+  }
+  return data;
+}
+
+export async function getAnalyticsSalesTrends(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/sales-trends${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch sales trends');
+  }
+  return data;
+}
+
+export async function getAnalyticsOrders(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/orders${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch order distribution');
+  }
+  return data;
+}
+
+export async function getAnalyticsBestsellers(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/bestsellers${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch bestselling products');
+  }
+  return data;
+}
+
+export async function getAnalyticsCustomers(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/customers${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch customer insights');
+  }
+  return data;
+}
+
+export async function getAnalyticsPayments(params = {}) {
+  const qs = buildAnalyticsQuery(params);
+  const res = await authFetch(`/analytics/payments${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch payment analytics');
+  }
+  return data;
+}
+
+export async function getAnalyticsInventory() {
+  const res = await authFetch('/analytics/inventory');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch inventory analytics');
+  }
+  return data;
+}
+
+
 

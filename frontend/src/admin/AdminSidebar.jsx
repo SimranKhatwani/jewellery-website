@@ -61,8 +61,7 @@ export const AdminSidebar = ({
       id: 'analytics',
       label: 'Analytics',
       icon: BarChart3,
-      badge: 'Coming Soon',
-      badgeVariant: 'muted',
+      badge: null,
       disabled: false,
     },
     {
@@ -109,15 +108,7 @@ export const AdminSidebar = ({
             )}
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-200/80 rounded-xs text-[10px] font-medium text-emerald-800">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              Live Store
-            </span>
-            <span className="text-[10px] text-[#8E8172] font-mono truncate">
-              {admin?.email || 'admin'}
-            </span>
-          </div>
+
         </div>
 
         {/* Main Navigation Modules */}
@@ -135,32 +126,29 @@ export const AdminSidebar = ({
                 key={item.id}
                 type="button"
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xs text-xs transition-colors text-left group ${
-                  isActive
-                    ? 'bg-[#FAF7F2] text-[#A85F49] font-medium shadow-2xs border-l-2 border-[#A85F49]'
-                    : 'text-[#593D30] hover:bg-[#FAF7F2]/80 hover:text-[#A85F49]'
-                }`}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xs text-xs transition-colors text-left group ${isActive
+                  ? 'bg-[#FAF7F2] text-[#A85F49] font-medium shadow-2xs border-l-2 border-[#A85F49]'
+                  : 'text-[#593D30] hover:bg-[#FAF7F2]/80 hover:text-[#A85F49]'
+                  }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive
-                        ? 'text-[#A85F49]'
-                        : 'text-[#8E8172] group-hover:text-[#A85F49]'
-                    }`}
+                    className={`w-4 h-4 shrink-0 transition-colors ${isActive
+                      ? 'text-[#A85F49]'
+                      : 'text-[#8E8172] group-hover:text-[#A85F49]'
+                      }`}
                   />
                   <span className="truncate">{item.label}</span>
                 </div>
 
                 {item.badge && (
                   <span
-                    className={`text-[9px] font-mono px-1.5 py-0.2 rounded-xs shrink-0 ${
-                      item.badgeVariant === 'accent'
-                        ? 'bg-[#A85F49] text-[#FFFFFF] font-bold'
-                        : item.badgeVariant === 'muted'
+                    className={`text-[9px] font-mono px-1.5 py-0.2 rounded-xs shrink-0 ${item.badgeVariant === 'accent'
+                      ? 'bg-[#A85F49] text-[#FFFFFF] font-bold'
+                      : item.badgeVariant === 'muted'
                         ? 'bg-[#F7F1E9] text-[#8E8172] border border-[#D7C5AF]/60 text-[8px] uppercase tracking-wider'
                         : 'bg-[#FAF7F2] text-[#8E8172] border border-[#D7C5AF]/60'
-                    }`}
+                      }`}
                   >
                     {item.badge}
                   </span>
@@ -183,27 +171,13 @@ export const AdminSidebar = ({
           >
             <div className="flex items-center gap-2.5">
               <Store className="w-4 h-4 text-[#8E8172]" />
-              <span>View Storefront</span>
+              <span>View Website</span>
             </div>
             <ExternalLink className="w-3 h-3 text-[#8E8172]" />
           </button>
 
-          {onGoToSuperAdmin && (
-            <button
-              type="button"
-              onClick={onGoToSuperAdmin}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#593D30] hover:bg-[#FAF7F2] hover:text-[#A85F49] rounded-xs transition-colors"
-              title="Switch to Super Admin Console"
-            >
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Super Admin</span>
-              </div>
-              <span className="px-1.5 py-0.2 bg-[#231F1C] text-[#D48B77] text-[9px] font-mono rounded-xs">
-                /sa
-              </span>
-            </button>
-          )}
+
+
         </div>
       </div>
 

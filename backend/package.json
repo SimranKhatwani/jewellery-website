@@ -21,6 +21,7 @@
     "test:phase5": "node src/scripts/testPhase5Orders.js",
     "test:phase6": "node src/scripts/testPhase6Notifications.js",
     "test:socket": "node src/scripts/testPhase6SocketNotifications.js",
+    "test:analytics": "node src/scripts/testPhase63Analytics.js",
     "cleanup:test": "node src/scripts/cleanupTestData.js"
   },
   "dependencies": {

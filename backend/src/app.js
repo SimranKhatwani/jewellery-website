@@ -21,6 +21,7 @@ import storefrontRoutes from './routes/storefront.routes.js';
 import customerRoutes from './routes/customer.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -88,6 +89,7 @@ export const createApp = () => {
   app.use('/api/media', mediaRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/notifications', notificationRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);
@@ -100,6 +102,7 @@ export const createApp = () => {
   app.use('/api/v1/customers', customerRoutes);
   app.use('/api/v1/orders', orderRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
+  app.use('/api/v1/analytics', analyticsRoutes);
 
   // 404 Route Handler
   app.use(notFoundHandler);
