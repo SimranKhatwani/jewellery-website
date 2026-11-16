@@ -18,6 +18,7 @@ const AddressSchema = new Schema(
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
+      match: [/^\d{10}$/, 'Phone number must be exactly 10 digits'],
     },
     addressLine1: {
       type: String,

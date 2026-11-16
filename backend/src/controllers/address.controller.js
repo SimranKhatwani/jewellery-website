@@ -45,6 +45,14 @@ export const createCustomerAddress = async (req, res, next) => {
       throw new BadRequestError('Required address fields missing: name, phone, addressLine1, city, state, postalCode.');
     }
 
+    let cleanPhone = String(phone).replace(/\D/g, '');
+    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+      cleanPhone = cleanPhone.slice(2);
+    }
+    if (cleanPhone.length !== 10) {
+      throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+    }
+
     // Check if this is the customer's first address; if so, make it default automatically
     const existingCount = await Address.countDocuments({ userId });
     const shouldBeDefault = isDefault || existingCount === 0;
@@ -56,7 +64,7 @@ export const createCustomerAddress = async (req, res, next) => {
     const address = await Address.create({
       userId,
       name: name.trim(),
-      phone: phone.trim(),
+      phone: cleanPhone,
       addressLine1: addressLine1.trim(),
       addressLine2: (addressLine2 || '').trim(),
       city: city.trim(),
@@ -92,6 +100,17 @@ export const updateCustomerAddress = async (req, res, next) => {
 
     const updates = { ...req.body };
     delete updates.userId; // Prevent transferring address to another user
+
+    if (updates.phone !== undefined) {
+      let cleanPhone = String(updates.phone).replace(/\D/g, '');
+      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+        cleanPhone = cleanPhone.slice(2);
+      }
+      if (cleanPhone.length !== 10) {
+        throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+      }
+      updates.phone = cleanPhone;
+    }
 
     if (updates.isDefault) {
       await Address.updateMany({ userId }, { $set: { isDefault: false } });

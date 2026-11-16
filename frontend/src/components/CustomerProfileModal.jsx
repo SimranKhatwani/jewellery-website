@@ -129,7 +129,11 @@ export const CustomerProfileModal = ({
     setError(null);
     setSuccess(null);
     try {
-      const updated = await updateCustomerProfile({ firstName, lastName, phone });
+      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+      if (cleanPhone && cleanPhone.length !== 10) {
+        throw new Error('Contact phone must be a valid 10-digit mobile number.');
+      }
+      const updated = await updateCustomerProfile({ firstName, lastName, phone: cleanPhone });
       setSuccess('Profile updated successfully.');
       onUserUpdated(updated);
     } catch (err) {
@@ -161,7 +165,11 @@ export const CustomerProfileModal = ({
     setLoading(true);
     setError(null);
     try {
-      const created = await createAddress(newAddress);
+      const cleanPhone = String(newAddress.phone || '').replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
+        throw new Error('Contact phone must be a valid 10-digit mobile number.');
+      }
+      const created = await createAddress({ ...newAddress, phone: cleanPhone });
       setAddresses([created, ...addresses]);
       setIsAddingAddress(false);
       setSuccess('Address added successfully.');
@@ -305,10 +313,11 @@ export const CustomerProfileModal = ({
                   Contact Phone
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91..."
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="10-digit mobile number"
                   className="w-full px-3 py-2 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                 />
               </div>
@@ -475,10 +484,12 @@ export const CustomerProfileModal = ({
                     <div>
                       <label className="block text-[#8E8172] mb-1 font-medium">Contact Phone *</label>
                       <input
-                        type="text"
+                        type="tel"
                         required
+                        maxLength={10}
                         value={newAddress.phone}
-                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                        placeholder="10-digit mobile number"
                         className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs"
                       />
                     </div>

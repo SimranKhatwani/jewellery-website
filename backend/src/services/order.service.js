@@ -112,9 +112,16 @@ export async function placeStorefrontOrder({
       if (!guestAddress.name || !guestAddress.phone || !guestAddress.addressLine1 || !guestAddress.city || !guestAddress.postalCode) {
         throw new BadRequestError('Incomplete delivery address details provided.');
       }
+      let cleanPhone = String(guestAddress.phone).replace(/\D/g, '');
+      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+        cleanPhone = cleanPhone.slice(2);
+      }
+      if (cleanPhone.length !== 10) {
+        throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+      }
       shippingAddressSnapshot = {
         name: guestAddress.name.trim(),
-        phone: guestAddress.phone.trim(),
+        phone: cleanPhone,
         addressLine1: guestAddress.addressLine1.trim(),
         addressLine2: (guestAddress.addressLine2 || '').trim(),
         city: guestAddress.city.trim(),
@@ -135,12 +142,19 @@ export async function placeStorefrontOrder({
     if (!guestAddress.email) {
       throw new BadRequestError('Customer email address is required for guest order confirmation.');
     }
+    let cleanPhone = String(guestAddress.phone).replace(/\D/g, '');
+    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+      cleanPhone = cleanPhone.slice(2);
+    }
+    if (cleanPhone.length !== 10) {
+      throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+    }
     customerName = guestAddress.name.trim();
     customerEmail = guestAddress.email.trim().toLowerCase();
-    customerPhone = guestAddress.phone.trim();
+    customerPhone = cleanPhone;
     shippingAddressSnapshot = {
       name: customerName,
-      phone: customerPhone,
+      phone: cleanPhone,
       addressLine1: guestAddress.addressLine1.trim(),
       addressLine2: (guestAddress.addressLine2 || '').trim(),
       city: guestAddress.city.trim(),

@@ -142,7 +142,7 @@ export const CheckoutPreviewModal = ({
   const handleFillSampleDetails = () => {
     setNewAddressForm({
       name: 'Elena Rostova',
-      phone: '+91 98765 43210',
+      phone: '9876543210',
       email: customerUser?.email || 'customer@aurelle.com',
       addressLine1: '42 Solitaire Boulevard, Bandra West',
       addressLine2: 'Apt 4B',
@@ -159,13 +159,18 @@ export const CheckoutPreviewModal = ({
 
   const handleSaveNewAddress = async (e) => {
     e.preventDefault();
-    if (!newAddressForm.addressLine1 || !newAddressForm.name || !newAddressForm.phone) {
+    const phoneDigits = String(newAddressForm.phone || '').replace(/\D/g, '');
+    if (!newAddressForm.addressLine1 || !newAddressForm.name || !phoneDigits) {
       alert('Please fill in recipient name, phone, and address line.');
+      return;
+    }
+    if (phoneDigits.length !== 10) {
+      alert('Please enter a valid 10-digit mobile number.');
       return;
     }
     if (customerUser) {
       try {
-        const saved = await createAddress(newAddressForm);
+        const saved = await createAddress({ ...newAddressForm, phone: phoneDigits });
         setAddresses((prev) => [saved, ...prev]);
         setSelectedAddressId(saved._id);
         setIsAddingNewAddress(false);
@@ -189,7 +194,16 @@ export const CheckoutPreviewModal = ({
       if (!selectedAddressId && !activeAddress._id) {
         const missing = [];
         if (!newAddressForm.name?.trim()) missing.push('name');
-        if (!newAddressForm.phone?.trim()) missing.push('phone');
+        
+        const phoneDigits = String(newAddressForm.phone || '').replace(/\D/g, '');
+        if (!phoneDigits) {
+          missing.push('phone');
+        } else if (phoneDigits.length !== 10) {
+          missing.push('phone');
+          setHighlightedFields(['phone']);
+          throw new Error('Please enter a valid 10-digit mobile number.');
+        }
+
         if (!customerUser && !newAddressForm.email?.trim()) missing.push('email');
         if (!newAddressForm.addressLine1?.trim()) missing.push('addressLine1');
 
@@ -510,11 +524,13 @@ export const CheckoutPreviewModal = ({
                           <div>
                             <label className="block text-[#8E8172] mb-1 font-medium">Contact Phone *</label>
                             <input
-                              type="text"
+                              type="tel"
                               required
+                              maxLength={10}
                               value={newAddressForm.phone}
                               onChange={(e) => {
-                                setNewAddressForm({ ...newAddressForm, phone: e.target.value });
+                                const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                setNewAddressForm({ ...newAddressForm, phone: digitsOnly });
                                 setOrderError(null);
                                 setHighlightedFields((prev) => prev.filter((f) => f !== 'phone'));
                               }}
@@ -523,10 +539,14 @@ export const CheckoutPreviewModal = ({
                                   ? 'border-red-500 bg-red-50/20 focus:border-red-500'
                                   : 'border-[#D7C5AF] focus:border-[#A85F49]'
                               }`}
-                              placeholder="+91..."
+                              placeholder="10-digit mobile number"
                             />
                             {highlightedFields.includes('phone') && (
-                              <span className="text-[10px] text-red-600 block mt-0.5">Phone number required</span>
+                              <span className="text-[10px] text-red-600 block mt-0.5">
+                                {!newAddressForm.phone?.trim()
+                                  ? 'Phone number required'
+                                  : 'Enter a valid 10-digit mobile number'}
+                              </span>
                             )}
                           </div>
                         </div>

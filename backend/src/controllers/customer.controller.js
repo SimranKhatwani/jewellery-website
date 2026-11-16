@@ -106,7 +106,14 @@ export const updateCustomerProfile = async (req, res, next) => {
     }
 
     if (updatedPhone !== undefined) {
-      user.phoneNumber = updatedPhone;
+      let cleanPhone = String(updatedPhone).replace(/\D/g, '');
+      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+        cleanPhone = cleanPhone.slice(2);
+      }
+      if (cleanPhone && cleanPhone.length !== 10) {
+        throw new BadRequestError('Phone number must be a valid 10-digit number.');
+      }
+      user.phoneNumber = cleanPhone;
     }
 
     await user.save();

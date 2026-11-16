@@ -39,6 +39,18 @@ export const registerUser = async ({
     }
   }
 
+  // Validate and clean phone number if provided
+  let cleanPhone = '';
+  if (phoneNumber && String(phoneNumber).trim()) {
+    cleanPhone = String(phoneNumber).replace(/\D/g, '');
+    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+      cleanPhone = cleanPhone.slice(2);
+    }
+    if (cleanPhone.length !== 10) {
+      throw new BadRequestError('Phone number must be a valid 10-digit number.');
+    }
+  }
+
   // Hash password
   const salt = await bcrypt.genSalt(12);
   const passwordHash = await bcrypt.hash(password, salt);
@@ -57,7 +69,7 @@ export const registerUser = async ({
             name: name.trim(),
             email: normalizedEmail,
             passwordHash,
-            phoneNumber: phoneNumber.trim(),
+            phoneNumber: cleanPhone,
             status: USER_STATUS.ACTIVE,
             tokenVersion: 0,
           },

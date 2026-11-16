@@ -31,6 +31,7 @@ const CustomerSchema = new Schema(
       type: String,
       trim: true,
       default: '',
+      match: [/^(\d{10})?$/, 'Phone number must be exactly 10 digits'],
     },
     status: {
       type: String,

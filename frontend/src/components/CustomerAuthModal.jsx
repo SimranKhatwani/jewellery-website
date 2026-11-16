@@ -48,12 +48,18 @@ export const CustomerAuthModal = ({
     setLoading(true);
     setError(null);
     try {
+      const cleanPhone = registerPhone ? registerPhone.replace(/\D/g, '') : '';
+      if (cleanPhone && cleanPhone.length !== 10) {
+        setError('Phone number must be a valid 10-digit mobile number.');
+        setLoading(false);
+        return;
+      }
       const { user } = await customerRegister({
         email: registerEmail,
         password: registerPassword,
         firstName,
         lastName,
-        phone: registerPhone,
+        phone: cleanPhone,
       });
       setSuccessMsg(`Account created for ${user.firstName || 'Customer'}!`);
       setTimeout(() => {
@@ -229,9 +235,10 @@ export const CustomerAuthModal = ({
                   <Phone className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
+                    maxLength={10}
                     value={registerPhone}
-                    onChange={(e) => setRegisterPhone(e.target.value)}
-                    placeholder="+91..."
+                    onChange={(e) => setRegisterPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile number"
                     className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                   />
                 </div>
