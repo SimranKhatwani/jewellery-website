@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin.js';
+import { User } from '../models/User.js';
 import { config } from '../config/env.js';
 
 /**
@@ -37,9 +38,19 @@ export const login = async (req, res, next) => {
       return;
     }
 
-    // Update last login timestamp
+    // Sync tokenVersion across Admin and bridged User
+    const currentAdminVersion = admin.tokenVersion || 0;
+    const bridgedUser = await User.findOne({ email: admin.email });
+    const targetVersion = Math.max(currentAdminVersion, bridgedUser?.tokenVersion || 0);
+
+    admin.tokenVersion = targetVersion;
     admin.lastLogin = new Date();
     await admin.save();
+
+    if (bridgedUser && (bridgedUser.tokenVersion || 0) !== targetVersion) {
+      bridgedUser.tokenVersion = targetVersion;
+      await bridgedUser.save();
+    }
 
     // Sign JWT with tokenVersion for session invalidation
     const jwtSecret = config.jwt.secret;
@@ -50,7 +61,7 @@ export const login = async (req, res, next) => {
         id: admin._id,
         email: admin.email,
         role: admin.role,
-        tokenVersion: admin.tokenVersion || 0,
+        tokenVersion: targetVersion,
       },
       jwtSecret,
       { expiresIn }
@@ -65,6 +76,7 @@ export const login = async (req, res, next) => {
         email: admin.email,
         name: admin.name,
         role: admin.role,
+        tokenVersion: targetVersion,
         lastLogin: admin.lastLogin,
       },
     });

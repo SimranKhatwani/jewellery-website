@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Admin } from '../models/Admin.js';
 import { USER_STATUS } from '../config/constants.js';
@@ -31,7 +32,7 @@ export const authenticateAdmin = async (req, res, next) => {
     // Check tokenVersion revocation for legacy Admin model
     const adminId = decoded.id || decoded.userId;
     let adminDoc = null;
-    if (adminId) {
+    if (adminId && mongoose.Types.ObjectId.isValid(String(adminId))) {
       adminDoc = await Admin.findById(adminId);
     }
     if (!adminDoc && decoded.email) {
@@ -40,7 +41,7 @@ export const authenticateAdmin = async (req, res, next) => {
 
     if (adminDoc) {
       const decodedVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
-      if (decodedVersion !== (adminDoc.tokenVersion || 0)) {
+      if (decodedVersion < (adminDoc.tokenVersion || 0)) {
         return res.status(401).json({
           success: false,
           message: 'Admin session has expired or was revoked. Please log in again.',
@@ -50,7 +51,7 @@ export const authenticateAdmin = async (req, res, next) => {
 
     // Resolve unified User entity for multi-tenant RBAC / membership checks
     const userId = decoded.userId || decoded.id;
-    if (userId) {
+    if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
       const user = await User.findById(userId);
       if (user) {
         req.user = user;
@@ -133,7 +134,13 @@ export const authenticateUser = async (req, res, next) => {
       throw new UnauthorizedError('Invalid token payload.');
     }
 
-    const user = await User.findById(userId);
+    let user = null;
+    if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+      user = await User.findById(userId);
+    }
+    if (!user && decoded.email) {
+      user = await User.findOne({ email: String(decoded.email).toLowerCase().trim() });
+    }
 
     if (!user) {
       throw new UnauthorizedError('User account associated with this token no longer exists.');

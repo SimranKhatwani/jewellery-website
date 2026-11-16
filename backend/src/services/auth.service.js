@@ -6,6 +6,7 @@ import { Tenant } from '../models/Tenant.js';
 import { Role } from '../models/Role.js';
 import { TenantMembership } from '../models/TenantMembership.js';
 import { Invitation } from '../models/Invitation.js';
+import { Customer } from '../models/Customer.js';
 import { USER_STATUS, TENANT_STATUS, MEMBERSHIP_STATUS, SYSTEM_ROLE_SLUGS, AUDIT_ACTIONS } from '../config/constants.js';
 import { ConflictError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../utils/errors.js';
 import { generateToken } from '../utils/jwt.js';
@@ -151,6 +152,43 @@ export const registerUser = async ({
     tokenVersion: user.tokenVersion || 0,
   });
 
+  // If registering as customer (no new tenant provisioned), store in `customers` collection
+  let customerDoc = null;
+  if (!createdTenant) {
+    let targetTenant = null;
+    const storeSlug = req?.headers?.['x-store-slug'] || req?.body?.storeSlug || req?.body?.tenantSlug;
+    const tenantIdHeader = req?.headers?.['x-tenant-id'] || req?.body?.tenantId;
+
+    if (tenantIdHeader && mongoose.Types.ObjectId.isValid(String(tenantIdHeader))) {
+      targetTenant = await Tenant.findById(tenantIdHeader);
+    } else if (storeSlug) {
+      targetTenant = await Tenant.findOne({ slug: String(storeSlug).toLowerCase().trim() });
+    } else {
+      // Default to aurelle tenant
+      targetTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: TENANT_STATUS.ACTIVE }));
+    }
+
+    const tenantId = targetTenant ? targetTenant._id : null;
+    customerDoc = await Customer.findOneAndUpdate(
+      { email: user.email, ...(tenantId ? { tenantId } : {}) },
+      {
+        $set: {
+          tenantId,
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phoneNumber || '',
+          status: 'active',
+        },
+        $setOnInsert: {
+          totalOrders: 0,
+          totalSpent: 0,
+        },
+      },
+      { upsert: true, new: true }
+    );
+  }
+
   return {
     user: {
       id: user._id,
@@ -160,6 +198,7 @@ export const registerUser = async ({
       isSuperAdmin: user.isSuperAdmin,
       status: user.status,
     },
+    customer: customerDoc,
     token,
     tenant: createdTenant,
   };

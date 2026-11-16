@@ -111,6 +111,7 @@ export const createApp = () => {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/reports', reportRoutes);
+  app.use('/api/customers', customerRoutes);
 
   // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);

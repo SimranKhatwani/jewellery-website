@@ -5,6 +5,7 @@ import { Product } from '../models/Product.js';
 import { Address } from '../models/Address.js';
 import { Coupon } from '../models/Coupon.js';
 import { User } from '../models/User.js';
+import { Customer } from '../models/Customer.js';
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
@@ -393,6 +394,31 @@ export async function placeStorefrontOrder({
     await cart.save({ session });
 
     await session.commitTransaction();
+
+    // 8.5.1 Authoritative Customer sync into `customers` collection
+    try {
+      await Customer.findOneAndUpdate(
+        { tenantId, email: customerEmail },
+        {
+          $set: {
+            tenantId,
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone || '',
+            status: 'active',
+            ...(userId ? { userId } : {}),
+            lastOrderDate: new Date(),
+          },
+          $inc: {
+            totalOrders: 1,
+            totalSpent: Math.round(createdOrder.pricing.totalPayable * 100) / 100,
+          },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (custErr) {
+      console.warn('[OrderService] Non-fatal customer record sync:', custErr.message);
+    }
 
     // 8.6 Audit Logging
     await logAudit({
