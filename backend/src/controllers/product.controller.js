@@ -23,6 +23,9 @@ const slugify = (text) => {
  */
 export const listTenantProducts = async (req, res, next) => {
   try {
+    if (!req.tenant) {
+      return res.json({ success: true, count: 0, products: [] });
+    }
     const tenantId = req.tenant._id;
     const {
       category,
@@ -108,10 +111,26 @@ export const listTenantProducts = async (req, res, next) => {
 /**
  * Get single tenant product by slug or ID
  */
+export const listStorefrontProducts = (req, res, next) => {
+  req.isStorefront = true;
+  return listTenantProducts(req, res, next);
+};
+
+export const listAdminProducts = (req, res, next) => {
+  req.isStorefront = false;
+  return listTenantProducts(req, res, next);
+};
+
+/**
+ * Get single tenant product by slug or ID
+ */
 export const getTenantProduct = async (req, res, next) => {
   try {
+    if (!req.tenant) {
+      return res.status(404).json({ success: false, message: 'Store not found.' });
+    }
     const tenantId = req.tenant._id;
-    const { identifier } = req.params;
+    const identifier = req.params.identifier || req.params.id;
 
     const query = { tenantId };
     if (mongoose.Types.ObjectId.isValid(identifier)) {
@@ -136,6 +155,11 @@ export const getTenantProduct = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const getStorefrontProduct = (req, res, next) => {
+  req.isStorefront = true;
+  return getTenantProduct(req, res, next);
 };
 
 /**

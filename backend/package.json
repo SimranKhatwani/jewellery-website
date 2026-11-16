@@ -7,24 +7,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "build": "node -e \"console.log('Backend JavaScript validation passed - no compilation required')\"",
-    "start": "node src/server.js",
-    "seed": "node src/scripts/seedProducts.js",
-    "seed:admin": "node src/scripts/seedAdmin.js",
-    "seed:saas": "node src/scripts/seedSaaS.js",
-    "test:phase1": "node src/scripts/testSaaSPhase1.js",
-    "test:security": "node src/scripts/testPhase1Hardening.js",
-    "test:phase2": "node src/scripts/testPhase2Subscriptions.js",
-    "migrate:phase3": "node src/scripts/migratePhase3Catalog.js",
-    "test:phase3": "node src/scripts/testPhase3Catalog.js",
-    "test:phase4": "node src/scripts/testPhase4CustomerCommerce.js",
-    "test:remediation": "node src/scripts/testPhase3Phase4Remediation.js",
-    "test:phase5": "node src/scripts/testPhase5Orders.js",
-    "test:phase6": "node src/scripts/testPhase6Notifications.js",
-    "test:socket": "node src/scripts/testPhase6SocketNotifications.js",
-    "test:analytics": "node src/scripts/testPhase63Analytics.js",
-    "test:reports": "node src/scripts/testPhase6Reports.js",
-    "test:audit-fixes": "node src/scripts/testPreProductionAuditRemediation.js",
-    "cleanup:test": "node src/scripts/cleanupTestData.js"
+    "start": "node src/server.js"
   },
   "dependencies": {
     "aurelle-workspace": "file:..",

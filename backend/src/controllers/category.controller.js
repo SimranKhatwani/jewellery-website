@@ -20,6 +20,9 @@ const slugify = (text) => {
  */
 export const listTenantCategories = async (req, res, next) => {
   try {
+    if (!req.tenant) {
+      return res.json({ success: true, count: 0, categories: [] });
+    }
     const tenantId = req.tenant._id;
     const filter = { tenantId };
 
@@ -42,12 +45,23 @@ export const listTenantCategories = async (req, res, next) => {
 };
 
 /**
+ * Storefront Category List (Public)
+ */
+export const listStorefrontCategories = (req, res, next) => {
+  req.isStorefront = true;
+  return listTenantCategories(req, res, next);
+};
+
+/**
  * Get single category by slug or ID
  */
 export const getTenantCategory = async (req, res, next) => {
   try {
+    if (!req.tenant) {
+      return res.status(404).json({ success: false, message: 'Store not found.' });
+    }
     const tenantId = req.tenant._id;
-    const { identifier } = req.params;
+    const identifier = req.params.identifier || req.params.id;
 
     const query = { tenantId };
     if (mongoose.Types.ObjectId.isValid(identifier)) {
@@ -68,6 +82,14 @@ export const getTenantCategory = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * Storefront Get Category Detail (Public)
+ */
+export const getStorefrontCategory = (req, res, next) => {
+  req.isStorefront = true;
+  return getTenantCategory(req, res, next);
 };
 
 /**
