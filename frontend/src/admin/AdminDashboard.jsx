@@ -19,7 +19,7 @@ import { AdminOverview } from './AdminOverview';
 import { CatalogueManager } from './CatalogueManager';
 import { OrdersManager } from './OrdersManager';
 import { AdminNotificationsView } from './AdminNotificationsView';
-import { AnalyticsDashboard } from './analytics/AnalyticsDashboard';
+import { AnalyticsReportsModule } from './analytics/AnalyticsReportsModule';
 import { AdminPlaceholder } from './AdminPlaceholder';
 import { notifyCatalogueChanged } from '../services/productService';
 import { initSocket } from '../services/socketService';
@@ -470,16 +470,10 @@ export const AdminDashboard = ({
             />
           )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsDashboard
+          {(activeTab === 'analytics' || activeTab === 'reports') && (
+            <AnalyticsReportsModule
               admin={admin}
-              onNavigateCatalogue={() => handleSelectTab('catalogue')}
-            />
-          )}
-
-          {activeTab === 'reports' && (
-            <AdminPlaceholder
-              moduleName="Reports"
+              initialSubTab={activeTab === 'reports' ? 'reports' : 'overview'}
               onNavigateCatalogue={() => handleSelectTab('catalogue')}
             />
           )}

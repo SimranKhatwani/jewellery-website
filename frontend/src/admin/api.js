@@ -461,5 +461,94 @@ export async function getAnalyticsInventory() {
   return data;
 }
 
+// ----------------- Reports API (Phase 6.3 Consolidation) -----------------
+function buildReportQuery(params = {}) {
+  const query = new URLSearchParams();
+  if (params.preset) query.set('preset', params.preset);
+  if (params.startDate) query.set('startDate', params.startDate);
+  if (params.endDate) query.set('endDate', params.endDate);
+  if (params.orderStatus && params.orderStatus !== 'all') query.set('orderStatus', params.orderStatus);
+  if (params.paymentStatus && params.paymentStatus !== 'all') query.set('paymentStatus', params.paymentStatus);
+  if (params.paymentMethod && params.paymentMethod !== 'all') query.set('paymentMethod', params.paymentMethod);
+  if (params.category && params.category !== 'all') query.set('category', params.category);
+  if (params.inventoryStatus && params.inventoryStatus !== 'all') query.set('inventoryStatus', params.inventoryStatus);
+  if (params.customerType && params.customerType !== 'all') query.set('customerType', params.customerType);
+  if (params.isPublished && params.isPublished !== 'all') query.set('isPublished', params.isPublished);
+  if (params.search) query.set('search', params.search);
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.format) query.set('format', params.format);
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export async function getReport(reportType, params = {}) {
+  const qs = buildReportQuery(params);
+  const res = await authFetch(`/reports/${reportType}${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || `Failed to fetch ${reportType} report`);
+  }
+  return data;
+}
+
+export async function downloadReportCSV(reportType, params = {}) {
+  const qs = buildReportQuery({ ...params, format: 'csv' });
+  const token = getAdminToken();
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}/reports/${reportType}/export${qs}`, {
+    headers,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to export CSV: HTTP ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `aurelle-${reportType}-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+export async function openReportPrintView(reportType, params = {}) {
+  const qs = buildReportQuery({ ...params, format: 'html' });
+  const token = getAdminToken();
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}/reports/${reportType}/export${qs}`, {
+    headers,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to load printable report: HTTP ${res.status}`);
+  }
+
+  const html = await res.text();
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  } else {
+    // Fallback if popup blocked: download HTML
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `aurelle-${reportType}-report.html`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+}
+
+
 
 

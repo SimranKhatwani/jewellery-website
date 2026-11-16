@@ -137,11 +137,11 @@ router.delete(
 );
 
 /**
- * PATCH /api/products/:id/publish
- * Store Admin: Toggle publication
+ * PATCH /api/products/:id/publish & PATCH /api/products/:id/toggle-publish
+ * Store Admin: Toggle publication (harmonized contract)
  */
 router.patch(
-  '/:id/publish',
+  ['/:id/publish', '/:id/toggle-publish'],
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,

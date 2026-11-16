@@ -68,7 +68,58 @@ export const cancelSubscription = async (req, res, next) => {
 
 export const handleWebhook = async (req, res, next) => {
   try {
+    const razorpaySecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    const stripeSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    // Safely disable webhook processing if no provider secret is configured
+    if (!razorpaySecret && !stripeSecret) {
+      return res.status(403).json({
+        success: false,
+        message: 'Webhook processing is disabled: No payment provider or webhook signing secret is configured.',
+      });
+    }
+
+    const razorpaySig = req.headers['x-razorpay-signature'];
+    const stripeSig = req.headers['stripe-signature'];
+    const signature = razorpaySig || stripeSig;
+
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing payment webhook signature header.',
+      });
+    }
+
+    const secret = razorpaySig ? razorpaySecret : stripeSecret;
+    if (!secret) {
+      return res.status(400).json({
+        success: false,
+        message: 'Webhook signing secret not configured for detected payment provider.',
+      });
+    }
+
+    const rawPayload = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    const isValid = paymentService.verifyWebhookSignature({
+      rawBody: rawPayload,
+      signature: String(signature).trim(),
+      secret,
+    });
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or tampered payment webhook signature.',
+      });
+    }
+
     const { providerPaymentId, providerOrderId, tenantId, subscriptionId, amount, currency } = req.body;
+
+    if (!providerPaymentId || !tenantId || !subscriptionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Incomplete webhook payment payload: providerPaymentId, tenantId, and subscriptionId are required.',
+      });
+    }
 
     const result = await paymentService.processPaymentSuccess({
       tenantId,
@@ -77,7 +128,7 @@ export const handleWebhook = async (req, res, next) => {
       providerOrderId,
       amount: Number(amount),
       currency: currency || 'INR',
-      paymentProvider: req.body.paymentProvider || 'manual',
+      paymentProvider: razorpaySig ? 'razorpay' : stripeSig ? 'stripe' : req.body.paymentProvider || 'manual',
       metadata: req.body.metadata || {},
     });
 

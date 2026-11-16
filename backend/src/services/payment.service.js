@@ -75,10 +75,13 @@ export const createCheckoutSession = async ({ tenantId, subscription, plan, bill
 };
 
 export const verifyWebhookSignature = ({ rawBody, signature, secret }) => {
-  if (!signature || !secret) return false;
+  if (!signature || !secret || !rawBody) return false;
   try {
     const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expBuf = Buffer.from(expected, 'utf8');
+    if (sigBuf.length !== expBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expBuf);
   } catch {
     return false;
   }

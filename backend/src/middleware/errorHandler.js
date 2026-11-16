@@ -47,6 +47,12 @@ export const errorHandler = (
     message = 'Authentication token has expired.';
   }
 
+  // Handle CORS blocked origin errors
+  if (err.message && err.message.startsWith('CORS blocked:')) {
+    statusCode = 403;
+    code = 'CORS_ERROR';
+  }
+
   if (process.env.NODE_ENV !== 'test') {
     console.error(`[Error] [${statusCode}] ${message}`, err.stack ? `\n${err.stack}` : '');
   }

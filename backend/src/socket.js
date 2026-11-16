@@ -40,6 +40,8 @@ export function initSocketServer(httpServer, options = {}) {
         const isVercelPreview = /^https:\/\/jewellery-website-[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
         if (isExactMatch || isVercelPreview) {
           callback(null, true);
+        } else if (config.isProduction) {
+          callback(new Error(`CORS blocked: Origin '${origin}' is not authorized.`));
         } else {
           callback(null, true); // Permissive in dev/preview to avoid websocket handshake blocks
         }

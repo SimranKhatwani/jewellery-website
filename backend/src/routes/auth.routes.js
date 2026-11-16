@@ -66,6 +66,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
         id: admin._id,
         email: admin.email,
         role: admin.role,
+        tokenVersion: admin.tokenVersion || 0,
       },
       jwtSecret,
       { expiresIn }
@@ -90,13 +91,25 @@ router.post('/login', loginLimiter, async (req, res, next) => {
 
 /**
  * POST /api/auth/logout
- * Acknowledge admin logout
+ * Acknowledge admin logout and revoke token by incrementing tokenVersion
  */
-router.post('/logout', (_req, res) => {
-  res.json({
-    success: true,
-    message: 'Admin session terminated.',
-  });
+router.post('/logout', authenticateAdmin, async (req, res, next) => {
+  try {
+    const adminId = req.admin?.id || req.admin?.userId;
+    if (adminId) {
+      await Admin.findByIdAndUpdate(adminId, { $inc: { tokenVersion: 1 } });
+    }
+    if (req.user) {
+      req.user.tokenVersion = (req.user.tokenVersion || 0) + 1;
+      await req.user.save();
+    }
+    res.json({
+      success: true,
+      message: 'Admin session terminated and token revoked.',
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**

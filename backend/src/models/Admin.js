@@ -25,6 +25,10 @@ const AdminSchema = new Schema(
       enum: ['admin', 'superadmin'],
       default: 'admin',
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
     lastLogin: {
       type: Date,
     },

@@ -20,8 +20,19 @@ import { CheckoutPreviewModal } from './components/CheckoutPreviewModal';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { CustomerProfileModal } from './components/CustomerProfileModal';
 import { Footer } from './components/Footer';
-import { AdminApp } from './admin/AdminApp';
-import { SuperAdminApp } from './superadmin/SuperAdminApp';
+
+// Code-splitting: Lazily load Admin and Super Admin suites to minimize initial storefront bundle
+const AdminApp = React.lazy(() => import('./admin/AdminApp').then((m) => ({ default: m.AdminApp })));
+const SuperAdminApp = React.lazy(() => import('./superadmin/SuperAdminApp').then((m) => ({ default: m.SuperAdminApp })));
+
+function AdminLoadingFallback({ label = 'Loading workspace...' }) {
+  return (
+    <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-6 text-stone-800">
+      <div className="w-10 h-10 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin mb-4" />
+      <p className="text-xs uppercase tracking-widest font-serif text-stone-600">{label}</p>
+    </div>
+  );
+}
 import {
   fetchCart,
   addToCart,
@@ -408,12 +419,20 @@ export default function App() {
 
   // Render Super Admin Console if on /sa or #sa route
   if (isSuperAdminView) {
-    return <SuperAdminApp onExitSuperAdmin={handleExitSuperAdmin} />;
+    return (
+      <React.Suspense fallback={<AdminLoadingFallback label="Loading Super Admin Console..." />}>
+        <SuperAdminApp onExitSuperAdmin={handleExitSuperAdmin} />
+      </React.Suspense>
+    );
   }
 
   // Render Admin Panel if on /admin route
   if (isAdminView) {
-    return <AdminApp onExitAdmin={handleExitAdmin} />;
+    return (
+      <React.Suspense fallback={<AdminLoadingFallback label="Loading Store Admin Workspace..." />}>
+        <AdminApp onExitAdmin={handleExitAdmin} />
+      </React.Suspense>
+    );
   }
 
   // Filter products by category for public catalogue

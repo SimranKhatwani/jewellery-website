@@ -3,6 +3,7 @@ import cors from 'cors';
 import { securityHeaders } from './middleware/security.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { config } from './config/env.js';
 
 // Legacy Single-Store Routes (Preserved for existing frontend compatibility)
 import authRoutes from './routes/auth.routes.js';
@@ -22,6 +23,7 @@ import customerRoutes from './routes/customer.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import reportRoutes from './routes/report.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -58,18 +60,36 @@ export const createApp = () => {
 
         if (isExactMatch || isVercelPreview) {
           callback(null, true);
+        } else if (config.isProduction) {
+          callback(new Error(`CORS blocked: Origin '${origin}' is not authorized.`));
         } else {
-          callback(null, true); // Dev-friendly fallback
+          callback(null, true); // Dev-friendly fallback for local testing
         }
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID', 'X-Store-Slug', 'X-Guest-Session-ID'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'X-Tenant-ID',
+        'X-Store-Slug',
+        'X-Guest-Session-ID',
+        'Idempotency-Key',
+        'idempotency-key',
+      ],
     })
   );
 
-  // Body parser
-  app.use(express.json({ limit: '10mb' }));
+  // Body parser with raw body buffer capture for webhook signature verification
+  app.use(
+    express.json({
+      limit: '10mb',
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Healthcheck endpoint
@@ -90,6 +110,7 @@ export const createApp = () => {
   app.use('/api/orders', orderRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/reports', reportRoutes);
 
   // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);
@@ -103,6 +124,7 @@ export const createApp = () => {
   app.use('/api/v1/orders', orderRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
   app.use('/api/v1/analytics', analyticsRoutes);
+  app.use('/api/v1/reports', reportRoutes);
 
   // 404 Route Handler
   app.use(notFoundHandler);

@@ -32,3 +32,13 @@ export const config = {
   },
 };
 
+// Validate production security invariants
+if (config.isProduction) {
+  const DEFAULT_JWT_SECRET = 'aurelle_luxury_jwt_secret_change_in_production_2026';
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_JWT_SECRET) {
+    throw new Error(
+      '[FATAL SECURITY MISCONFIGURATION] Production environment detected with default or missing JWT_SECRET. A secure, cryptographically random secret must be supplied.'
+    );
+  }
+}
+

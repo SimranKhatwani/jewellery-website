@@ -6,8 +6,8 @@ const TAB_TITLES = {
   catalogue: 'Catalogue Management',
   orders: 'Orders & Fulfillment',
   notifications: 'Store Notifications & Alerts',
-  analytics: 'Store Analytics',
-  reports: 'Reports & Exports',
+  analytics: 'Analytics & Reports',
+  reports: 'Analytics & Reports',
 };
 
 export const AdminHeader = ({

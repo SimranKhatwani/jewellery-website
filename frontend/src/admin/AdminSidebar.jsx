@@ -59,17 +59,9 @@ export const AdminSidebar = ({
     },
     {
       id: 'analytics',
-      label: 'Analytics',
+      label: 'Analytics & Reports',
       icon: BarChart3,
       badge: null,
-      disabled: false,
-    },
-    {
-      id: 'reports',
-      label: 'Reports',
-      icon: FileText,
-      badge: 'Coming Soon',
-      badgeVariant: 'muted',
       disabled: false,
     },
   ];

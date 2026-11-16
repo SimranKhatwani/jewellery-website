@@ -28,6 +28,26 @@ export const authenticateAdmin = async (req, res, next) => {
     const decoded = jwt.verify(token, jwtSecret);
     req.admin = decoded;
 
+    // Check tokenVersion revocation for legacy Admin model
+    const adminId = decoded.id || decoded.userId;
+    let adminDoc = null;
+    if (adminId) {
+      adminDoc = await Admin.findById(adminId);
+    }
+    if (!adminDoc && decoded.email) {
+      adminDoc = await Admin.findOne({ email: String(decoded.email).toLowerCase().trim() });
+    }
+
+    if (adminDoc) {
+      const decodedVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
+      if (decodedVersion !== (adminDoc.tokenVersion || 0)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Admin session has expired or was revoked. Please log in again.',
+        });
+      }
+    }
+
     // Resolve unified User entity for multi-tenant RBAC / membership checks
     const userId = decoded.userId || decoded.id;
     if (userId) {
@@ -41,7 +61,9 @@ export const authenticateAdmin = async (req, res, next) => {
       let userByEmail = await User.findOne({ email });
       if (!userByEmail) {
         // Auto-bridge legacy Admin model into unified User model
-        const adminDoc = await Admin.findOne({ email });
+        if (!adminDoc) {
+          adminDoc = await Admin.findOne({ email });
+        }
         if (adminDoc) {
           userByEmail = await User.create({
             name: adminDoc.name || 'Aurelle Admin',
@@ -49,11 +71,27 @@ export const authenticateAdmin = async (req, res, next) => {
             passwordHash: adminDoc.passwordHash,
             isSuperAdmin: adminDoc.role === 'superadmin',
             status: USER_STATUS.ACTIVE,
+            tokenVersion: adminDoc.tokenVersion || 0,
           });
         }
       }
       if (userByEmail) {
         req.user = userByEmail;
+      }
+    }
+
+    if (req.user) {
+      if (req.user.status !== USER_STATUS.ACTIVE) {
+        return res.status(403).json({
+          success: false,
+          message: `Account is ${req.user.status}. Access denied.`,
+        });
+      }
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion < (req.user.tokenVersion || 0)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Admin session has expired or was revoked. Please log in again.',
+        });
       }
     }
 
