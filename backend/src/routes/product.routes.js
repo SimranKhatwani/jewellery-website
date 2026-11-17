@@ -22,6 +22,22 @@ router.get(
   productController.listAdminProducts
 );
 
+router.get(
+  '/admin/currency',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  productController.getStoreCurrencySettings
+);
+
+router.put(
+  '/admin/currency',
+  authenticateAdmin,
+  resolveLegacyTenant,
+  authorizeLegacyAdminTenant,
+  productController.updateStoreCurrencySettings
+);
+
 router.post(
   '/',
   authenticateAdmin,

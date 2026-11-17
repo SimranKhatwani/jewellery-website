@@ -1,6 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { uploadMediaImage } from './api';
 import { resolveMediaUrl } from '../services/productService';
+import { getStoreCurrency, setStoreCurrency } from '../services/storefrontService';
+
+export const CURRENCY_OPTIONS = [
+  { code: 'USD', symbol: '$', label: 'USD ($)' },
+  { code: 'INR', symbol: '₹', label: 'INR (₹)' },
+  { code: 'EUR', symbol: '€', label: 'EUR (€)' },
+  { code: 'GBP', symbol: '£', label: 'GBP (£)' },
+  { code: 'AED', symbol: 'AED', label: 'AED (AED)' },
+  { code: 'CAD', symbol: 'CA$', label: 'CAD ($)' },
+  { code: 'AUD', symbol: 'AU$', label: 'AUD ($)' },
+];
 
 export const ProductFormModal = ({
   product,
@@ -14,7 +25,8 @@ export const ProductFormModal = ({
   const [slug, setSlug] = useState(product?.slug || '');
   const [sku, setSku] = useState(product?.sku || '');
   const [category, setCategory] = useState(product?.category || 'rings');
-  const [priceUSD, setPriceUSD] = useState(product?.priceUSD ?? 150);
+  const [currency, setCurrency] = useState(product?.currency || getStoreCurrency() || 'USD');
+  const [priceUSD, setPriceUSD] = useState(product?.priceUSD ?? product?.price ?? 150);
   const [subtitle, setSubtitle] = useState(product?.subtitle || '');
   const [description, setDescription] = useState(product?.description || '');
   const [editorialQuote, setEditorialQuote] = useState(product?.editorialQuote || '');
@@ -120,12 +132,17 @@ export const ProductFormModal = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const activeCurrencyObj = CURRENCY_OPTIONS.find((c) => c.code === currency) || { code: 'USD', symbol: '$' };
+
     const payload = {
       name: name.trim(),
       slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       sku: sku.trim() || 'AUR-0925-GEN',
       category,
       priceUSD: Number(priceUSD) || 0,
+      price: Number(priceUSD) || 0,
+      currency: activeCurrencyObj.code,
+      currencySymbol: activeCurrencyObj.symbol,
       subtitle: subtitle.trim(),
       description: description.trim(),
       editorialQuote: editorialQuote.trim(),
@@ -171,6 +188,7 @@ export const ProductFormModal = ({
     setIsSaving(true);
     try {
       await onSave(payload);
+      setStoreCurrency(activeCurrencyObj.code, activeCurrencyObj.symbol);
       onClose();
     } catch (err) {
       setErrorMessage(err?.message || 'Failed to save product to database.');
@@ -264,18 +282,46 @@ export const ProductFormModal = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#593D30] mb-1">
-                  Price (USD $) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={priceUSD}
-                  onChange={(e) => setPriceUSD(Number(e.target.value))}
-                  required
-                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-                />
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-medium text-[#593D30]">
+                    Price & Currency *
+                  </label>
+                  <span className="text-[10px] text-[#A85F49] font-medium tracking-wide">
+                    {currency}
+                  </span>
+                </div>
+                <div className="flex rounded-xs border border-[#D7C5AF] overflow-hidden focus-within:border-[#A85F49] bg-[#FAF7F2]">
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="bg-[#FAF7F2] border-r border-[#D7C5AF] px-2 py-2 text-xs font-semibold text-[#593D30] focus:outline-none cursor-pointer hover:bg-[#F2ECE1]"
+                    title="Choose Currency (USD, INR, EUR, GBP, AED, CAD, AUD)"
+                  >
+                    {CURRENCY_OPTIONS.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} ({c.symbol})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="relative flex-1 flex items-center bg-[#FAF7F2]">
+                    <span className="pl-2.5 text-xs font-bold text-[#8E8172] select-none">
+                      {CURRENCY_OPTIONS.find((c) => c.code === currency)?.symbol || '$'}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={priceUSD}
+                      onChange={(e) => setPriceUSD(e.target.value === '' ? '' : Number(e.target.value))}
+                      required
+                      placeholder="e.g. 195"
+                      className="w-full pl-1.5 pr-3 py-2 bg-transparent text-xs font-mono font-medium text-[#593D30] focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-[#8E8172] mt-1">
+                  Updates price and store currency across both customer website and admin.
+                </p>
               </div>
 
               <div>

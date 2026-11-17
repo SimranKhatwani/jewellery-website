@@ -152,11 +152,25 @@ export function getStoreCurrency() {
   return 'USD';
 }
 
+export function setStoreCurrency(currency, symbol = null) {
+  const c = String(currency || 'USD').toUpperCase().trim();
+  const sym = symbol || (c === 'INR' ? '₹' : (c === 'EUR' ? '€' : (c === 'GBP' ? '£' : (c === 'AED' ? 'AED ' : '$'))));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('aurelle_store_currency', c);
+    localStorage.setItem('aurelle_store_currency_symbol', sym);
+    window.dispatchEvent(new CustomEvent('aurelle_currency_updated', { detail: { currency: c, symbol: sym } }));
+  }
+  if (cachedStoreInfo) {
+    cachedStoreInfo.currency = c;
+    cachedStoreInfo.currencySymbol = sym;
+  }
+}
+
 /**
  * Format price dynamically according to tenant currency (USD, INR, EUR, GBP, etc.)
  */
 export function formatPrice(amount, currency = null) {
-  const targetCurrency = currency || getStoreCurrency() || 'USD';
+  const targetCurrency = String(currency || getStoreCurrency() || 'USD').toUpperCase().trim();
   const num = Number(amount) || 0;
   try {
     return new Intl.NumberFormat('en-US', {
@@ -172,6 +186,8 @@ export function formatPrice(amount, currency = null) {
         ? '€'
         : targetCurrency === 'GBP'
         ? '£'
+        : targetCurrency === 'AED'
+        ? 'AED '
         : '$';
     return `${sym}${num.toFixed(2)}`;
   }

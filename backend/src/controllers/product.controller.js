@@ -18,6 +18,22 @@ const slugify = (text) => {
     .replace(/-+$/, '');
 };
 
+export const resolveCurrencySymbol = (curr) => {
+  const c = String(curr || 'USD').toUpperCase().trim();
+  switch (c) {
+    case 'INR': return '₹';
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'AED': return 'AED ';
+    case 'CAD': return 'CA$';
+    case 'AUD': return 'AU$';
+    case 'JPY': return '¥';
+    case 'USD':
+    default:
+      return '$';
+  }
+};
+
 /**
  * List tenant products (Admin or Storefront)
  */
@@ -92,16 +108,27 @@ export const listTenantProducts = async (req, res, next) => {
       Product.countDocuments(filter),
     ]);
 
+    const activeCurrency = req.tenant?.settings?.currency || 'USD';
+    const activeCurrencySymbol = req.tenant?.settings?.currencySymbol || resolveCurrencySymbol(activeCurrency);
+
+    const formattedProducts = products.map((p) => ({
+      ...p,
+      currency: p.currency || activeCurrency,
+      currencySymbol: p.currencySymbol || activeCurrencySymbol,
+    }));
+
     res.json({
       success: true,
-      count: products.length,
+      count: formattedProducts.length,
+      currency: activeCurrency,
+      currencySymbol: activeCurrencySymbol,
       meta: {
         total,
         page: pageNum,
         limit: limitNum,
         pages: Math.ceil(total / limitNum) || 1,
       },
-      products,
+      products: formattedProducts,
     });
   } catch (error) {
     next(error);
@@ -147,6 +174,11 @@ export const getTenantProduct = async (req, res, next) => {
     if (!product) {
       throw new NotFoundError(`Product '${identifier}' not found in this store.`);
     }
+
+    const activeCurrency = req.tenant?.settings?.currency || 'USD';
+    const activeCurrencySymbol = req.tenant?.settings?.currencySymbol || resolveCurrencySymbol(activeCurrency);
+    product.currency = product.currency || activeCurrency;
+    product.currencySymbol = product.currencySymbol || activeCurrencySymbol;
 
     res.json({
       success: true,
@@ -234,6 +266,19 @@ export const createTenantProduct = async (req, res, next) => {
       finalInventoryStatus = 'out_of_stock';
     }
 
+    // Determine target currency and sync with tenant settings
+    const targetCurrency = String(req.body.currency || req.tenant?.settings?.currency || 'USD').toUpperCase().trim();
+    const targetCurrencySymbol = req.body.currencySymbol ? String(req.body.currencySymbol).trim() : resolveCurrencySymbol(targetCurrency);
+
+    if (req.tenant) {
+      req.tenant.settings = req.tenant.settings || {};
+      if (req.body.currency || !req.tenant.settings.currency) {
+        req.tenant.settings.currency = targetCurrency;
+        req.tenant.settings.currencySymbol = targetCurrencySymbol;
+        await req.tenant.save();
+      }
+    }
+
     // 6. Process variants if present
     const processedVariants = [];
     if (hasVariants && Array.isArray(variants)) {
@@ -272,6 +317,8 @@ export const createTenantProduct = async (req, res, next) => {
       category: normalizedCat,
       categoryId,
       priceUSD: Number(priceUSD),
+      currency: targetCurrency,
+      currencySymbol: targetCurrencySymbol,
       subtitle: subtitle || '',
       description: description || '',
       editorialQuote: editorialQuote || '',
@@ -371,6 +418,24 @@ export const updateTenantProduct = async (req, res, next) => {
       updates.stockQuantity = qty;
       updates.inventoryStatus = qty > 0 ? (qty <= 5 ? 'low_stock' : 'in_stock') : 'out_of_stock';
       updates.inStock = qty > 0;
+    }
+
+    // Currency update and sync with tenant settings
+    if (updates.currency) {
+      const c = String(updates.currency).toUpperCase().trim();
+      const sym = updates.currencySymbol ? String(updates.currencySymbol).trim() : resolveCurrencySymbol(c);
+      updates.currency = c;
+      updates.currencySymbol = sym;
+
+      if (req.tenant) {
+        req.tenant.settings = req.tenant.settings || {};
+        req.tenant.settings.currency = c;
+        req.tenant.settings.currencySymbol = sym;
+        await req.tenant.save();
+      }
+    }
+    if (updates.price !== undefined && updates.priceUSD === undefined) {
+      updates.priceUSD = Number(updates.price);
     }
 
     Object.assign(product, updates);
@@ -529,6 +594,70 @@ export const updateTenantInventory = async (req, res, next) => {
       stockQuantity: product.stockQuantity,
       inventoryStatus: product.inventoryStatus,
       product,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get active store currency settings
+ */
+export const getStoreCurrencySettings = async (req, res, next) => {
+  try {
+    const tenant = req.tenant;
+    const currency = tenant?.settings?.currency || 'USD';
+    const currencySymbol = tenant?.settings?.currencySymbol || resolveCurrencySymbol(currency);
+    res.json({
+      success: true,
+      currency,
+      currencySymbol,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update store currency settings (applies across store and syncs all catalogue products)
+ */
+export const updateStoreCurrencySettings = async (req, res, next) => {
+  try {
+    const tenant = req.tenant;
+    if (!tenant) throw new NotFoundError('Store tenant context not found.');
+
+    const { currency, currencySymbol } = req.body;
+    if (!currency) throw new BadRequestError('Currency code is required (e.g. USD, INR, EUR, GBP, AED, CAD, AUD).');
+
+    const cleanCurrency = String(currency).toUpperCase().trim();
+    const cleanSymbol = currencySymbol ? String(currencySymbol).trim() : resolveCurrencySymbol(cleanCurrency);
+
+    tenant.settings = tenant.settings || {};
+    tenant.settings.currency = cleanCurrency;
+    tenant.settings.currencySymbol = cleanSymbol;
+    await tenant.save();
+
+    // Propagate currency across all existing products for this tenant
+    await Product.updateMany(
+      { tenantId: tenant._id },
+      { $set: { currency: cleanCurrency, currencySymbol: cleanSymbol } }
+    );
+
+    await logAudit({
+      tenantId: tenant._id,
+      userId: req.user?._id,
+      action: AUDIT_ACTIONS.TENANT_UPDATE,
+      resource: 'TenantSettings',
+      resourceId: tenant._id,
+      details: { currency: cleanCurrency, currencySymbol: cleanSymbol },
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Store currency updated to ${cleanCurrency} (${cleanSymbol}).`,
+      currency: cleanCurrency,
+      currencySymbol: cleanSymbol,
     });
   } catch (error) {
     next(error);

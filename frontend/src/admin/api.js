@@ -205,6 +205,34 @@ export async function toggleProductPublish(id) {
   return data.isPublished;
 }
 
+// ----------------- Store Currency Settings API -----------------
+export async function getAdminStoreCurrency() {
+  try {
+    const res = await authFetch('/products/admin/currency');
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('Currency fetch note:', err.message);
+  }
+  return { currency: 'USD', currencySymbol: '$' };
+}
+
+export async function updateAdminStoreCurrency(currency, currencySymbol) {
+  const res = await authFetch('/products/admin/currency', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currency, currencySymbol }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update store currency');
+  }
+  return data;
+}
+
 // ----------------- Media Upload API -----------------
 export async function uploadMediaImage(file) {
   const formData = new FormData();

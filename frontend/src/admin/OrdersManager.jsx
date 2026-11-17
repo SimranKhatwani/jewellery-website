@@ -27,7 +27,7 @@ import {
   updateAdminOrderStatus,
   cancelAdminOrder,
 } from './api';
-import { formatPrice } from '../services/storefrontService';
+import { formatPrice, getStoreCurrency } from '../services/storefrontService';
 
 export const OrdersManager = ({ admin }) => {
   const [orders, setOrders] = useState([]);
@@ -468,7 +468,7 @@ export const OrdersManager = ({ admin }) => {
               </thead>
               <tbody className="divide-y divide-[#D7C5AF]/40">
                 {orders.map((o) => {
-                  const currency = o.pricing?.currency || 'INR';
+                  const currency = o.pricing?.currency || getStoreCurrency();
                   const dateFormatted = new Date(o.createdAt).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',

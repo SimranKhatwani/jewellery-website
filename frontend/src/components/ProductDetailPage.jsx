@@ -233,7 +233,7 @@ export const ProductDetailPage = ({
               {/* Price */}
               <div className="mt-3">
                 <span className="text-2xl font-mono tabular-nums font-medium text-[#593D30]">
-                  {formatPrice(product.priceUSD || product.price)}
+                  {formatPrice(product.priceUSD || product.price, product.currency)}
                 </span>
               </div>
             </div>
@@ -378,7 +378,7 @@ export const ProductDetailPage = ({
                       ? 'Adding...'
                       : isOutOfStock
                       ? 'Out of Stock'
-                      : `Add to Shopping Bag • ${formatPrice((product.priceUSD || product.price) * quantity)}`}
+                      : `Add to Shopping Bag • ${formatPrice((product.priceUSD || product.price) * quantity, product.currency)}`}
                   </span>
                 </button>
               </div>
@@ -549,7 +549,7 @@ export const ProductDetailPage = ({
                     {rel.name}
                   </h4>
                   <span className="text-xs font-mono font-medium mt-1 text-[#593D30]">
-                    {formatPrice(rel.priceUSD || rel.price)}
+                    {formatPrice(rel.priceUSD || rel.price, rel.currency)}
                   </span>
                 </div>
               ))}

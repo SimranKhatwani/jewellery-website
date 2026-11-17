@@ -101,6 +101,17 @@ const ProductSchema = new Schema(
       required: [true, 'Price is required'],
       min: 0,
     },
+    currency: {
+      type: String,
+      default: 'USD',
+      trim: true,
+      uppercase: true,
+    },
+    currencySymbol: {
+      type: String,
+      default: '$',
+      trim: true,
+    },
     subtitle: {
       type: String,
       default: '',

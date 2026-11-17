@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { resolveMediaUrl } from '../services/productService';
-import { ProductFormModal } from './ProductFormModal';
+import { ProductFormModal, CURRENCY_OPTIONS } from './ProductFormModal';
+import { formatPrice, getStoreCurrency, setStoreCurrency } from '../services/storefrontService';
+import { updateAdminStoreCurrency } from './api';
 
 export const CatalogueManager = ({
   products = [],
@@ -29,6 +31,32 @@ export const CatalogueManager = ({
   isDeleting,
   onConfirmDelete,
 }) => {
+  const [storeCurrency, setStoreCurrencyState] = useState(() => getStoreCurrency() || 'USD');
+  const [isChangingCurrency, setIsChangingCurrency] = useState(false);
+
+  useEffect(() => {
+    const handleCurrChange = (e) => {
+      if (e.detail?.currency) {
+        setStoreCurrencyState(e.detail.currency);
+      }
+    };
+    window.addEventListener('aurelle_currency_updated', handleCurrChange);
+    return () => window.removeEventListener('aurelle_currency_updated', handleCurrChange);
+  }, []);
+
+  const handleStoreCurrencyChange = async (newCurr) => {
+    try {
+      setIsChangingCurrency(true);
+      setStoreCurrencyState(newCurr);
+      setStoreCurrency(newCurr);
+      await updateAdminStoreCurrency(newCurr);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      alert(`Could not update store currency: ${err?.message || 'Server error'}`);
+    } finally {
+      setIsChangingCurrency(false);
+    }
+  };
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Page Title & Actions */}
@@ -42,7 +70,25 @@ export const CatalogueManager = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          {/* Store Currency Selector */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs shadow-xs">
+            <span className="text-[10px] font-semibold text-[#8E8172] uppercase tracking-wider">Currency:</span>
+            <select
+              value={storeCurrency}
+              disabled={isChangingCurrency}
+              onChange={(e) => handleStoreCurrencyChange(e.target.value)}
+              className="text-xs font-bold text-[#A85F49] bg-transparent focus:outline-none cursor-pointer disabled:opacity-50"
+              title="Change store-wide currency (USD, INR, EUR, GBP, AED, CAD, AUD)"
+            >
+              {CURRENCY_OPTIONS.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} ({c.symbol})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={onRefresh}
@@ -249,7 +295,7 @@ export const CatalogueManager = ({
                 <tr>
                   <th className="py-3 px-4">Item</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-4">Price ({storeCurrency})</th>
                   <th className="py-3 px-4">Order</th>
                   <th className="py-3 px-4">Badges</th>
                   <th className="py-3 px-4">Status</th>
@@ -296,8 +342,8 @@ export const CatalogueManager = ({
                       </td>
 
                       {/* Price */}
-                      <td className="py-3.5 px-4 font-medium text-[#593D30]">
-                        ${p.priceUSD}
+                      <td className="py-3.5 px-4 font-mono font-medium text-[#593D30]">
+                        {formatPrice(p.priceUSD || p.price, p.currency || storeCurrency)}
                       </td>
 
                       {/* Order */}

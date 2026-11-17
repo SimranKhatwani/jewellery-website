@@ -1,4 +1,5 @@
 import { PRODUCTS } from '../data/products';
+import { setStoreCurrency, getStoreCurrency } from './storefrontService';
 
 function getApiBaseUrl() {
   const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
@@ -25,6 +26,10 @@ export async function getPublishedProducts() {
     }
 
     const data = await res.json();
+
+    if (data.currency) {
+      setStoreCurrency(data.currency, data.currencySymbol);
+    }
 
     if (data.success && Array.isArray(data.products) && data.products.length > 0) {
       return {
@@ -127,7 +132,10 @@ function formatProduct(raw) {
     slug: raw.slug || canonicalId,
     name: raw.name,
     category: raw.category,
-    priceUSD: Number(raw.priceUSD) || 0,
+    priceUSD: Number(raw.priceUSD !== undefined ? raw.priceUSD : raw.price) || 0,
+    price: Number(raw.price !== undefined ? raw.price : raw.priceUSD) || 0,
+    currency: raw.currency || getStoreCurrency() || 'USD',
+    currencySymbol: raw.currencySymbol || '$',
     subtitle: raw.subtitle || '',
     description: raw.description || '',
     editorialQuote: raw.editorialQuote || '',

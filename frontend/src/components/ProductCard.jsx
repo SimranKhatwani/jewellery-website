@@ -102,7 +102,7 @@ export const ProductCard = ({
 
         <div className="flex items-center justify-between mt-1 pt-1 border-t border-[#D7C5AF]/30">
           <span className="text-sm font-medium font-mono tabular-nums text-[#593D30]">
-            {formatPrice(product.priceUSD || product.price)}
+            {formatPrice(product.priceUSD || product.price, product.currency)}
           </span>
           <span className="text-[11px]">
             {isOutOfStock ? (

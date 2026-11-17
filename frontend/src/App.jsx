@@ -142,9 +142,17 @@ export default function App() {
     }
   }, []);
 
+  const [, setCurrencyTick] = useState(0);
+
   useEffect(() => {
     fetchStoreInfo();
     refreshCart();
+
+    const handleCurrencyChange = () => {
+      setCurrencyTick((t) => t + 1);
+    };
+    window.addEventListener('aurelle_currency_updated', handleCurrencyChange);
+    return () => window.removeEventListener('aurelle_currency_updated', handleCurrencyChange);
   }, [refreshCart]);
 
   // Cart action handlers

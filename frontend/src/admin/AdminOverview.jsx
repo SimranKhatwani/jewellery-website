@@ -13,7 +13,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { getAdminOrders } from './api';
-import { formatPrice } from '../services/storefrontService';
+import { formatPrice, getStoreCurrency } from '../services/storefrontService';
 
 export const AdminOverview = ({
   admin,
@@ -166,7 +166,7 @@ export const AdminOverview = ({
             <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="font-serif text-3xl font-light text-[#593D30] mt-2 truncate">
-            {formatPrice(ordersSummary.totalRevenue, 'INR')}
+            {formatPrice(ordersSummary.totalRevenue, ordersSummary.currency || getStoreCurrency())}
           </div>
           <div className="mt-2 text-[11px] text-[#8E8172]">
             Authoritative order calculations
