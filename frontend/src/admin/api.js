@@ -417,6 +417,20 @@ export async function updateAdminOrderStatus(orderId, orderStatus, notes = '') {
   return data.order;
 }
 
+export async function updateAdminPaymentStatus(orderId, paymentStatus) {
+  const res = await authFetch(`/orders/${orderId}/payment-status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentStatus }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update payment status');
+  }
+  return data.order;
+}
+
 export async function cancelAdminOrder(orderId, reason = '') {
   const res = await authFetch(`/orders/${orderId}/cancel`, {
     method: 'POST',

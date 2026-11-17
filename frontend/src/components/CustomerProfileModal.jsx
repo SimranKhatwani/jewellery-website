@@ -47,9 +47,9 @@ export const CustomerProfileModal = ({
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
 
   // Profile Form
-  const [firstName, setFirstName] = useState(customerUser?.firstName || '');
-  const [lastName, setLastName] = useState(customerUser?.lastName || '');
-  const [phone, setPhone] = useState(customerUser?.phone || '');
+  const [firstName, setFirstName] = useState(customerUser?.firstName || customerUser?.name?.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(customerUser?.lastName || customerUser?.name?.split(' ').slice(1).join(' ') || '');
+  const [phone, setPhone] = useState(customerUser?.phone || customerUser?.phoneNumber || '');
 
   // Password Form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,8 +61,8 @@ export const CustomerProfileModal = ({
   const [addresses, setAddresses] = useState([]);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
-    name: customerUser ? `${customerUser.firstName || ''} ${customerUser.lastName || ''}`.trim() : '',
-    phone: customerUser?.phone || '',
+    name: customerUser ? `${customerUser.firstName || customerUser.name || ''} ${customerUser.lastName || ''}`.trim() : '',
+    phone: customerUser?.phone || customerUser?.phoneNumber || '',
     addressLine1: '',
     addressLine2: '',
     city: 'Mumbai',
@@ -75,11 +75,27 @@ export const CustomerProfileModal = ({
 
   useEffect(() => {
     if (customerUser) {
-      setFirstName(customerUser.firstName || '');
-      setLastName(customerUser.lastName || '');
-      setPhone(customerUser.phone || '');
+      setFirstName(customerUser.firstName || customerUser.name?.split(' ')[0] || '');
+      setLastName(customerUser.lastName || customerUser.name?.split(' ').slice(1).join(' ') || '');
+      setPhone(customerUser.phone || customerUser.phoneNumber || '');
     }
   }, [customerUser]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCustomerProfile()
+        .then((fresh) => {
+          if (fresh) {
+            const resolvedPhone = fresh.phone || fresh.phoneNumber || '';
+            if (resolvedPhone) setPhone(resolvedPhone);
+            if (fresh.firstName) setFirstName(fresh.firstName);
+            if (fresh.lastName) setLastName(fresh.lastName);
+            if (onUserUpdated) onUserUpdated(fresh);
+          }
+        })
+        .catch((err) => console.warn('Could not refresh customer profile:', err));
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && activeTab === 'addresses') {
@@ -137,7 +153,13 @@ export const CustomerProfileModal = ({
       if (cleanPhone && cleanPhone.length !== 10) {
         throw new Error('Contact phone must be a valid 10-digit mobile number.');
       }
-      const updated = await updateCustomerProfile({ firstName, lastName, phone: cleanPhone });
+      const updated = await updateCustomerProfile({
+        firstName,
+        lastName,
+        name: `${firstName || ''} ${lastName || ''}`.trim(),
+        phone: cleanPhone,
+        phoneNumber: cleanPhone,
+      });
       setSuccess('Profile updated successfully.');
       onUserUpdated(updated);
     } catch (err) {

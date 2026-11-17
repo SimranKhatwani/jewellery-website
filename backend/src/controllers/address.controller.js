@@ -71,7 +71,7 @@ export const createCustomerAddress = async (req, res, next) => {
       state: state.trim(),
       postalCode: postalCode.trim(),
       country: (country || 'India').trim(),
-      addressType: addressType || 'home',
+      addressType: String(addressType || 'shipping').toLowerCase().trim(),
       isDefault: shouldBeDefault,
     });
 

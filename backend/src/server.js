@@ -4,6 +4,7 @@ import { connectDB } from './config/db.js';
 import { createApp } from './app.js';
 import { initSocketServer } from './socket.js';
 import { syncExistingCustomersToCollection } from './controllers/customer.controller.js';
+import { syncOrderPaymentStatuses } from './services/order.service.js';
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +19,10 @@ const startServer = async () => {
       // Synchronize existing customers collection with users and orders
       syncExistingCustomersToCollection().catch((err) => {
         console.warn('[Startup] Initial customer sync notice:', err.message);
+      });
+      // Synchronize order payment statuses (prepaid card/upi marked paid, delivered marked paid)
+      syncOrderPaymentStatuses().catch((err) => {
+        console.warn('[Startup] Order payment status sync notice:', err.message);
       });
     } catch (dbErr) {
       console.warn(

@@ -52,8 +52,8 @@ const AddressSchema = new Schema(
     },
     addressType: {
       type: String,
-      enum: ['home', 'work', 'other'],
-      default: 'home',
+      enum: ['home', 'work', 'other', 'shipping', 'billing'],
+      default: 'shipping',
     },
     isDefault: {
       type: Boolean,

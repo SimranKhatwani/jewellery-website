@@ -43,6 +43,10 @@ async function ensureCustomerRecord(user, tenantId = null) {
       customer.tenantId = resolvedTenantId;
       changed = true;
     }
+    if (user.phoneNumber && !customer.phone) {
+      customer.phone = user.phoneNumber;
+      changed = true;
+    }
     if (changed) {
       await customer.save();
     }
@@ -60,15 +64,23 @@ export const getCustomerProfile = async (req, res, next) => {
     const user = req.user;
     const customer = await ensureCustomerRecord(user, req.tenant?._id);
 
+    const contactPhone = customer.phone || user.phoneNumber || '';
+    const nameParts = (customer.name || user.name || '').trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     res.json({
       success: true,
       customer: {
         id: customer._id,
         userId: user._id,
         tenantId: customer.tenantId,
-        name: customer.name,
-        email: customer.email,
-        phoneNumber: customer.phone || user.phoneNumber || '',
+        name: customer.name || user.name,
+        firstName,
+        lastName,
+        email: customer.email || user.email,
+        phone: contactPhone,
+        phoneNumber: contactPhone,
         status: customer.status,
         totalOrders: customer.totalOrders || 0,
         totalSpent: customer.totalSpent || 0,
@@ -89,7 +101,7 @@ export const getCustomerProfile = async (req, res, next) => {
 export const updateCustomerProfile = async (req, res, next) => {
   try {
     const user = req.user;
-    const { name, phoneNumber, phone } = req.body;
+    const { name, firstName, lastName, phoneNumber, phone } = req.body;
 
     // Reject attempt to elevate privilege or modify security-sensitive fields
     const disallowedFields = ['isSuperAdmin', 'status', 'passwordHash', 'tokenVersion', 'email', 'role'];
@@ -99,11 +111,16 @@ export const updateCustomerProfile = async (req, res, next) => {
       }
     }
 
-    const updatedPhone = phone !== undefined ? phone.trim() : (phoneNumber !== undefined ? phoneNumber.trim() : undefined);
+    const updatedPhone = phone !== undefined ? String(phone).trim() : (phoneNumber !== undefined ? String(phoneNumber).trim() : undefined);
 
-    if (name !== undefined) {
-      if (!name.trim()) throw new BadRequestError('Name cannot be empty.');
-      user.name = name.trim();
+    let resolvedName = name !== undefined ? name.trim() : undefined;
+    if (resolvedName === undefined && (firstName !== undefined || lastName !== undefined)) {
+      resolvedName = `${firstName || ''} ${lastName || ''}`.trim();
+    }
+
+    if (resolvedName !== undefined) {
+      if (!resolvedName) throw new BadRequestError('Name cannot be empty.');
+      user.name = resolvedName;
     }
 
     if (updatedPhone !== undefined) {
@@ -131,6 +148,9 @@ export const updateCustomerProfile = async (req, res, next) => {
       { new: true, upsert: true }
     );
 
+    const contactPhone = customer.phone || user.phoneNumber || '';
+    const nameParts = (customer.name || user.name || '').trim().split(/\s+/);
+
     res.json({
       success: true,
       message: 'Profile updated successfully in customers collection.',
@@ -138,8 +158,11 @@ export const updateCustomerProfile = async (req, res, next) => {
         id: customer._id,
         userId: user._id,
         name: customer.name,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
         email: customer.email,
-        phoneNumber: customer.phone,
+        phone: contactPhone,
+        phoneNumber: contactPhone,
         status: customer.status,
         totalOrders: customer.totalOrders || 0,
         totalSpent: customer.totalSpent || 0,

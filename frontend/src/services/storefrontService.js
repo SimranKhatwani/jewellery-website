@@ -77,11 +77,27 @@ export function setCustomerToken(token) {
   }
 }
 
+export function normalizeCustomerUser(user, extra = {}) {
+  if (!user) return null;
+  const phone = user.phone || user.phoneNumber || extra.phone || extra.phoneNumber || '';
+  user.phone = phone;
+  user.phoneNumber = phone;
+  if (!user.firstName && user.name) {
+    const parts = user.name.trim().split(/\s+/);
+    user.firstName = parts[0] || '';
+    user.lastName = parts.slice(1).join(' ') || '';
+  }
+  if (extra.firstName && !user.firstName) user.firstName = extra.firstName;
+  if (extra.lastName && !user.lastName) user.lastName = extra.lastName;
+  return user;
+}
+
 export function getCustomerUser() {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem('aurelle_customer_user');
-    return raw ? JSON.parse(raw) : null;
+    const user = raw ? JSON.parse(raw) : null;
+    return normalizeCustomerUser(user);
   } catch {
     return null;
   }
@@ -90,7 +106,8 @@ export function getCustomerUser() {
 export function setCustomerUser(user) {
   if (typeof window === 'undefined') return;
   if (user) {
-    localStorage.setItem('aurelle_customer_user', JSON.stringify(user));
+    const normalized = normalizeCustomerUser(user);
+    localStorage.setItem('aurelle_customer_user', JSON.stringify(normalized));
   } else {
     localStorage.removeItem('aurelle_customer_user');
   }
@@ -522,17 +539,13 @@ export async function customerLogin(email, password) {
   // Unpack sendSuccess envelope { success: true, message, data: { token, user } }
   const payload = data.data || data;
   const token = payload.token || payload.accessToken;
-  const user = payload.user || payload.customer || {};
+  const rawUser = payload.user || payload.customer || {};
 
   if (!token) {
     throw new Error(data.message || 'Authentication succeeded but no token was provided.');
   }
 
-  if (!user.firstName && user.name) {
-    const parts = user.name.trim().split(/\s+/);
-    user.firstName = parts[0] || '';
-    user.lastName = parts.slice(1).join(' ') || '';
-  }
+  const user = normalizeCustomerUser(rawUser);
 
   setCustomerToken(token);
   setCustomerUser(user);
@@ -568,18 +581,13 @@ export async function customerRegister({ email, password, firstName, lastName, p
   // Unpack sendSuccess envelope
   const payload = data.data || data;
   const token = payload.token || payload.accessToken;
-  const user = payload.user || payload.customer || {};
+  const rawUser = payload.user || payload.customer || {};
 
   if (!token) {
     throw new Error(data.message || 'Registration succeeded but no token was provided.');
   }
 
-  if (!user.firstName) {
-    user.firstName = firstName || (user.name ? user.name.split(' ')[0] : 'Customer');
-  }
-  if (!user.lastName) {
-    user.lastName = lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : '');
-  }
+  const user = normalizeCustomerUser(rawUser, { firstName, lastName, phone: cleanPhone });
 
   setCustomerToken(token);
   setCustomerUser(user);
@@ -608,7 +616,8 @@ export async function fetchCustomerProfile() {
   }
   const data = await res.json();
   const payload = data.data || data;
-  const user = payload.customer || payload.user || payload;
+  const rawUser = payload.customer || payload.user || payload;
+  const user = normalizeCustomerUser(rawUser);
 
   if (user) {
     setCustomerUser(user);
@@ -627,7 +636,8 @@ export async function updateCustomerProfile(profileData) {
     throw new Error(data.message || 'Failed to update profile');
   }
   const payload = data.data || data;
-  const user = payload.customer || payload.user || payload;
+  const rawUser = payload.customer || payload.user || payload;
+  const user = normalizeCustomerUser(rawUser, profileData);
   if (user) {
     setCustomerUser(user);
   }

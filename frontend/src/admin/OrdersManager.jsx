@@ -25,6 +25,7 @@ import {
   getAdminOrders,
   getAdminOrderDetails,
   updateAdminOrderStatus,
+  updateAdminPaymentStatus,
   cancelAdminOrder,
 } from './api';
 import { formatPrice, getStoreCurrency } from '../services/storefrontService';
@@ -117,6 +118,23 @@ export const OrdersManager = ({ admin }) => {
       loadOrders(); // Refresh metrics
     } catch (err) {
       setUpdateError(err?.message || 'Failed to update order status');
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  // Update order payment status directly (Paid / Finished or Pending)
+  const handlePaymentStatusChange = async (newPaymentStatus) => {
+    if (!selectedOrder) return;
+    setStatusUpdating(true);
+    setUpdateError(null);
+    try {
+      const updated = await updateAdminPaymentStatus(selectedOrder._id, newPaymentStatus);
+      setSelectedOrder(updated);
+      setOrders((prev) => prev.map((o) => (o._id === updated._id ? updated : o)));
+      loadOrders(); // Refresh metrics
+    } catch (err) {
+      setUpdateError(err?.message || 'Failed to update payment status');
     } finally {
       setStatusUpdating(false);
     }
@@ -244,6 +262,8 @@ export const OrdersManager = ({ admin }) => {
     const s = (status || '').toLowerCase();
     switch (s) {
       case 'paid':
+      case 'finished':
+      case 'completed':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-800 border border-green-200">
             <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
@@ -637,6 +657,17 @@ export const OrdersManager = ({ admin }) => {
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Mark as Delivered {selectedOrder.paymentMethod === 'cod' && '(Record COD Paid)'}
+                    </button>
+                  )}
+
+                  {selectedOrder.paymentStatus !== 'paid' && selectedOrder.orderStatus !== 'cancelled' && (
+                    <button
+                      disabled={statusUpdating}
+                      onClick={() => handlePaymentStatusChange('paid')}
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-[#FFFFFF] font-medium rounded-xs transition-colors flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Mark Payment as Paid
                     </button>
                   )}
 

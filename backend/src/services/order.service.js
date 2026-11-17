@@ -408,7 +408,9 @@ export async function placeStorefrontOrder({
             currencySymbol,
           },
           paymentMethod: selectedPaymentMethod,
-          paymentStatus: PAYMENT_STATUS.PENDING, // All Phase 5 payment options begin as pending
+          paymentStatus: (selectedPaymentMethod === PAYMENT_METHODS.CARD || selectedPaymentMethod === PAYMENT_METHODS.UPI)
+            ? PAYMENT_STATUS.PAID
+            : PAYMENT_STATUS.PENDING,
           orderStatus: ORDER_STATUS.PENDING,
           idempotencyKey: idempotencyKey ? String(idempotencyKey).trim() : undefined,
           notes: String(notes || '').trim(),
@@ -497,6 +499,9 @@ export async function placeStorefrontOrder({
  * Strictly scoped to authenticated tenant.
  */
 export async function listTenantOrders(tenantId, query = {}) {
+  // Ensure order payment statuses reflect prepaid and delivered business rules
+  await syncOrderPaymentStatuses();
+
   const {
     search,
     orderStatus,
@@ -626,6 +631,70 @@ export async function getTenantOrderById(tenantId, orderId) {
 }
 
 /**
+ * Update payment status for a tenant order directly.
+ */
+export async function updateTenantOrderPaymentStatus(tenantId, orderId, { newPaymentStatus, adminUser, req }) {
+  if (!newPaymentStatus) {
+    throw new BadRequestError('Payment status is required.');
+  }
+
+  const normalized = String(newPaymentStatus).toLowerCase().trim();
+  const validPaymentStatuses = Object.values(PAYMENT_STATUS);
+  if (!validPaymentStatuses.includes(normalized)) {
+    throw new BadRequestError(`Invalid payment status '${newPaymentStatus}'.`);
+  }
+
+  const order = await getTenantOrderById(tenantId, orderId);
+  const previousPaymentStatus = order.paymentStatus;
+  order.paymentStatus = normalized;
+  await order.save();
+
+  await logAudit({
+    tenantId,
+    userId: adminUser?._id,
+    action: AUDIT_ACTIONS.ORDER_STATUS_UPDATE,
+    resource: 'Order',
+    resourceId: order._id,
+    details: {
+      orderNumber: order.orderNumber,
+      previousPaymentStatus,
+      newPaymentStatus: normalized,
+    },
+    req,
+  });
+
+  return order;
+}
+
+/**
+ * Authoritative synchronization of order payment statuses based on business rules:
+ * - Any order that is delivered is marked as paid.
+ * - Any prepaid order (card or upi) is marked as paid/finished (unless cancelled).
+ * - COD orders remain pending until delivered.
+ */
+export async function syncOrderPaymentStatuses() {
+  try {
+    // 1. Any delivered order must be marked as paid
+    await Order.updateMany(
+      { orderStatus: ORDER_STATUS.DELIVERED, paymentStatus: { $ne: PAYMENT_STATUS.PAID } },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+
+    // 2. Any prepaid orders (card or upi) must be marked as paid
+    await Order.updateMany(
+      {
+        paymentMethod: { $in: [PAYMENT_METHODS.CARD, PAYMENT_METHODS.UPI] },
+        paymentStatus: PAYMENT_STATUS.PENDING,
+        orderStatus: { $ne: ORDER_STATUS.CANCELLED },
+      },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+  } catch (err) {
+    console.warn('[OrderSync] Payment status sync notice:', err.message);
+  }
+}
+
+/**
  * Update order status by Tenant Admin with validation of permitted state transitions,
  * atomic stock restoration on cancellation, and restriction against arbitrary paid status.
  */
@@ -680,8 +749,9 @@ export async function updateTenantOrderStatus(tenantId, orderId, { newStatus, no
   const previousStatus = order.orderStatus;
   order.orderStatus = normalizedStatus;
 
-  // For COD orders: When order is delivered, COD payment collection is recorded
-  if (normalizedStatus === ORDER_STATUS.DELIVERED && order.paymentMethod === PAYMENT_METHODS.COD) {
+  // When an order is delivered, COD payment collection is finalized and marked as paid.
+  // Any delivered order is fully finalized and paid.
+  if (normalizedStatus === ORDER_STATUS.DELIVERED) {
     order.paymentStatus = PAYMENT_STATUS.PAID;
   }
 
@@ -719,6 +789,70 @@ export async function updateTenantOrderStatus(tenantId, orderId, { newStatus, no
   }
 
   return order;
+}
+
+/**
+ * Update payment status for a tenant order directly.
+ */
+export async function updateTenantOrderPaymentStatus(tenantId, orderId, { newPaymentStatus, adminUser, req }) {
+  if (!newPaymentStatus) {
+    throw new BadRequestError('Payment status is required.');
+  }
+
+  const normalized = String(newPaymentStatus).toLowerCase().trim();
+  const validPaymentStatuses = Object.values(PAYMENT_STATUS);
+  if (!validPaymentStatuses.includes(normalized)) {
+    throw new BadRequestError(`Invalid payment status '${newPaymentStatus}'.`);
+  }
+
+  const order = await getTenantOrderById(tenantId, orderId);
+  const previousPaymentStatus = order.paymentStatus;
+  order.paymentStatus = normalized;
+  await order.save();
+
+  await logAudit({
+    tenantId,
+    userId: adminUser?._id,
+    action: AUDIT_ACTIONS.ORDER_STATUS_UPDATE,
+    resource: 'Order',
+    resourceId: order._id,
+    details: {
+      orderNumber: order.orderNumber,
+      previousPaymentStatus,
+      newPaymentStatus: normalized,
+    },
+    req,
+  });
+
+  return order;
+}
+
+/**
+ * Authoritative synchronization of order payment statuses based on business rules:
+ * - Any order that is delivered is marked as paid.
+ * - Any prepaid order (card or upi) is marked as paid/finished (unless cancelled).
+ * - COD orders remain pending until delivered.
+ */
+export async function syncOrderPaymentStatuses() {
+  try {
+    // 1. Any delivered order must be marked as paid
+    await Order.updateMany(
+      { orderStatus: ORDER_STATUS.DELIVERED, paymentStatus: { $ne: PAYMENT_STATUS.PAID } },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+
+    // 2. Any prepaid orders (card or upi) must be marked as paid
+    await Order.updateMany(
+      {
+        paymentMethod: { $in: [PAYMENT_METHODS.CARD, PAYMENT_METHODS.UPI] },
+        paymentStatus: PAYMENT_STATUS.PENDING,
+        orderStatus: { $ne: ORDER_STATUS.CANCELLED },
+      },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+  } catch (err) {
+    console.warn('[OrderSync] Payment status sync notice:', err.message);
+  }
 }
 
 /**
@@ -895,6 +1029,70 @@ export async function getCustomerOrderById(userId, orderId) {
   }
 
   return order;
+}
+
+/**
+ * Update payment status for a tenant order directly.
+ */
+export async function updateTenantOrderPaymentStatus(tenantId, orderId, { newPaymentStatus, adminUser, req }) {
+  if (!newPaymentStatus) {
+    throw new BadRequestError('Payment status is required.');
+  }
+
+  const normalized = String(newPaymentStatus).toLowerCase().trim();
+  const validPaymentStatuses = Object.values(PAYMENT_STATUS);
+  if (!validPaymentStatuses.includes(normalized)) {
+    throw new BadRequestError(`Invalid payment status '${newPaymentStatus}'.`);
+  }
+
+  const order = await getTenantOrderById(tenantId, orderId);
+  const previousPaymentStatus = order.paymentStatus;
+  order.paymentStatus = normalized;
+  await order.save();
+
+  await logAudit({
+    tenantId,
+    userId: adminUser?._id,
+    action: AUDIT_ACTIONS.ORDER_STATUS_UPDATE,
+    resource: 'Order',
+    resourceId: order._id,
+    details: {
+      orderNumber: order.orderNumber,
+      previousPaymentStatus,
+      newPaymentStatus: normalized,
+    },
+    req,
+  });
+
+  return order;
+}
+
+/**
+ * Authoritative synchronization of order payment statuses based on business rules:
+ * - Any order that is delivered is marked as paid.
+ * - Any prepaid order (card or upi) is marked as paid/finished (unless cancelled).
+ * - COD orders remain pending until delivered.
+ */
+export async function syncOrderPaymentStatuses() {
+  try {
+    // 1. Any delivered order must be marked as paid
+    await Order.updateMany(
+      { orderStatus: ORDER_STATUS.DELIVERED, paymentStatus: { $ne: PAYMENT_STATUS.PAID } },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+
+    // 2. Any prepaid orders (card or upi) must be marked as paid
+    await Order.updateMany(
+      {
+        paymentMethod: { $in: [PAYMENT_METHODS.CARD, PAYMENT_METHODS.UPI] },
+        paymentStatus: PAYMENT_STATUS.PENDING,
+        orderStatus: { $ne: ORDER_STATUS.CANCELLED },
+      },
+      { $set: { paymentStatus: PAYMENT_STATUS.PAID } }
+    );
+  } catch (err) {
+    console.warn('[OrderSync] Payment status sync notice:', err.message);
+  }
 }
 
 /**

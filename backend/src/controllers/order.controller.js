@@ -109,6 +109,29 @@ export const updateAdminOrderStatus = async (req, res, next) => {
 };
 
 /**
+ * PATCH /api/orders/:orderId/payment-status
+ * Tenant Admin Update Order Payment Status
+ */
+export const updateAdminPaymentStatus = async (req, res, next) => {
+  try {
+    const tenantId = req.tenant._id;
+    const order = await orderService.updateTenantOrderPaymentStatus(tenantId, req.params.orderId, {
+      newPaymentStatus: req.body.paymentStatus,
+      adminUser: req.user,
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: 'Order payment status updated successfully.',
+      order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * POST /api/orders/:orderId/cancel
  * Tenant Admin Cancel Order
  */

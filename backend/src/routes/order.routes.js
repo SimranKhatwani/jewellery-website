@@ -16,6 +16,7 @@ router.use(authorizeLegacyAdminTenant);
 router.get('/', orderController.getAdminOrders);
 router.get('/:orderId', orderController.getAdminOrderDetails);
 router.patch('/:orderId/status', orderController.updateAdminOrderStatus);
+router.patch('/:orderId/payment-status', orderController.updateAdminPaymentStatus);
 router.post('/:orderId/cancel', orderController.cancelAdminOrder);
 
 export default router;
