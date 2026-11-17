@@ -513,16 +513,25 @@ export async function customerLogin(email, password) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.message || 'Login failed');
+    const detailMsg = data.details && typeof data.details === 'object'
+      ? Object.values(data.details).join('. ')
+      : null;
+    throw new Error(detailMsg || data.message || 'Login failed');
   }
 
   // Unpack sendSuccess envelope { success: true, message, data: { token, user } }
   const payload = data.data || data;
   const token = payload.token || payload.accessToken;
-  const user = payload.user || payload.customer;
+  const user = payload.user || payload.customer || {};
 
   if (!token) {
     throw new Error(data.message || 'Authentication succeeded but no token was provided.');
+  }
+
+  if (!user.firstName && user.name) {
+    const parts = user.name.trim().split(/\s+/);
+    user.firstName = parts[0] || '';
+    user.lastName = parts.slice(1).join(' ') || '';
   }
 
   setCustomerToken(token);
@@ -535,28 +544,41 @@ export async function customerLogin(email, password) {
 }
 
 export async function customerRegister({ email, password, firstName, lastName, phone }) {
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+  const fullName = `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0];
+
   const res = await fetch(`${API_BASE_URL}/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
       email,
       password,
-      name: `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-      phoneNumber: phone,
+      name: fullName,
+      phoneNumber: cleanPhone,
     }),
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.message || 'Registration failed');
+    const detailMsg = data.details && typeof data.details === 'object'
+      ? Object.values(data.details).join('. ')
+      : null;
+    throw new Error(detailMsg || data.message || 'Registration failed');
   }
 
   // Unpack sendSuccess envelope
   const payload = data.data || data;
   const token = payload.token || payload.accessToken;
-  const user = payload.user || payload.customer;
+  const user = payload.user || payload.customer || {};
 
   if (!token) {
     throw new Error(data.message || 'Registration succeeded but no token was provided.');
+  }
+
+  if (!user.firstName) {
+    user.firstName = firstName || (user.name ? user.name.split(' ')[0] : 'Customer');
+  }
+  if (!user.lastName) {
+    user.lastName = lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : '');
   }
 
   setCustomerToken(token);

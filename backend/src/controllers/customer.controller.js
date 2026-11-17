@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Customer } from '../models/Customer.js';
+import { Order } from '../models/Order.js';
 import { Tenant } from '../models/Tenant.js';
 import { TenantMembership } from '../models/TenantMembership.js';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors.js';
@@ -162,8 +163,8 @@ export const changeCustomerPassword = async (req, res, next) => {
       throw new BadRequestError('Both current password and new password are required.');
     }
 
-    if (newPassword.length < 8) {
-      throw new BadRequestError('New password must be at least 8 characters long.');
+    if (newPassword.length < 6) {
+      throw new BadRequestError('New password must be at least 6 characters long.');
     }
 
     // Verify current password
@@ -206,7 +207,18 @@ export const changeCustomerPassword = async (req, res, next) => {
 export const listStoreCustomers = async (req, res, next) => {
   try {
     const tenantId = req.tenant?._id;
-    const { page = 1, limit = 20, search = '', status = 'all', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      status = 'all',
+      customerType = 'all',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    // Keep customers collection continuously synchronized with users and orders
+    await syncExistingCustomersToCollection(req.tenant?.slug || 'aurelle');
 
     const query = {};
     if (tenantId) {
@@ -215,16 +227,25 @@ export const listStoreCustomers = async (req, res, next) => {
     if (status && status !== 'all') {
       query.status = status;
     }
+    if (customerType === 'registered') {
+      query.userId = { $ne: null };
+      query.isGuest = { $ne: true };
+    } else if (customerType === 'guest') {
+      query.$or = [{ isGuest: true }, { userId: null }, { tags: 'guest' }];
+    }
+
     if (search && search.trim()) {
       const rx = new RegExp(search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i');
-      query.$or = [
-        { name: rx },
-        { email: rx },
-        { phone: rx },
+      query.$and = [
+        ...(query.$and || []),
+        {
+          $or: [
+            { name: rx },
+            { email: rx },
+            { phone: rx },
+          ],
+        },
       ];
-      if (tenantId) {
-        query.tenantId = tenantId;
-      }
     }
 
     const numLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
@@ -233,10 +254,19 @@ export const listStoreCustomers = async (req, res, next) => {
 
     const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
 
-    const [total, customers] = await Promise.all([
+    const [total, customers, allCustomersForMetrics] = await Promise.all([
       Customer.countDocuments(query),
       Customer.find(query).sort(sort).skip(skip).limit(numLimit).lean(),
+      Customer.find(tenantId ? { $or: [{ tenantId }, { tenantId: null }] } : {}).lean(),
     ]);
+
+    const metrics = {
+      totalCustomers: allCustomersForMetrics.length,
+      registeredCount: allCustomersForMetrics.filter((c) => c.userId && !c.isGuest).length,
+      guestCount: allCustomersForMetrics.filter((c) => c.isGuest || !c.userId || c.tags?.includes('guest')).length,
+      totalRevenue: allCustomersForMetrics.reduce((sum, c) => sum + (c.totalSpent || 0), 0),
+      totalOrders: allCustomersForMetrics.reduce((sum, c) => sum + (c.totalOrders || 0), 0),
+    };
 
     res.json({
       success: true,
@@ -245,6 +275,7 @@ export const listStoreCustomers = async (req, res, next) => {
       limit: numLimit,
       totalPages: Math.ceil(total / numLimit) || 1,
       customers,
+      metrics,
     });
   } catch (error) {
     next(error);
@@ -253,7 +284,7 @@ export const listStoreCustomers = async (req, res, next) => {
 
 /**
  * GET /api/v1/customers/:id
- * Store Admin endpoint to get a single customer details from `customers` collection
+ * Store Admin endpoint to get a single customer details with full purchase history from `customers` collection
  */
 export const getStoreCustomerById = async (req, res, next) => {
   try {
@@ -262,9 +293,36 @@ export const getStoreCustomerById = async (req, res, next) => {
       throw new NotFoundError('Customer record not found in customers collection.');
     }
 
+    // Find all purchase orders for this customer
+    const email = String(customer.email || '').toLowerCase().trim();
+    const orders = await Order.find({
+      $or: [
+        ...(customer.userId ? [{ userId: customer.userId }] : []),
+        { 'customerInfo.email': email },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Recompute authoritative totals
+    const totalSpent = orders
+      .filter((o) => o.orderStatus !== 'cancelled')
+      .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
+
+    let user = null;
+    if (customer.userId) {
+      user = await User.findById(customer.userId).select('-passwordHash').lean();
+    }
+
     res.json({
       success: true,
-      customer,
+      customer: {
+        ...customer,
+        totalOrders: orders.length,
+        totalSpent: Math.round(totalSpent * 100) / 100,
+        orders,
+        user,
+      },
     });
   } catch (error) {
     next(error);
@@ -299,34 +357,96 @@ export const updateStoreCustomer = async (req, res, next) => {
 };
 
 /**
- * Automatic Backfill / Sync of existing users into `customers` collection
+ * Automatic Backfill / Sync of existing users & guest orders into `customers` collection
  */
 export const syncExistingCustomersToCollection = async (targetTenantSlug = 'aurelle') => {
   try {
     const tenant = (await Tenant.findOne({ slug: targetTenantSlug })) || (await Tenant.findOne({ status: 'active' }));
-    if (!tenant) return;
+    const tenantId = tenant ? tenant._id : null;
 
-    // Find all users who are not super admins
+    // 1. Sync all registered Users (excluding super admins)
     const users = await User.find({ isSuperAdmin: false }).lean();
     for (const u of users) {
-      // Check if user has staff membership
-      const membership = await TenantMembership.findOne({ userId: u._id });
-      // If no staff membership or user is customer, ensure they are in Customer collection
+      const email = String(u.email || '').toLowerCase().trim();
+      if (!email) continue;
+
+      const userOrders = await Order.find({
+        $or: [{ userId: u._id }, { 'customerInfo.email': email }],
+      }).lean();
+
+      const totalOrders = userOrders.length;
+      const totalSpent = userOrders
+        .filter((o) => o.orderStatus !== 'cancelled')
+        .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
+      const lastOrder = userOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
       await Customer.findOneAndUpdate(
-        { email: u.email, tenantId: tenant._id },
+        { email },
         {
           $set: {
-            tenantId: tenant._id,
+            tenantId,
             userId: u._id,
-            name: u.name,
-            email: u.email,
+            name: u.name || email.split('@')[0],
+            email,
             phone: u.phoneNumber || '',
             status: u.status || 'active',
+            isGuest: false,
+            totalOrders,
+            totalSpent: Math.round(totalSpent * 100) / 100,
+            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
           },
-          $setOnInsert: {
-            totalOrders: 0,
-            totalSpent: 0,
+          $pull: { tags: 'guest' },
+        },
+        { upsert: true }
+      );
+    }
+
+    // 2. Sync all guest orders from Order collection
+    const guestOrders = await Order.find({
+      $or: [{ userId: null }, { 'customerInfo.isGuest': true }],
+    }).lean();
+
+    const guestMap = new Map();
+    for (const o of guestOrders) {
+      const email = String(o.customerInfo?.email || o.shippingAddress?.email || '').toLowerCase().trim();
+      if (!email) continue;
+      if (!guestMap.has(email)) {
+        guestMap.set(email, {
+          name: o.customerInfo?.name || o.shippingAddress?.name || 'Guest Customer',
+          phone: o.customerInfo?.phone || o.shippingAddress?.phone || '',
+          orders: [],
+        });
+      }
+      guestMap.get(email).orders.push(o);
+    }
+
+    for (const [email, info] of guestMap.entries()) {
+      const existing = await Customer.findOne({ email });
+      if (existing && existing.userId) {
+        continue;
+      }
+
+      const totalOrders = info.orders.length;
+      const totalSpent = info.orders
+        .filter((o) => o.orderStatus !== 'cancelled')
+        .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
+      const lastOrder = info.orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+      await Customer.findOneAndUpdate(
+        { email },
+        {
+          $set: {
+            tenantId,
+            name: info.name,
+            email,
+            phone: info.phone,
+            status: 'active',
+            isGuest: true,
+            totalOrders,
+            totalSpent: Math.round(totalSpent * 100) / 100,
+            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
           },
+          $addToSet: { tags: 'guest' },
         },
         { upsert: true }
       );

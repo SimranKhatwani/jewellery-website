@@ -72,7 +72,8 @@ export const validate = (schema) => {
     }
 
     if (Object.keys(errors).length > 0) {
-      next(new BadRequestError('Validation failed', errors));
+      const summaryMsg = Object.values(errors).join('; ');
+      next(new BadRequestError(summaryMsg || 'Validation failed', errors));
       return;
     }
 

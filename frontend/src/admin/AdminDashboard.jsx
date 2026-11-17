@@ -18,6 +18,7 @@ import { AdminHeader } from './AdminHeader';
 import { AdminOverview } from './AdminOverview';
 import { CatalogueManager } from './CatalogueManager';
 import { OrdersManager } from './OrdersManager';
+import { CustomersManager } from './CustomersManager';
 import { AdminNotificationsView } from './AdminNotificationsView';
 import { AnalyticsReportsModule } from './analytics/AnalyticsReportsModule';
 import { AdminPlaceholder } from './AdminPlaceholder';
@@ -34,7 +35,7 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = localStorage.getItem('aurelle_admin_active_tab');
-      if (['overview', 'catalogue', 'orders', 'notifications', 'analytics', 'reports'].includes(saved)) {
+      if (['overview', 'catalogue', 'orders', 'customers', 'notifications', 'analytics', 'reports'].includes(saved)) {
         return saved;
       }
     } catch {
@@ -457,6 +458,10 @@ export const AdminDashboard = ({
 
           {activeTab === 'orders' && (
             <OrdersManager admin={admin} />
+          )}
+
+          {activeTab === 'customers' && (
+            <CustomersManager admin={admin} />
           )}
 
           {activeTab === 'notifications' && (

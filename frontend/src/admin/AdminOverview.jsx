@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Package,
   Receipt,
+  Users,
   Bell,
   Store,
   ArrowRight,
@@ -295,6 +296,18 @@ export const AdminOverview = ({
                 <div className="flex items-center gap-2.5">
                   <Receipt className="w-4 h-4 text-[#A85F49]" />
                   <span className="font-medium">Fulfillment Queue</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-[#8E8172] group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigateTab('customers')}
+                className="w-full flex items-center justify-between p-3 bg-[#FAF7F2] hover:bg-[#F7F1E9] border border-[#D7C5AF]/40 rounded-xs text-xs text-[#593D30] transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-[#A85F49]" />
+                  <span className="font-medium">Customers & Purchases</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-[#8E8172] group-hover:translate-x-0.5 transition-transform" />
               </button>

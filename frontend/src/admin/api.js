@@ -655,6 +655,48 @@ export async function openReportPrintView(reportType, params = {}) {
   }
 }
 
+// ----------------- Customer Management API -----------------
+export async function getAdminCustomers(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.search) query.set('search', params.search);
+  if (params.status && params.status !== 'all') query.set('status', params.status);
+  if (params.customerType && params.customerType !== 'all') query.set('customerType', params.customerType);
+  if (params.sortBy) query.set('sortBy', params.sortBy);
+  if (params.sortOrder) query.set('sortOrder', params.sortOrder);
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const res = await authFetch(`/customers${qs}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch store customers');
+  }
+  return data;
+}
+
+export async function getAdminCustomerDetails(customerId) {
+  const res = await authFetch(`/customers/${customerId}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch customer details');
+  }
+  return data;
+}
+
+export async function updateAdminCustomer(customerId, updates = {}) {
+  const res = await authFetch(`/customers/${customerId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update customer');
+  }
+  return data;
+}
+
 
 
 

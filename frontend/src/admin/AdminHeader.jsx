@@ -5,6 +5,7 @@ const TAB_TITLES = {
   overview: 'Overview & Store Status',
   catalogue: 'Catalogue Management',
   orders: 'Orders & Fulfillment',
+  customers: 'Customers & Purchases',
   notifications: 'Store Notifications & Alerts',
   analytics: 'Analytics & Reports',
   reports: 'Analytics & Reports',

@@ -427,6 +427,7 @@ export async function placeStorefrontOrder({
 
     // 8.5.1 Authoritative Customer sync into `customers` collection
     try {
+      const isGuestOrder = !userId;
       await Customer.findOneAndUpdate(
         { tenantId, email: customerEmail },
         {
@@ -436,9 +437,17 @@ export async function placeStorefrontOrder({
             email: customerEmail,
             phone: customerPhone || '',
             status: 'active',
-            ...(userId ? { userId } : {}),
+            ...(userId ? { userId, isGuest: false } : {}),
             lastOrderDate: new Date(),
           },
+          ...(isGuestOrder
+            ? {
+                $setOnInsert: { isGuest: true },
+                $addToSet: { tags: 'guest' },
+              }
+            : {
+                $pull: { tags: 'guest' },
+              }),
           $inc: {
             totalOrders: 1,
             totalSpent: Math.round(createdOrder.pricing.totalPayable * 100) / 100,

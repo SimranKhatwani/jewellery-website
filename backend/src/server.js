@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 import { createApp } from './app.js';
 import { initSocketServer } from './socket.js';
+import { syncExistingCustomersToCollection } from './controllers/customer.controller.js';
 
 // Load environment variables
 dotenv.config();
@@ -14,6 +15,10 @@ const startServer = async () => {
     // Attempt database connection
     try {
       await connectDB();
+      // Synchronize existing customers collection with users and orders
+      syncExistingCustomersToCollection().catch((err) => {
+        console.warn('[Startup] Initial customer sync notice:', err.message);
+      });
     } catch (dbErr) {
       console.warn(
         '[Database] Warning: Could not connect to MongoDB on startup. Server running in disconnected mode. Please configure MONGODB_URI in backend/.env.'

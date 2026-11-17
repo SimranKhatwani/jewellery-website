@@ -191,7 +191,9 @@ export const registerUser = async ({
           email: user.email,
           phone: user.phoneNumber || '',
           status: 'active',
+          isGuest: false,
         },
+        $pull: { tags: 'guest' },
         $setOnInsert: {
           totalOrders: 0,
           totalSpent: 0,

@@ -2,9 +2,9 @@ import { validate } from './validate.js';
 
 export const validateRegister = validate({
   body: {
-    name: { required: true, type: 'string', minLength: 2, maxLength: 100 },
+    name: { required: true, type: 'string', minLength: 1, maxLength: 100 },
     email: { required: true, type: 'email' },
-    password: { required: true, type: 'string', minLength: 8, maxLength: 128 },
+    password: { required: true, type: 'string', minLength: 6, maxLength: 128 },
     phoneNumber: { required: false, type: 'string' },
     tenantName: { required: false, type: 'string', minLength: 2, maxLength: 100 },
     tenantSlug: { required: false, type: 'slug' },

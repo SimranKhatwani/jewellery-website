@@ -33,7 +33,7 @@ export const CustomerAuthModal = ({
     setError(null);
     try {
       const { user } = await customerLogin(loginEmail, loginPassword);
-      setSuccessMsg(`Welcome back, ${user.firstName || 'Customer'}!`);
+      setSuccessMsg(`Welcome back, ${user?.firstName || user?.name?.split(' ')[0] || 'Customer'}!`);
       setTimeout(() => {
         onSuccess(user);
         onClose();
@@ -63,7 +63,7 @@ export const CustomerAuthModal = ({
         lastName,
         phone: cleanPhone,
       });
-      setSuccessMsg(`Account created for ${user.firstName || 'Customer'}!`);
+      setSuccessMsg(`Account created for ${user?.firstName || user?.name?.split(' ')[0] || firstName || 'Customer'}!`);
       setTimeout(() => {
         onSuccess(user);
         onClose();

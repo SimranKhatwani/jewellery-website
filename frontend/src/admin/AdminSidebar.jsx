@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   Receipt,
+  Users,
   Bell,
   BarChart3,
   FileText,
@@ -47,6 +48,13 @@ export const AdminSidebar = ({
       icon: Receipt,
       badge: pendingOrdersCount > 0 ? `${pendingOrdersCount} new` : null,
       badgeVariant: pendingOrdersCount > 0 ? 'accent' : 'neutral',
+      disabled: false,
+    },
+    {
+      id: 'customers',
+      label: 'Customers',
+      icon: Users,
+      badge: null,
       disabled: false,
     },
     {
