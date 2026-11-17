@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Lock, Mail, Phone, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, User, Lock, Mail, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { customerLogin, customerRegister } from '../services/storefrontService';
 
 export const CustomerAuthModal = ({
@@ -15,6 +15,7 @@ export const CustomerAuthModal = ({
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Register form state
   const [firstName, setFirstName] = useState('');
@@ -22,6 +23,7 @@ export const CustomerAuthModal = ({
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   if (!isOpen) return null;
 
@@ -161,13 +163,26 @@ export const CustomerAuthModal = ({
                 <div className="relative">
                   <Lock className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showLoginPassword ? 'text' : 'password'}
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
+                    className="w-full pl-9 pr-10 py-2 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8172] hover:text-[#593D30] transition-colors p-0.5 focus:outline-none"
+                    title={showLoginPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -251,14 +266,27 @@ export const CustomerAuthModal = ({
                 <div className="relative">
                   <Lock className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showRegisterPassword ? 'text' : 'password'}
                     required
                     minLength={6}
                     value={registerPassword}
                     onChange={(e) => setRegisterPassword(e.target.value)}
                     placeholder="At least 6 characters"
-                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
+                    className="w-full pl-9 pr-10 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8172] hover:text-[#593D30] transition-colors p-0.5 focus:outline-none"
+                    title={showRegisterPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
