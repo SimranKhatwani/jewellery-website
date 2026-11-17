@@ -316,12 +316,17 @@ export async function placeStorefrontOrder({
         }
       } else {
         const prodDoc = productMap.get(String(item.productId));
-        if (prodDoc && prodDoc.inventoryStatus !== 'unknown' && prodDoc.stockQuantity > 0) {
+        if (prodDoc) {
+          if (prodDoc.inventoryStatus === 'out_of_stock' || prodDoc.inStock === false || (prodDoc.stockQuantity !== undefined && prodDoc.stockQuantity < item.quantity)) {
+            throw new BadRequestError(
+              `'${item.name}' is out of stock or has insufficient quantity (Available: ${prodDoc.stockQuantity || 0}).`
+            );
+          }
+
           const prodUpd = await Product.updateOne(
             {
               _id: item.productId,
               tenantId,
-              inventoryStatus: { $ne: 'unknown' },
               stockQuantity: { $gte: item.quantity },
             },
             {
@@ -334,6 +339,17 @@ export async function placeStorefrontOrder({
             throw new BadRequestError(
               `Insufficient stock available for '${item.name}' to complete checkout.`
             );
+          }
+
+          // Dynamically recompute inventoryStatus & inStock
+          const updatedProd = await Product.findById(item.productId).session(session);
+          if (updatedProd) {
+            const newStock = Math.max(0, updatedProd.stockQuantity);
+            const threshold = updatedProd.lowStockThreshold || 5;
+            updatedProd.stockQuantity = newStock;
+            updatedProd.inventoryStatus = newStock === 0 ? 'out_of_stock' : (newStock <= threshold ? 'low_stock' : 'in_stock');
+            updatedProd.inStock = newStock > 0;
+            await updatedProd.save({ session });
           }
         }
       }

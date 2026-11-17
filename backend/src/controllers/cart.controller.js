@@ -47,7 +47,10 @@ const calculateCartTotals = async (cart, tenantId) => {
 
     let verifiedPrice = product.priceUSD;
     let verifiedSku = product.sku;
-    let isAvailable = product.inventoryStatus !== 'out_of_stock' && product.inStock !== false;
+    let isAvailable =
+      product.inventoryStatus !== 'out_of_stock' &&
+      product.inStock !== false &&
+      (product.stockQuantity === undefined || product.stockQuantity > 0);
 
     if (item.variantId && Array.isArray(product.variants)) {
       const variant = product.variants.find((v) => String(v._id) === String(item.variantId));
@@ -179,7 +182,7 @@ export const addCartItem = async (req, res, next) => {
         throw new BadRequestError(`Only ${variant.stockQuantity} unit(s) available for selected variant.`);
       }
     } else {
-      if (product.inventoryStatus === 'out_of_stock' || product.inStock === false) {
+      if (product.inventoryStatus === 'out_of_stock' || product.inStock === false || product.stockQuantity === 0) {
         throw new BadRequestError('Product is currently out of stock.');
       }
       if (product.inventoryStatus !== 'unknown' && product.stockQuantity > 0 && product.stockQuantity < reqQty) {
@@ -198,7 +201,13 @@ export const addCartItem = async (req, res, next) => {
     });
 
     if (existingIndex > -1) {
-      cart.items[existingIndex].quantity += reqQty;
+      const totalRequested = cart.items[existingIndex].quantity + reqQty;
+      if (!variantId && product.stockQuantity !== undefined && product.stockQuantity > 0 && totalRequested > product.stockQuantity) {
+        throw new BadRequestError(
+          `Cannot add more. You have ${cart.items[existingIndex].quantity} in cart and only ${product.stockQuantity} unit(s) available.`
+        );
+      }
+      cart.items[existingIndex].quantity = totalRequested;
       cart.items[existingIndex].price = verifiedPrice;
     } else {
       cart.items.push({

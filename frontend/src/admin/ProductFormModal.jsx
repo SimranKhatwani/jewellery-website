@@ -25,6 +25,8 @@ export const ProductFormModal = ({
   const [isBestseller, setIsBestseller] = useState(product?.isBestseller ?? false);
   const [isNewArrival, setIsNewArrival] = useState(product?.isNewArrival ?? false);
   const [inStock, setInStock] = useState(product?.inStock ?? true);
+  const [stockQuantity, setStockQuantity] = useState(product?.stockQuantity ?? 10);
+  const [lowStockThreshold, setLowStockThreshold] = useState(product?.lowStockThreshold ?? 5);
 
   // Images
   const [primaryImage, setPrimaryImage] = useState(product?.primaryImage || '');
@@ -131,7 +133,15 @@ export const ProductFormModal = ({
       isPublished,
       isBestseller,
       isNewArrival,
-      inStock,
+      inStock: inStock && Number(stockQuantity) > 0,
+      stockQuantity: Math.max(0, parseInt(stockQuantity, 10) || 0),
+      lowStockThreshold: Math.max(1, parseInt(lowStockThreshold, 10) || 5),
+      inventoryStatus:
+        Number(stockQuantity) <= 0
+          ? 'out_of_stock'
+          : Number(stockQuantity) <= (Number(lowStockThreshold) || 5)
+          ? 'low_stock'
+          : 'in_stock',
       primaryImage: primaryImage.trim(),
       secondaryImage: secondaryImage.trim() || undefined,
       detailImage: detailImage.trim() || undefined,
@@ -483,6 +493,41 @@ export const ProductFormModal = ({
                 />
                 <span className="text-xs font-medium text-[#593D30]">In Stock</span>
               </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label className="block text-xs font-medium text-[#593D30] mb-1">
+                  Inventory Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={stockQuantity}
+                  onChange={(e) => {
+                    const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                    setStockQuantity(val);
+                    if (val === 0) setInStock(false);
+                    else if (!inStock) setInStock(true);
+                  }}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
+                />
+                <p className="text-[10px] text-[#8E8172] mt-1">Set to 0 to automatically mark as Out of Stock</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#593D30] mb-1">
+                  Low Stock Warning Threshold
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={lowStockThreshold}
+                  onChange={(e) => setLowStockThreshold(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
+                />
+                <p className="text-[10px] text-[#8E8172] mt-1">Shows "Only X Left" badge when stock reaches this limit</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

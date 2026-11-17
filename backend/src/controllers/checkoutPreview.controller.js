@@ -91,9 +91,9 @@ export const previewStorefrontCheckout = async (req, res, next) => {
           stockWarnings.push(`Only ${variant.stockQuantity || 0} unit(s) remaining for variant '${variant.name}'.`);
         }
       } else {
-        if (product.inventoryStatus === 'out_of_stock' || product.inStock === false) {
+        if (product.inventoryStatus === 'out_of_stock' || product.inStock === false || product.stockQuantity === 0) {
           stockWarnings.push(`Product '${product.name}' is currently out of stock.`);
-        } else if (product.inventoryStatus !== 'unknown' && product.stockQuantity > 0 && product.stockQuantity < item.quantity) {
+        } else if (product.stockQuantity !== undefined && product.stockQuantity < item.quantity) {
           stockWarnings.push(`Only ${product.stockQuantity} unit(s) remaining for '${product.name}'.`);
         }
       }

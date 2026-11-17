@@ -118,6 +118,12 @@ export const CartDrawer = ({
                       </span>
                     )}
 
+                    {item.isAvailable === false && (
+                      <span className="text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-xs inline-block mt-0.5">
+                        Out of Stock
+                      </span>
+                    )}
+
                     {/* Selected options */}
                     {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1 text-[11px] text-[#593D30]/80">

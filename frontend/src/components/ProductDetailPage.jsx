@@ -42,6 +42,11 @@ export const ProductDetailPage = ({
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   
+  // Stock calculations
+  const isOutOfStock = !product.inStock || product.stockQuantity === 0 || product.inventoryStatus === 'out_of_stock';
+  const isLowStock = !isOutOfStock && (product.inventoryStatus === 'low_stock' || (product.stockQuantity > 0 && product.stockQuantity <= (product.lowStockThreshold || 5)));
+  const availableStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 999;
+  
   // Accordion tabs
   const [activeTab, setActiveTab] = useState('specifications');
 
@@ -50,6 +55,7 @@ export const ProductDetailPage = ({
     setActiveImageIndex(0);
     setSelectedOption(product.options.default);
     setSelectedFinish(product.finishes[0] || 'High Polish');
+    setQuantity(1);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [product.id]);
 
@@ -293,13 +299,13 @@ export const ProductDetailPage = ({
             {/* Inventory Status & Allocation Speed */}
             <div className="flex items-center justify-between text-xs pt-1">
               <span className="uppercase tracking-wider text-[#8E8172] font-medium">Availability</span>
-              {product.inventoryStatus === 'out_of_stock' ? (
+              {isOutOfStock ? (
                 <span className="font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-xs">
-                  Temporarily Sold Out
+                  Temporarily Sold Out (0 units left)
                 </span>
-              ) : product.inventoryStatus === 'low_stock' ? (
+              ) : isLowStock ? (
                 <span className="font-semibold text-[#A85F49] bg-[#A85F49]/10 border border-[#A85F49]/30 px-2 py-0.5 rounded-xs">
-                  Limited Edition · Low Stock
+                  Low Stock · Only {product.stockQuantity} Remaining
                 </span>
               ) : product.inventoryStatus === 'unknown' ? (
                 <span
@@ -310,7 +316,7 @@ export const ProductDetailPage = ({
                 </span>
               ) : (
                 <span className="font-semibold text-[#2E7D32] bg-green-50 border border-green-200 px-2 py-0.5 rounded-xs">
-                  In Stock · Dispatches in 24 Hours
+                  In Stock ({product.stockQuantity} units) · Dispatches in 24 Hours
                 </span>
               )}
             </div>
@@ -319,22 +325,23 @@ export const ProductDetailPage = ({
             <div className="space-y-3 pt-2">
               <div className="flex items-stretch gap-3">
                 {/* Quantity Controls */}
-                <div className="flex items-center border border-[#D7C5AF] rounded-xs bg-[#FFFFFF] shrink-0">
+                <div className={`flex items-center border border-[#D7C5AF] rounded-xs bg-[#FFFFFF] shrink-0 ${isOutOfStock ? 'opacity-40 pointer-events-none' : ''}`}>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || isOutOfStock}
                     className="px-3 py-2 text-[#593D30] hover:bg-[#F7F1E9] disabled:opacity-30 transition-colors"
                   >
                     −
                   </button>
                   <span className="px-3 py-2 text-xs font-mono font-medium text-[#593D30] select-none min-w-[2.5rem] text-center">
-                    {quantity}
+                    {isOutOfStock ? 0 : quantity}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="px-3 py-2 text-[#593D30] hover:bg-[#F7F1E9] transition-colors"
+                    onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))}
+                    disabled={quantity >= availableStock || isOutOfStock}
+                    className="px-3 py-2 text-[#593D30] hover:bg-[#F7F1E9] disabled:opacity-30 transition-colors"
                   >
                     +
                   </button>
@@ -343,7 +350,7 @@ export const ProductDetailPage = ({
                 {/* Primary Add to Shopping Bag Button */}
                 <button
                   type="button"
-                  disabled={product.inventoryStatus === 'out_of_stock' || addingToCart}
+                  disabled={isOutOfStock || addingToCart}
                   onClick={async () => {
                     if (onAddToCart) {
                       setAddingToCart(true);
@@ -359,13 +366,17 @@ export const ProductDetailPage = ({
                       }
                     }
                   }}
-                  className="flex-1 py-3 px-6 bg-[#A85F49] hover:bg-[#8E4D3A] disabled:opacity-40 text-[#FFFFFF] text-xs uppercase tracking-widest font-semibold rounded-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                  className={`flex-1 py-3 px-6 text-xs uppercase tracking-widest font-semibold rounded-xs transition-colors flex items-center justify-center gap-2 shadow-xs ${
+                    isOutOfStock
+                      ? 'bg-[#E5DCD0] text-[#8E8172] cursor-not-allowed border border-[#D7C5AF]/60'
+                      : 'bg-[#A85F49] hover:bg-[#8E4D3A] text-[#FFFFFF]'
+                  }`}
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>
                     {addingToCart
                       ? 'Adding...'
-                      : product.inventoryStatus === 'out_of_stock'
+                      : isOutOfStock
                       ? 'Out of Stock'
                       : `Add to Shopping Bag • ${formatPrice((product.priceUSD || product.price) * quantity)}`}
                   </span>

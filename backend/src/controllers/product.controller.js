@@ -288,6 +288,7 @@ export const createTenantProduct = async (req, res, next) => {
           ? true
           : finalStock > 0,
       stockQuantity: finalStock,
+      lowStockThreshold: req.body.lowStockThreshold ? Number(req.body.lowStockThreshold) : 5,
       inventoryStatus: finalInventoryStatus,
       sku: normalizedSku,
       primaryImage,

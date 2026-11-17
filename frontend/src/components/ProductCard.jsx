@@ -13,6 +13,9 @@ export const ProductCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const isOutOfStock = !product.inStock || product.stockQuantity === 0 || product.inventoryStatus === 'out_of_stock';
+  const isLowStock = !isOutOfStock && (product.inventoryStatus === 'low_stock' || (product.stockQuantity > 0 && product.stockQuantity <= (product.lowStockThreshold || 5)));
+
   const displayImage = isHovered && product.secondaryImage && !imageError
     ? product.secondaryImage
     : product.primaryImage;
@@ -22,7 +25,9 @@ export const ProductCard = ({
       onClick={() => onSelectProduct(product)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group cursor-pointer flex flex-col bg-[#FFFFFF] p-3 rounded-sm border border-[#D7C5AF]/40 hover:border-[#A85F49] transition-all duration-300 shadow-xs hover:shadow-md ${className}`}
+      className={`group cursor-pointer flex flex-col bg-[#FFFFFF] p-3 rounded-sm border ${
+        isOutOfStock ? 'border-[#D7C5AF]/30 opacity-90' : 'border-[#D7C5AF]/40 hover:border-[#A85F49]'
+      } transition-all duration-300 shadow-xs hover:shadow-md ${className}`}
     >
       {/* Product Image Frame */}
       <div className={`relative w-full ${aspectRatioClass} bg-[#F7F1E9] overflow-hidden rounded-xs`}>
@@ -32,7 +37,9 @@ export const ProductCard = ({
             alt={product.name}
             referrerPolicy="no-referrer"
             onError={() => setImageError(true)}
-            className="w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-104"
+            className={`w-full h-full object-cover object-center transition-all duration-500 group-hover:scale-104 ${
+              isOutOfStock ? 'opacity-75 grayscale-[20%]' : ''
+            }`}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-[#F7F1E9] text-[#593D30] p-6 text-center">
@@ -51,18 +58,32 @@ export const ProductCard = ({
           <Heart className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? 'fill-[#A85F49] text-[#A85F49]' : 'text-[#593D30]'}`} />
         </button>
 
-        {/* Status indicator: Burnt Terracotta #A85F49 */}
-        {(product.isBestseller || product.isNewArrival) && (
-          <div className="absolute top-3 left-3 pointer-events-none">
+        {/* Dynamic Stock & Marketing Badge */}
+        {isOutOfStock ? (
+          <div className="absolute top-3 left-3 pointer-events-none z-10">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#8B261E] px-2 py-0.5 shadow-xs">
+              Sold Out
+            </span>
+          </div>
+        ) : isLowStock ? (
+          <div className="absolute top-3 left-3 pointer-events-none z-10">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#C25E00] px-2 py-0.5 shadow-xs">
+              Only {product.stockQuantity} Left
+            </span>
+          </div>
+        ) : (product.isBestseller || product.isNewArrival) ? (
+          <div className="absolute top-3 left-3 pointer-events-none z-10">
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#A85F49] px-2 py-0.5 shadow-xs">
               {product.isBestseller ? 'Bestseller' : 'New Edition'}
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Quick View Details Overlay: Deep Chocolate & Terracotta hover */}
         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-[#593D30]/90 via-[#593D30]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between text-[#FFFFFF]">
-          <span className="text-xs uppercase tracking-widest font-medium">View Product Details</span>
+          <span className="text-xs uppercase tracking-widest font-medium">
+            {isOutOfStock ? 'Sold Out · View Details' : 'View Product Details'}
+          </span>
           <ArrowUpRight className="w-4 h-4" />
         </div>
       </div>
@@ -83,8 +104,16 @@ export const ProductCard = ({
           <span className="text-sm font-medium font-mono tabular-nums text-[#593D30]">
             {formatPrice(product.priceUSD || product.price)}
           </span>
-          <span className="text-[11px] text-[#8E8172]">
-            {product.options.type === 'size' ? '6 Sizes Available' : 'Adjustable Drape'}
+          <span className="text-[11px]">
+            {isOutOfStock ? (
+              <span className="text-[#8B261E] font-medium">Sold Out</span>
+            ) : isLowStock ? (
+              <span className="text-[#C25E00] font-medium">Only {product.stockQuantity} left</span>
+            ) : (
+              <span className="text-[#8E8172]">
+                {product.options?.type === 'size' ? '6 Sizes Available' : 'Adjustable Drape'}
+              </span>
+            )}
           </span>
         </div>
       </div>

@@ -111,6 +111,16 @@ export function resolveMediaUrl(url) {
  */
 function formatProduct(raw) {
   const canonicalId = raw.slug || raw.id || (raw._id ? String(raw._id) : '');
+  const stockQuantity = Number(raw.stockQuantity !== undefined ? raw.stockQuantity : 0);
+  const lowStockThreshold = Number(raw.lowStockThreshold || 5);
+
+  let inventoryStatus = raw.inventoryStatus;
+  if (!inventoryStatus || inventoryStatus === 'unknown') {
+    inventoryStatus = stockQuantity > 0 ? (stockQuantity <= lowStockThreshold ? 'low_stock' : 'in_stock') : 'out_of_stock';
+  }
+
+  const inStock = raw.inStock !== false && stockQuantity > 0 && inventoryStatus !== 'out_of_stock';
+
   return {
     id: canonicalId,
     _id: raw._id,
@@ -125,7 +135,10 @@ function formatProduct(raw) {
     isNewArrival: Boolean(raw.isNewArrival),
     isPublished: raw.isPublished !== undefined ? Boolean(raw.isPublished) : true,
     displayOrder: raw.displayOrder || 0,
-    inStock: raw.inStock !== false,
+    inStock,
+    stockQuantity,
+    lowStockThreshold,
+    inventoryStatus,
     sku: raw.sku || '',
     primaryImage: resolveMediaUrl(raw.primaryImage),
     secondaryImage: resolveMediaUrl(raw.secondaryImage),
