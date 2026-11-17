@@ -14,7 +14,6 @@ export const ProductCard = ({
   const [imageError, setImageError] = useState(false);
 
   const isOutOfStock = !product.inStock || product.stockQuantity === 0 || product.inventoryStatus === 'out_of_stock';
-  const isLowStock = !isOutOfStock && (product.inventoryStatus === 'low_stock' || (product.stockQuantity > 0 && product.stockQuantity <= (product.lowStockThreshold || 5)));
 
   const displayImage = isHovered && product.secondaryImage && !imageError
     ? product.secondaryImage
@@ -58,17 +57,11 @@ export const ProductCard = ({
           <Heart className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? 'fill-[#A85F49] text-[#A85F49]' : 'text-[#593D30]'}`} />
         </button>
 
-        {/* Dynamic Stock & Marketing Badge */}
+        {/* Dynamic Marketing or Sold Out Badge */}
         {isOutOfStock ? (
           <div className="absolute top-3 left-3 pointer-events-none z-10">
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#8B261E] px-2 py-0.5 shadow-xs">
               Sold Out
-            </span>
-          </div>
-        ) : isLowStock ? (
-          <div className="absolute top-3 left-3 pointer-events-none z-10">
-            <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#C25E00] px-2 py-0.5 shadow-xs">
-              Only {product.stockQuantity} Left
             </span>
           </div>
         ) : (product.isBestseller || product.isNewArrival) ? (
@@ -107,8 +100,6 @@ export const ProductCard = ({
           <span className="text-[11px]">
             {isOutOfStock ? (
               <span className="text-[#8B261E] font-medium">Sold Out</span>
-            ) : isLowStock ? (
-              <span className="text-[#C25E00] font-medium">Only {product.stockQuantity} left</span>
             ) : (
               <span className="text-[#8E8172]">
                 {product.options?.type === 'size' ? '6 Sizes Available' : 'Adjustable Drape'}

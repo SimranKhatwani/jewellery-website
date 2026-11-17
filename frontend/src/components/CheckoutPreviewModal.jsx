@@ -867,7 +867,7 @@ export const CheckoutPreviewModal = ({
                             ) : (
                               <span className="text-[10px] text-[#2E7D32] flex items-center gap-1 justify-end">
                                 <CheckCircle2 className="w-3 h-3" />
-                                <span>Verified in stock</span>
+                                <span>Available</span>
                               </span>
                             )}
                           </div>

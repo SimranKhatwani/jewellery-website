@@ -44,7 +44,6 @@ export const ProductDetailPage = ({
   
   // Stock calculations
   const isOutOfStock = !product.inStock || product.stockQuantity === 0 || product.inventoryStatus === 'out_of_stock';
-  const isLowStock = !isOutOfStock && (product.inventoryStatus === 'low_stock' || (product.stockQuantity > 0 && product.stockQuantity <= (product.lowStockThreshold || 5)));
   const availableStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 999;
   
   // Accordion tabs
@@ -301,11 +300,7 @@ export const ProductDetailPage = ({
               <span className="uppercase tracking-wider text-[#8E8172] font-medium">Availability</span>
               {isOutOfStock ? (
                 <span className="font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-xs">
-                  Temporarily Sold Out (0 units left)
-                </span>
-              ) : isLowStock ? (
-                <span className="font-semibold text-[#A85F49] bg-[#A85F49]/10 border border-[#A85F49]/30 px-2 py-0.5 rounded-xs">
-                  Low Stock · Only {product.stockQuantity} Remaining
+                  Temporarily Sold Out
                 </span>
               ) : product.inventoryStatus === 'unknown' ? (
                 <span
@@ -316,7 +311,7 @@ export const ProductDetailPage = ({
                 </span>
               ) : (
                 <span className="font-semibold text-[#2E7D32] bg-green-50 border border-green-200 px-2 py-0.5 rounded-xs">
-                  In Stock ({product.stockQuantity} units) · Dispatches in 24 Hours
+                  Dispatches in 24 Hours
                 </span>
               )}
             </div>
