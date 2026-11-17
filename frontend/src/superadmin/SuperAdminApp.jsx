@@ -44,7 +44,7 @@ export const SuperAdminApp = ({ onExitSuperAdmin }) => {
     return (
       <div className="min-h-screen bg-[#F7F1E9] flex flex-col items-center justify-center">
         <span className="font-serif text-2xl tracking-[0.25em] text-[#593D30] font-light mb-4">
-          AURELLE
+          SAAS PLATFORM
         </span>
         <div className="flex items-center gap-2 text-xs text-[#8E8172]">
           <svg className="animate-spin h-4 w-4 text-[#A85F49]" fill="none" viewBox="0 0 24 24">

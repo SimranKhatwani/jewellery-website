@@ -15,6 +15,7 @@ import {
 import { SuperAdminSidebar } from './SuperAdminSidebar';
 import { PlanModal } from './PlanModal';
 import { AuditDetailModal } from './AuditDetailModal';
+import { Store, Globe, Building2 } from 'lucide-react';
 
 export const SuperAdminDashboard = ({
   user,
@@ -191,7 +192,9 @@ export const SuperAdminDashboard = ({
     return users.filter(
       (u) =>
         u.name?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q)
+        u.email?.toLowerCase().includes(q) ||
+        u.tenantName?.toLowerCase().includes(q) ||
+        u.tenantSlug?.toLowerCase().includes(q)
     );
   }, [users, userSearch]);
 
@@ -356,7 +359,7 @@ export const SuperAdminDashboard = ({
             {/* Breadcrumb Path */}
             <div className="flex items-center gap-2 text-xs">
               <span className="text-[#8E8172] uppercase tracking-wider font-sans font-medium hidden sm:inline">
-                AURELLE Platform
+                SaaS Platform
               </span>
               <span className="text-[#D7C5AF] hidden sm:inline">/</span>
               <span className="text-[#593D30] font-medium tracking-wide">
@@ -366,16 +369,14 @@ export const SuperAdminDashboard = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Direct URL Pill */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#FAF7F2] border border-[#D7C5AF] rounded-full text-xs shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
-              <span className="font-mono text-[11px] text-[#A85F49] font-medium">http://localhost:3000/sa</span>
-            </div>
+
 
             {/* Identity */}
             <div className="flex items-center gap-2 pl-2 border-l border-[#D7C5AF]">
               <div className="text-right hidden lg:block">
-                <div className="text-xs text-[#593D30] font-medium">{user?.name || 'Super Admin'}</div>
+                <div className="text-xs text-[#593D30] font-medium">
+                  {user?.name?.replace(/Aurelle Platform /i, 'Platform ') || 'Platform Super Admin'}
+                </div>
                 <div className="text-[10px] text-[#8E8172] font-mono">{user?.email}</div>
               </div>
               <span className="px-2 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#A85F49] text-[10px] uppercase font-mono font-semibold rounded-xs">
@@ -575,11 +576,10 @@ export const SuperAdminDashboard = ({
                             <div className="text-[10px] font-mono text-[#8E8172]">/{t.slug}</div>
                           </div>
                           <span
-                            className={`px-2 py-0.5 rounded-xs text-[9px] uppercase tracking-wider font-semibold shrink-0 ${
-                              t.status === 'active'
-                                ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
-                                : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
-                            }`}
+                            className={`px-2 py-0.5 rounded-xs text-[9px] uppercase tracking-wider font-semibold shrink-0 ${t.status === 'active'
+                              ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
+                              : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
+                              }`}
                           >
                             {t.status}
                           </span>
@@ -671,7 +671,7 @@ export const SuperAdminDashboard = ({
                             </span>
                           </div>
                           <div className="text-[10px] text-[#8E8172] mt-0.5 truncate">
-                            Actor: {log.userId?.email || 'System'} • {log.resource}
+                            Actor: {log.tenantId?.name ? `[${log.tenantId.name}] ` : ''}{log.userId?.email || 'System'} • {log.resource}
                           </div>
                         </div>
                       ))
@@ -775,11 +775,10 @@ export const SuperAdminDashboard = ({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${
-                                t.status === 'active'
-                                  ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
-                                  : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
-                              }`}
+                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${t.status === 'active'
+                                ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
+                                : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
+                                }`}
                             >
                               {t.status}
                             </span>
@@ -790,11 +789,10 @@ export const SuperAdminDashboard = ({
                           <td className="px-4 py-3 text-right">
                             <button
                               onClick={() => handleToggleTenantStatus(t)}
-                              className={`px-2.5 py-1 text-[11px] rounded-xs border transition-colors font-medium ${
-                                t.status === 'active'
-                                  ? 'border-[#A85F49]/40 text-[#A85F49] hover:bg-[#A85F49]/10'
-                                  : 'border-[#10B981]/40 text-[#059669] hover:bg-[#10B981]/10'
-                              }`}
+                              className={`px-2.5 py-1 text-[11px] rounded-xs border transition-colors font-medium ${t.status === 'active'
+                                ? 'border-[#A85F49]/40 text-[#A85F49] hover:bg-[#A85F49]/10'
+                                : 'border-[#10B981]/40 text-[#059669] hover:bg-[#10B981]/10'
+                                }`}
                             >
                               {t.status === 'active' ? 'Suspend Store' : 'Activate Store'}
                             </button>
@@ -844,6 +842,7 @@ export const SuperAdminDashboard = ({
                 <table className="w-full text-left text-xs text-[#593D30]">
                   <thead className="bg-[#FAF7F2] text-[#8E8172] uppercase tracking-wider font-sans border-b border-[#D7C5AF]/60 text-[10px] font-bold">
                     <tr>
+                      <th className="px-4 py-3">Tenant / Store</th>
                       <th className="px-4 py-3">User Name</th>
                       <th className="px-4 py-3">Email</th>
                       <th className="px-4 py-3">Platform Authority</th>
@@ -855,21 +854,56 @@ export const SuperAdminDashboard = ({
                   <tbody className="divide-y divide-[#D7C5AF]/30">
                     {isUsersLoading && users.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-4 py-12 text-center text-[#8E8172]">
+                        <td colSpan="7" className="px-4 py-12 text-center text-[#8E8172]">
                           Loading users from database...
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-4 py-12 text-center text-[#8E8172]">
+                        <td colSpan="7" className="px-4 py-12 text-center text-[#8E8172]">
                           No user records found.
                         </td>
                       </tr>
                     ) : (
                       filteredUsers.map((u) => (
                         <tr key={u._id} className="hover:bg-[#FAF7F2]/60 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-0.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[11px] font-semibold tracking-wide border max-w-fit shadow-2xs ${
+                                u.isSuperAdmin
+                                  ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                  : u.tenantSlug === 'aurelle'
+                                  ? 'bg-[#FAF7F2] text-[#A85F49] border-[#D7C5AF]'
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              }`}>
+                                {u.isSuperAdmin ? (
+                                  <Globe className="w-3 h-3 shrink-0 text-purple-600" />
+                                ) : (
+                                  <Store className="w-3 h-3 shrink-0 text-[#A85F49]" />
+                                )}
+                                <span>{u.tenantName || (u.isSuperAdmin ? 'Global Platform' : 'Unassigned')}</span>
+                              </span>
+                              {u.tenants && u.tenants.length > 0 && u.tenants[0].type && (
+                                <span className="text-[10px] text-[#8E8172] font-mono pl-0.5">
+                                  {u.tenants[0].type}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-4 py-3 font-medium text-[#593D30]">
-                            {u.name || 'Unnamed'}
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-xs border shrink-0 ${
+                                  u.isSuperAdmin
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : 'bg-[#F7F1E9] text-[#A85F49] border-[#D7C5AF]/70'
+                                }`}
+                                title={`Belongs to ${u.tenantName || 'Global Platform'}`}
+                              >
+                                {u.tenantSlug ? `/${u.tenantSlug}` : 'PLATFORM'}
+                              </span>
+                              <span className="font-semibold text-sm">{u.name || 'Unnamed'}</span>
+                            </div>
                           </td>
                           <td className="px-4 py-3 font-mono text-[11px] text-[#8E8172]">
                             {u.email}
@@ -885,11 +919,10 @@ export const SuperAdminDashboard = ({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${
-                                u.status === 'active'
-                                  ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
-                                  : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
-                              }`}
+                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${u.status === 'active'
+                                ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
+                                : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
+                                }`}
                             >
                               {u.status}
                             </span>
@@ -901,11 +934,10 @@ export const SuperAdminDashboard = ({
                             {!u.isSuperAdmin && (
                               <button
                                 onClick={() => handleToggleUserStatus(u)}
-                                className={`px-2.5 py-1 text-[11px] rounded-xs border transition-colors font-medium ${
-                                  u.status === 'active'
-                                    ? 'border-[#A85F49]/40 text-[#A85F49] hover:bg-[#A85F49]/10'
-                                    : 'border-[#10B981]/40 text-[#059669] hover:bg-[#10B981]/10'
-                                }`}
+                                className={`px-2.5 py-1 text-[11px] rounded-xs border transition-colors font-medium ${u.status === 'active'
+                                  ? 'border-[#A85F49]/40 text-[#A85F49] hover:bg-[#A85F49]/10'
+                                  : 'border-[#10B981]/40 text-[#059669] hover:bg-[#10B981]/10'
+                                  }`}
                               >
                                 {u.status === 'active' ? 'Suspend' : 'Activate'}
                               </button>
@@ -954,9 +986,8 @@ export const SuperAdminDashboard = ({
                 plans.map((p) => (
                   <div
                     key={p._id}
-                    className={`bg-[#FFFFFF] border rounded-xs p-5 flex flex-col justify-between shadow-xs transition-all ${
-                      p.isActive ? 'border-[#D7C5AF]/60' : 'border-[#D7C5AF]/60 opacity-75 bg-[#FAF7F2]'
-                    }`}
+                    className={`bg-[#FFFFFF] border rounded-xs p-5 flex flex-col justify-between shadow-xs transition-all ${p.isActive ? 'border-[#D7C5AF]/60' : 'border-[#D7C5AF]/60 opacity-75 bg-[#FAF7F2]'
+                      }`}
                   >
                     <div>
                       <div className="flex items-start justify-between">
@@ -967,11 +998,10 @@ export const SuperAdminDashboard = ({
                           <h3 className="font-serif text-xl text-[#593D30] mt-0.5">{p.name}</h3>
                         </div>
                         <span
-                          className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${
-                            p.isActive
-                              ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
-                              : 'bg-[#FAF7F2] text-[#8E8172] border border-[#D7C5AF]/60'
-                          }`}
+                          className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${p.isActive
+                            ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
+                            : 'bg-[#FAF7F2] text-[#8E8172] border border-[#D7C5AF]/60'
+                            }`}
                         >
                           {p.isActive ? 'Active' : 'Inactive'}
                         </span>
@@ -1137,13 +1167,12 @@ export const SuperAdminDashboard = ({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${
-                                sub.status === 'active'
-                                  ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
-                                  : sub.status === 'trialing'
+                              className={`px-2 py-0.5 rounded-xs text-[10px] uppercase tracking-wider font-semibold ${sub.status === 'active'
+                                ? 'bg-[#10B981]/10 text-[#059669] border border-[#10B981]/30'
+                                : sub.status === 'trialing'
                                   ? 'bg-[#F59E0B]/10 text-[#D97706] border border-[#F59E0B]/30'
                                   : 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30'
-                              }`}
+                                }`}
                             >
                               {sub.status}
                             </span>

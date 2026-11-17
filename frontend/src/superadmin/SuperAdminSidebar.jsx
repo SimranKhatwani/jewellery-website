@@ -109,30 +109,24 @@ export const SuperAdminSidebar = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#FFFFFF] border-r border-[#D7C5AF]/60 flex flex-col justify-between transition-transform duration-300 ease-in-out shadow-xs md:translate-x-0 ${
-          isOpenMobile ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#FFFFFF] border-r border-[#D7C5AF]/60 flex flex-col justify-between transition-transform duration-300 ease-in-out shadow-xs md:translate-x-0 ${isOpenMobile ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Brand & Platform Header */}
         <div className="p-5 border-b border-[#D7C5AF]/60 bg-[#FFFFFF]">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.28em] text-[#A85F49] block">
-                AURELLE ATELIER
+                GLOBAL SAAS PLATFORM
               </span>
               <h2 className="font-serif text-lg font-light text-[#593D30] tracking-wider mt-0.5">
                 Super Admin
               </h2>
             </div>
-            <span className="px-2 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#A85F49] text-[10px] font-mono rounded-xs font-semibold">
-              /sa
-            </span>
+
           </div>
 
-          <div className="mt-3 flex items-center gap-2 px-2.5 py-1 bg-[#FAF7F2] rounded-xs border border-[#D7C5AF]/60 text-[11px] text-[#8E8172]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
-            <span className="truncate">Root Console Connected</span>
-          </div>
+
         </div>
 
         {/* Navigation Sections */}
@@ -152,11 +146,10 @@ export const SuperAdminSidebar = ({
                       onSelectSection(item.id);
                       if (onCloseMobile) onCloseMobile();
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xs text-xs font-sans tracking-wide transition-all ${
-                      isActive
-                        ? 'bg-[#593D30] text-[#FFFFFF] shadow-xs font-medium'
-                        : 'text-[#593D30] hover:bg-[#FAF7F2] hover:text-[#A85F49]'
-                    }`}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xs text-xs font-sans tracking-wide transition-all ${isActive
+                      ? 'bg-[#593D30] text-[#FFFFFF] shadow-xs font-medium'
+                      : 'text-[#593D30] hover:bg-[#FAF7F2] hover:text-[#A85F49]'
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
                       <span className={isActive ? 'text-[#FFFFFF]' : 'text-[#8E8172]'}>
@@ -185,7 +178,7 @@ export const SuperAdminSidebar = ({
             </div>
             <div className="truncate flex-1">
               <div className="text-xs text-[#593D30] font-medium truncate">
-                {user?.name || 'Super Admin'}
+                {user?.name?.replace(/Aurelle Platform /i, 'Platform ') || 'Platform Super Admin'}
               </div>
               <div className="text-[10px] text-[#8E8172] font-mono truncate">
                 {user?.email}

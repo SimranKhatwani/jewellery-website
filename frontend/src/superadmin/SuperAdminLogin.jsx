@@ -38,7 +38,7 @@ export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmi
       {/* Top URL Route Indicator */}
       <div className="mb-6 flex items-center gap-2 px-3.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-full text-xs shadow-xs">
         <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-        <span className="font-mono text-[11px] tracking-wide text-[#593D30] font-medium">http://localhost:3000/sa</span>
+
         <span className="text-[#D7C5AF]">|</span>
         <span className="text-[10px] uppercase tracking-wider text-[#A85F49] font-semibold">Platform Super Admin</span>
       </div>
@@ -47,7 +47,7 @@ export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmi
         {/* Brand Header */}
         <div className="text-center mb-8">
           <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.28em] text-[#A85F49]">
-            AURELLE ATELIER
+            GLOBAL SAAS PLATFORM
           </span>
           <h1 className="font-serif text-3xl sm:text-4xl font-light text-[#593D30] tracking-wide mt-2">
             Super Admin

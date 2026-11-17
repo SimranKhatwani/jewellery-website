@@ -4,6 +4,9 @@ import { Subscription } from '../models/Subscription.js';
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js';
 import { SubscriptionEvent } from '../models/SubscriptionEvent.js';
 import { AuditLog } from '../models/AuditLog.js';
+import { TenantMembership } from '../models/TenantMembership.js';
+import { Customer } from '../models/Customer.js';
+import { Order } from '../models/Order.js';
 import { getPlatformAuditLogs } from '../services/audit.service.js';
 import { sendSuccess, sendPaginated } from '../utils/response.js';
 import { NotFoundError } from '../utils/errors.js';
@@ -68,17 +71,156 @@ export const updateTenantStatus = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '20', 10);
+    const limit = parseInt(req.query.limit || '50', 10);
 
     const skip = (page - 1) * limit;
-    const [users, total] = await Promise.all([
+    const [rawUsers, total] = await Promise.all([
       User.find()
         .select('-passwordHash')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       User.countDocuments(),
     ]);
+
+    const userIds = rawUsers.map((u) => u._id);
+    const userEmails = rawUsers.map((u) => u.email?.toLowerCase().trim()).filter(Boolean);
+
+    // Fetch tenant relationships in parallel
+    const [allTenants, memberships, customers, orders] = await Promise.all([
+      Tenant.find().select('_id name slug ownerId').lean(),
+      TenantMembership.find({ userId: { $in: userIds } })
+        .populate('tenantId', '_id name slug')
+        .lean(),
+      Customer.find({
+        $or: [
+          { userId: { $in: userIds } },
+          { email: { $in: userEmails } },
+        ],
+      })
+        .populate('tenantId', '_id name slug')
+        .lean(),
+      Order.find({
+        $or: [
+          { userId: { $in: userIds } },
+          { 'customer.email': { $in: userEmails } },
+        ],
+      })
+        .select('tenantId userId customer.email')
+        .populate('tenantId', '_id name slug')
+        .lean(),
+    ]);
+
+    const users = rawUsers.map((user) => {
+      const uId = String(user._id);
+      const uEmail = user.email?.toLowerCase().trim();
+
+      const userTenantList = [];
+      const seenTenantIds = new Set();
+
+      // 1. Check if owner of any tenant
+      for (const t of allTenants) {
+        if (t.ownerId && String(t.ownerId) === uId && !seenTenantIds.has(String(t._id))) {
+          seenTenantIds.add(String(t._id));
+          userTenantList.push({
+            id: t._id,
+            name: t.name,
+            slug: t.slug,
+            type: 'Store Owner',
+          });
+        }
+      }
+
+      // 2. Check memberships (store staff/team)
+      for (const m of memberships) {
+        if (String(m.userId) === uId && m.tenantId && !seenTenantIds.has(String(m.tenantId._id))) {
+          seenTenantIds.add(String(m.tenantId._id));
+          userTenantList.push({
+            id: m.tenantId._id,
+            name: m.tenantId.name,
+            slug: m.tenantId.slug,
+            type: 'Team Member',
+          });
+        }
+      }
+
+      // 3. Check customer records (registered storefront member)
+      for (const c of customers) {
+        const matchesUser =
+          (c.userId && String(c.userId) === uId) ||
+          (c.email && c.email.toLowerCase().trim() === uEmail);
+        if (matchesUser && c.tenantId && !seenTenantIds.has(String(c.tenantId._id))) {
+          seenTenantIds.add(String(c.tenantId._id));
+          userTenantList.push({
+            id: c.tenantId._id,
+            name: c.tenantId.name,
+            slug: c.tenantId.slug,
+            type: 'Store Customer',
+          });
+        }
+      }
+
+      // 4. Check order records
+      for (const o of orders) {
+        const matchesOrder =
+          (o.userId && String(o.userId) === uId) ||
+          (o.customer?.email && o.customer.email.toLowerCase().trim() === uEmail);
+        if (matchesOrder && o.tenantId && !seenTenantIds.has(String(o.tenantId._id))) {
+          seenTenantIds.add(String(o.tenantId._id));
+          userTenantList.push({
+            id: o.tenantId._id,
+            name: o.tenantId.name,
+            slug: o.tenantId.slug,
+            type: 'Customer',
+          });
+        }
+      }
+
+      // Fallback heuristics: match by slug in email or name if unassociated
+      if (userTenantList.length === 0 && !user.isSuperAdmin) {
+        for (const t of allTenants) {
+          if (
+            uEmail.includes(t.slug) ||
+            (user.name && user.name.toLowerCase().includes(t.slug))
+          ) {
+            userTenantList.push({
+              id: t._id,
+              name: t.name,
+              slug: t.slug,
+              type: 'Store User',
+            });
+            break;
+          }
+        }
+      }
+
+      // Primary tenant resolution:
+      // General Super Admin oversees all tenants (Global Platform); tenant users reflect their specific store
+      let primaryTenantName = '';
+      let primaryTenantSlug = '';
+
+      if (uEmail.startsWith('superadmin@') || (user.isSuperAdmin && userTenantList.length === 0)) {
+        primaryTenantName = 'Global Platform';
+        primaryTenantSlug = 'platform';
+      } else if (userTenantList.length > 0) {
+        primaryTenantName = userTenantList[0].name;
+        primaryTenantSlug = userTenantList[0].slug;
+      } else if (user.isSuperAdmin) {
+        primaryTenantName = 'Global Platform';
+        primaryTenantSlug = 'platform';
+      } else {
+        primaryTenantName = 'Unassigned';
+        primaryTenantSlug = '';
+      }
+
+      return {
+        ...user,
+        tenants: userTenantList,
+        tenantName: primaryTenantName,
+        tenantSlug: primaryTenantSlug,
+      };
+    });
 
     return sendPaginated(res, users, total, page, limit, 'Platform users retrieved.');
   } catch (error) {

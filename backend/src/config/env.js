@@ -28,7 +28,7 @@ export const config = {
   superAdmin: {
     email: process.env.SUPERADMIN_EMAIL ? process.env.SUPERADMIN_EMAIL.trim() : '',
     password: process.env.SUPERADMIN_PASSWORD || '',
-    name: process.env.SUPERADMIN_NAME ? process.env.SUPERADMIN_NAME.trim() : 'Aurelle Platform Super Admin',
+    name: process.env.SUPERADMIN_NAME ? process.env.SUPERADMIN_NAME.trim() : 'Platform Super Admin',
   },
 };
 
