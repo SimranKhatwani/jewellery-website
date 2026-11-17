@@ -13,10 +13,13 @@ router.get('/stats', platformController.getPlatformStats);
 
 // Tenant oversight
 router.get('/tenants', platformController.listTenants);
+router.post('/tenants', platformController.createPlatformTenant);
 router.patch('/tenants/:tenantId/status', platformController.updateTenantStatus);
+router.patch('/tenants/:tenantId/subscription', platformController.updateTenantSubscription);
 
 // Subscriptions oversight
 router.get('/subscriptions', platformController.listPlatformSubscriptions);
+router.patch('/subscriptions/:subscriptionId', platformController.updateSubscriptionById);
 
 // User oversight
 router.get('/users', platformController.listUsers);

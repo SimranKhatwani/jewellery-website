@@ -15,6 +15,8 @@ import {
 import { SuperAdminSidebar } from './SuperAdminSidebar';
 import { PlanModal } from './PlanModal';
 import { AuditDetailModal } from './AuditDetailModal';
+import { AddTenantModal } from './AddTenantModal';
+import { EditSubscriptionModal } from './EditSubscriptionModal';
 import { Store, Globe, Building2 } from 'lucide-react';
 
 export const SuperAdminDashboard = ({
@@ -64,6 +66,7 @@ export const SuperAdminDashboard = ({
   const [tenantStatusFilter, setTenantStatusFilter] = useState('all');
   const [tenantSearch, setTenantSearch] = useState('');
   const [isTenantsLoading, setIsTenantsLoading] = useState(false);
+  const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
 
   const loadTenants = async () => {
     try {
@@ -151,6 +154,8 @@ export const SuperAdminDashboard = ({
   const [subsTotal, setSubsTotal] = useState(0);
   const [subStatusFilter, setSubStatusFilter] = useState('all');
   const [isSubsLoading, setIsSubsLoading] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState(null);
+  const [isEditSubModalOpen, setIsEditSubModalOpen] = useState(false);
 
   const loadSubscriptions = async () => {
     try {
@@ -270,13 +275,20 @@ export const SuperAdminDashboard = ({
   // -------------------------------------------------------------
   useEffect(() => {
     loadDashboardStats();
+    loadPlans();
   }, []);
 
   useEffect(() => {
     if (activeSection === 'dashboard') loadDashboardStats();
-    else if (activeSection === 'tenants') loadTenants();
+    else if (activeSection === 'tenants') {
+      loadTenants();
+      loadPlans();
+    }
     else if (activeSection === 'plans') loadPlans();
-    else if (activeSection === 'subscriptions') loadSubscriptions();
+    else if (activeSection === 'subscriptions') {
+      loadSubscriptions();
+      loadPlans();
+    }
     else if (activeSection === 'users') loadUsers();
     else if (activeSection === 'audit') loadAuditLogs();
   }, [activeSection, tenantStatusFilter, subStatusFilter, auditPage, auditLimit, auditActionFilter, auditDateFilter]);
@@ -726,6 +738,16 @@ export const SuperAdminDashboard = ({
                 >
                   Refresh
                 </button>
+
+                <button
+                  onClick={() => {
+                    if (plans.length === 0) loadPlans();
+                    setIsAddTenantOpen(true);
+                  }}
+                  className="px-3.5 py-1.5 bg-[#593D30] hover:bg-[#A85F49] text-white rounded-xs text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors"
+                >
+                  + Add Tenant / Store
+                </button>
               </div>
             </div>
 
@@ -1137,18 +1159,19 @@ export const SuperAdminDashboard = ({
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Billing Cycle End</th>
                       <th className="px-4 py-3">Renewal Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#D7C5AF]/30">
                     {isSubsLoading && subscriptions.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-4 py-12 text-center text-[#8E8172]">
+                        <td colSpan="7" className="px-4 py-12 text-center text-[#8E8172]">
                           Loading subscriptions from database...
                         </td>
                       </tr>
                     ) : subscriptions.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-4 py-12 text-center text-[#8E8172]">
+                        <td colSpan="7" className="px-4 py-12 text-center text-[#8E8172]">
                           No subscription records found matching this filter.
                         </td>
                       </tr>
@@ -1186,6 +1209,18 @@ export const SuperAdminDashboard = ({
                             ) : (
                               <span className="text-[#059669] text-[11px] font-medium">Auto-renews</span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => {
+                                if (plans.length === 0) loadPlans();
+                                setEditingSubscription(sub);
+                                setIsEditSubModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 bg-[#FAF7F2] hover:bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs text-xs text-[#593D30] hover:text-[#A85F49] shadow-xs font-medium transition-colors"
+                            >
+                              Edit Plan
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -1491,6 +1526,36 @@ export const SuperAdminDashboard = ({
           </main>
         )}
       </div>
+
+      {/* Add Tenant Modal */}
+      <AddTenantModal
+        isOpen={isAddTenantOpen}
+        onClose={() => setIsAddTenantOpen(false)}
+        plans={plans}
+        onSaveSuccess={(newTenantData) => {
+          showNotice(`Store '${newTenantData.tenant?.name || 'New Store'}' was successfully provisioned.`);
+          loadTenants();
+          loadSubscriptions();
+          loadDashboardStats();
+        }}
+      />
+
+      {/* Edit Subscription Modal */}
+      <EditSubscriptionModal
+        subscription={editingSubscription}
+        isOpen={isEditSubModalOpen}
+        onClose={() => {
+          setIsEditSubModalOpen(false);
+          setEditingSubscription(null);
+        }}
+        plans={plans}
+        onSaveSuccess={() => {
+          showNotice('Store subscription plan updated successfully.');
+          loadSubscriptions();
+          loadTenants();
+          loadDashboardStats();
+        }}
+      />
 
       {/* Plan Create/Edit Modal */}
       <PlanModal

@@ -159,7 +159,46 @@ export async function getPlatformSubscriptions({ page = 1, limit = 20, status } 
   return { subscriptions: data.data, meta: data.meta };
 }
 
+export async function updatePlatformSubscriptionById(subscriptionId, payload) {
+  const res = await superAdminFetch(`/v1/platform/subscriptions/${subscriptionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update subscription');
+  }
+  return data.data;
+}
+
 // ----------------- Platform Tenants Oversight -----------------
+
+export async function createPlatformTenant(payload) {
+  const res = await superAdminFetch('/v1/platform/tenants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to create new tenant');
+  }
+  return data.data;
+}
+
+export async function updatePlatformTenantSubscription(tenantId, payload) {
+  const res = await superAdminFetch(`/v1/platform/tenants/${tenantId}/subscription`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update store subscription');
+  }
+  return data.data;
+}
 
 export async function getPlatformTenants({ page = 1, limit = 50, status } = {}) {
   let url = `/v1/platform/tenants?page=${page}&limit=${limit}`;
