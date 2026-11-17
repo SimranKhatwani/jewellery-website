@@ -1,4 +1,5 @@
 import { Address } from '../models/Address.js';
+import { Order } from '../models/Order.js';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
 
 /**
@@ -8,9 +9,50 @@ export const listCustomerAddresses = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    const addresses = await Address.find({ userId })
+    let addresses = await Address.find({
+      $or: [{ userId }, { userId: String(userId) }]
+    })
       .sort({ isDefault: -1, createdAt: -1 })
       .lean();
+
+    // Auto-recover/sync from past customer orders if address collection is empty
+    if (addresses.length === 0) {
+      try {
+        const pastOrders = await Order.find({
+          $or: [
+            { userId },
+            { 'customer.email': req.user.email?.toLowerCase().trim() }
+          ],
+          'shippingAddress.addressLine1': { $exists: true, $ne: '' }
+        })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        for (const order of pastOrders) {
+          const s = order.shippingAddress;
+          if (s && s.addressLine1) {
+            const cleanPhone = String(s.phone || req.user.phoneNumber || '').replace(/\D/g, '').slice(-10) || '9876543210';
+            const created = await Address.create({
+              userId,
+              name: s.name || req.user.name || 'Valued Customer',
+              phone: cleanPhone,
+              addressLine1: s.addressLine1,
+              addressLine2: s.addressLine2 || '',
+              city: s.city || 'Jaipur',
+              state: s.state || 'Rajasthan',
+              postalCode: s.postalCode || '302021',
+              country: s.country || 'India',
+              addressType: s.addressType || 'shipping',
+              isDefault: true,
+            });
+            addresses.push(created.toObject ? created.toObject() : created);
+            break;
+          }
+        }
+      } catch (recoveryErr) {
+        console.warn('[AddressRecovery] Notice:', recoveryErr.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -54,11 +96,16 @@ export const createCustomerAddress = async (req, res, next) => {
     }
 
     // Check if this is the customer's first address; if so, make it default automatically
-    const existingCount = await Address.countDocuments({ userId });
+    const existingCount = await Address.countDocuments({
+      $or: [{ userId }, { userId: String(userId) }]
+    });
     const shouldBeDefault = isDefault || existingCount === 0;
 
     if (shouldBeDefault) {
-      await Address.updateMany({ userId }, { $set: { isDefault: false } });
+      await Address.updateMany(
+        { $or: [{ userId }, { userId: String(userId) }] },
+        { $set: { isDefault: false } }
+      );
     }
 
     const address = await Address.create({

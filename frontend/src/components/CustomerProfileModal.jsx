@@ -14,7 +14,8 @@ import {
   Clock,
   ChevronRight,
   Eye,
-  EyeOff
+  EyeOff,
+  Loader2
 } from 'lucide-react';
 import { 
   fetchCustomerProfile, 
@@ -59,6 +60,7 @@ export const CustomerProfileModal = ({
 
   // Addresses
   const [addresses, setAddresses] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: customerUser ? `${customerUser.firstName || customerUser.name || ''} ${customerUser.lastName || ''}`.trim() : '',
@@ -83,6 +85,7 @@ export const CustomerProfileModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      loadAddresses(); // Pre-fetch immediately on open so tab has data ready
       fetchCustomerProfile()
         .then((fresh) => {
           if (fresh) {
@@ -106,11 +109,14 @@ export const CustomerProfileModal = ({
   }, [isOpen, activeTab]);
 
   const loadAddresses = async () => {
+    setAddressesLoading(true);
     try {
       const addrs = await fetchAddresses();
-      setAddresses(addrs);
+      setAddresses(addrs || []);
     } catch (err) {
       console.warn('Failed to load addresses:', err);
+    } finally {
+      setAddressesLoading(false);
     }
   };
 
@@ -580,6 +586,11 @@ export const CustomerProfileModal = ({
                     </button>
                   </div>
                 </form>
+              ) : addressesLoading ? (
+                <div className="py-8 flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#A85F49]" />
+                  <span className="text-xs text-[#8E8172]">Loading saved delivery addresses...</span>
+                </div>
               ) : addresses.length > 0 ? (
                 <div className="space-y-2">
                   {addresses.map((addr) => (

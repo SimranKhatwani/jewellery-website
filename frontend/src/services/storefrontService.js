@@ -665,13 +665,22 @@ export async function fetchAddresses() {
   const token = getCustomerToken();
   if (!token) return [];
 
-  const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses`, {
-    headers: getStorefrontHeaders(),
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const payload = data.data || data;
-  return payload.addresses || (Array.isArray(payload) ? payload : []);
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/customers/me/addresses`, {
+      headers: getStorefrontHeaders(),
+    });
+    if (!res.ok) {
+      console.warn(`[StorefrontService] fetchAddresses returned HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const payload = data.data || data;
+    const addrs = payload.addresses || (Array.isArray(payload) ? payload : []);
+    return Array.isArray(addrs) ? addrs : [];
+  } catch (err) {
+    console.warn('[StorefrontService] fetchAddresses network error:', err);
+    return [];
+  }
 }
 
 export async function createAddress(addressData) {

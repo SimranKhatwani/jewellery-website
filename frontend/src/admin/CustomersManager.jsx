@@ -166,9 +166,7 @@ export const CustomersManager = ({ admin }) => {
             <span className="text-[10px] font-sans font-bold uppercase tracking-[0.25em] text-[#A85F49]">
               Customer Management Module
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#EBF3ED] text-[#2E6B47] border border-[#C5DDCB]">
-              Live DB Sync
-            </span>
+
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-light text-[#593D30] tracking-wide mt-1">
             Store Customers & Purchases
@@ -271,22 +269,20 @@ export const CustomersManager = ({ admin }) => {
             <button
               type="button"
               onClick={() => setCustomerTypeFilter('all')}
-              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors ${
-                customerTypeFilter === 'all'
+              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors ${customerTypeFilter === 'all'
                   ? 'bg-[#593D30] text-[#FFFFFF]'
                   : 'text-[#8E8172] hover:text-[#593D30]'
-              }`}
+                }`}
             >
               All ({metrics.totalCustomers})
             </button>
             <button
               type="button"
               onClick={() => setCustomerTypeFilter('registered')}
-              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors flex items-center gap-1.5 ${
-                customerTypeFilter === 'registered'
+              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors flex items-center gap-1.5 ${customerTypeFilter === 'registered'
                   ? 'bg-[#593D30] text-[#FFFFFF]'
                   : 'text-[#8E8172] hover:text-[#593D30]'
-              }`}
+                }`}
             >
               <UserCheck className="w-3 h-3" />
               <span>Registered ({metrics.registeredCount})</span>
@@ -294,11 +290,10 @@ export const CustomersManager = ({ admin }) => {
             <button
               type="button"
               onClick={() => setCustomerTypeFilter('guest')}
-              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors flex items-center gap-1.5 ${
-                customerTypeFilter === 'guest'
+              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded-xs transition-colors flex items-center gap-1.5 ${customerTypeFilter === 'guest'
                   ? 'bg-[#593D30] text-[#FFFFFF]'
                   : 'text-[#8E8172] hover:text-[#593D30]'
-              }`}
+                }`}
             >
               <UserX className="w-3 h-3" />
               <span>Guests ({metrics.guestCount})</span>
@@ -388,9 +383,8 @@ export const CustomersManager = ({ admin }) => {
                       <td className="py-3.5 px-4">
                         <div className="flex items-start gap-2.5">
                           {/* Avatar Circle */}
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-medium uppercase ${
-                            isGuest ? 'bg-[#F5EBE1] text-[#A85F49]' : 'bg-[#EBF3ED] text-[#2E6B47]'
-                          }`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-medium uppercase ${isGuest ? 'bg-[#F5EBE1] text-[#A85F49]' : 'bg-[#EBF3ED] text-[#2E6B47]'
+                            }`}>
                             {(c.name || c.email || 'C')[0]}
                           </div>
 
@@ -460,11 +454,10 @@ export const CustomersManager = ({ admin }) => {
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${
-                            c.status === 'active'
+                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${c.status === 'active'
                               ? 'bg-[#EBF3ED] text-[#2E6B47]'
                               : 'bg-[#F2ECE4] text-[#8E8172]'
-                          }`}
+                            }`}
                         >
                           {c.status || 'active'}
                         </span>
@@ -600,11 +593,10 @@ export const CustomersManager = ({ admin }) => {
                   <button
                     type="button"
                     onClick={handleToggleStatus}
-                    className={`mt-0.5 inline-block px-2.5 py-0.5 text-[10px] uppercase font-semibold rounded-full transition-colors ${
-                      customerDetails.status === 'active'
+                    className={`mt-0.5 inline-block px-2.5 py-0.5 text-[10px] uppercase font-semibold rounded-full transition-colors ${customerDetails.status === 'active'
                         ? 'bg-[#EBF3ED] text-[#2E6B47] hover:bg-[#DDF0E1]'
                         : 'bg-[#FBEBE8] text-[#A85F49] hover:bg-[#F7D8D3]'
-                    }`}
+                      }`}
                     title="Click to toggle active/inactive status"
                   >
                     {customerDetails.status === 'active' ? '● Active' : '○ Inactive'}
@@ -618,11 +610,10 @@ export const CustomersManager = ({ admin }) => {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab('purchases')}
-                className={`py-3 text-xs uppercase tracking-wider font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-                  activeDetailTab === 'purchases'
+                className={`py-3 text-xs uppercase tracking-wider font-medium border-b-2 transition-colors flex items-center gap-1.5 ${activeDetailTab === 'purchases'
                     ? 'border-[#A85F49] text-[#A85F49]'
                     : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-                }`}
+                  }`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Purchases & Orders ({customerDetails?.orders?.length || 0})</span>
@@ -630,11 +621,10 @@ export const CustomersManager = ({ admin }) => {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab('profile')}
-                className={`ml-6 py-3 text-xs uppercase tracking-wider font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-                  activeDetailTab === 'profile'
+                className={`ml-6 py-3 text-xs uppercase tracking-wider font-medium border-b-2 transition-colors flex items-center gap-1.5 ${activeDetailTab === 'profile'
                     ? 'border-[#A85F49] text-[#A85F49]'
                     : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-                }`}
+                  }`}
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>Profile & Notes</span>
@@ -689,12 +679,11 @@ export const CustomersManager = ({ admin }) => {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                              order.orderStatus === 'delivered' ? 'bg-[#EBF3ED] text-[#2E6B47]' :
-                              order.orderStatus === 'shipped' ? 'bg-[#E8F1FB] text-[#295F98]' :
-                              order.orderStatus === 'cancelled' ? 'bg-[#FBEBE8] text-[#A85F49]' :
-                              'bg-[#FAF7F2] text-[#8E8172] border border-[#D7C5AF]'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${order.orderStatus === 'delivered' ? 'bg-[#EBF3ED] text-[#2E6B47]' :
+                                order.orderStatus === 'shipped' ? 'bg-[#E8F1FB] text-[#295F98]' :
+                                  order.orderStatus === 'cancelled' ? 'bg-[#FBEBE8] text-[#A85F49]' :
+                                    'bg-[#FAF7F2] text-[#8E8172] border border-[#D7C5AF]'
+                              }`}>
                               {order.orderStatus || 'pending'}
                             </span>
                             <span className="text-xs font-serif font-bold text-[#593D30]">
@@ -812,9 +801,8 @@ export const CustomersManager = ({ admin }) => {
                     />
 
                     {notesFeedback && (
-                      <div className={`p-2.5 rounded-xs text-xs flex items-center gap-2 ${
-                        notesFeedback.type === 'success' ? 'bg-[#EBF3ED] text-[#2E6B47]' : 'bg-[#FBEBE8] text-[#A85F49]'
-                      }`}>
+                      <div className={`p-2.5 rounded-xs text-xs flex items-center gap-2 ${notesFeedback.type === 'success' ? 'bg-[#EBF3ED] text-[#2E6B47]' : 'bg-[#FBEBE8] text-[#A85F49]'
+                        }`}>
                         {notesFeedback.type === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
                         <span>{notesFeedback.message}</span>
                       </div>
