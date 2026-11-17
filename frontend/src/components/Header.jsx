@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Heart, Menu, X, ShoppingBag, User, Bell, CheckCheck, Sparkles } from 'lucide-react';
+import { Search, Heart, Menu, X, ShoppingBag, User, Bell, CheckCheck, Sparkles, ChevronDown } from 'lucide-react';
 import {
   fetchCustomerNotifications,
   markCustomerNotificationRead,
@@ -20,11 +20,23 @@ export const Header = ({
   onNavigateHome,
   onNavigateCategory,
   onNavigateSection,
+  categories = [],
+  allProductsCount = 0,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
+  const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const defaultCategories = [
+    { slug: 'rings', label: 'Silver Rings' },
+    { slug: 'anklets', label: 'Silver Anklets' },
+    { slug: 'earrings', label: 'Earrings' },
+    { slug: 'necklaces', label: 'Necklaces' },
+  ];
+  const navCategories = categories && categories.length > 0 ? categories : defaultCategories;
 
   const loadNotifications = useCallback(async () => {
     if (!customerUser) return;
@@ -140,25 +152,84 @@ export const Header = ({
           </button>
 
           {/* Navigation Links: Deep Chocolate #593D30 with Terracotta #A85F49 Hover */}
-          <nav className="hidden md:flex items-center gap-8 text-sm uppercase tracking-[0.18em] font-medium text-[#593D30]/90">
+          <nav className="hidden md:flex items-center gap-7 lg:gap-8 text-sm uppercase tracking-[0.18em] font-medium text-[#593D30]/90">
             <button
               onClick={onNavigateHome}
               className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 py-1"
             >
               Home
             </button>
-            <button
-              onClick={() => onNavigateCategory('rings')}
-              className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 py-1"
+
+            {/* Products Dropdown */}
+            <div
+              className="relative py-1 group"
+              onMouseEnter={() => setIsProductsDropdownOpen(true)}
+              onMouseLeave={() => setIsProductsDropdownOpen(false)}
             >
-              Silver Rings
-            </button>
-            <button
-              onClick={() => onNavigateCategory('anklets')}
-              className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 py-1"
-            >
-              Silver Anklets
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigateCategory('all');
+                  setIsProductsDropdownOpen(false);
+                }}
+                className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 group-hover:text-[#A85F49] cursor-pointer"
+              >
+                <span>Products</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isProductsDropdownOpen ? 'rotate-180 text-[#A85F49]' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Luxury Dropdown Menu */}
+              {isProductsDropdownOpen && (
+                <div className="absolute top-full left-0 pt-2 z-50 animate-fade-in">
+                  <div className="w-60 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-xs shadow-xl py-2 overflow-hidden backdrop-blur-md">
+                    <div className="px-4 py-1.5 text-[9.5px] font-semibold uppercase tracking-[0.22em] text-[#8E8172] border-b border-[#D7C5AF]/30">
+                      Curated Silhouettes
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigateCategory('all');
+                        setIsProductsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs uppercase tracking-wider text-[#593D30] hover:text-[#A85F49] hover:bg-[#FAF7F2] transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="font-semibold">All Products</span>
+                      {allProductsCount > 0 && (
+                        <span className="text-[10px] text-[#8E8172] font-mono">
+                          ({allProductsCount})
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="border-t border-[#D7C5AF]/25 my-1" />
+
+                    {navCategories.map((cat) => (
+                      <button
+                        key={cat.slug}
+                        type="button"
+                        onClick={() => {
+                          onNavigateCategory(cat.slug);
+                          setIsProductsDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs uppercase tracking-wider text-[#593D30] hover:text-[#A85F49] hover:bg-[#FAF7F2] transition-colors flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{cat.label}</span>
+                        {cat.count !== undefined && cat.count > 0 && (
+                          <span className="text-[10px] text-[#8E8172] font-mono">
+                            ({cat.count})
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => onNavigateSection('bestsellers')}
               className="hover:text-[#A85F49] transition-colors whitespace-nowrap shrink-0 py-1"
@@ -356,24 +427,49 @@ export const Header = ({
             >
               Home
             </button>
-            <button
-              onClick={() => {
-                onNavigateCategory('rings');
-                setMobileMenuOpen(false);
-              }}
-              className="text-left py-1 text-[#593D30] hover:text-[#A85F49]"
-            >
-              Silver Rings
-            </button>
-            <button
-              onClick={() => {
-                onNavigateCategory('anklets');
-                setMobileMenuOpen(false);
-              }}
-              className="text-left py-1 text-[#593D30] hover:text-[#A85F49]"
-            >
-              Silver Anklets
-            </button>
+
+            {/* Mobile Products Accordion */}
+            <div className="py-1">
+              <button
+                type="button"
+                onClick={() => setMobileProductsOpen(!mobileProductsOpen)}
+                className="w-full flex items-center justify-between text-left text-[#593D30] hover:text-[#A85F49]"
+              >
+                <span>Products</span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    mobileProductsOpen ? 'rotate-180 text-[#A85F49]' : ''
+                  }`}
+                />
+              </button>
+
+              {mobileProductsOpen && (
+                <div className="pl-3 pt-2 pb-1 space-y-2.5 border-l-2 border-[#D7C5AF]/50 mt-1.5 ml-1">
+                  <button
+                    onClick={() => {
+                      onNavigateCategory('all');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block text-left text-xs uppercase tracking-wider text-[#593D30] hover:text-[#A85F49] font-semibold"
+                  >
+                    All Products {allProductsCount > 0 ? `(${allProductsCount})` : ''}
+                  </button>
+                  {navCategories.map((cat) => (
+                    <button
+                      key={cat.slug}
+                      onClick={() => {
+                        onNavigateCategory(cat.slug);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="block text-left text-xs uppercase tracking-wider text-[#593D30] hover:text-[#A85F49]"
+                    >
+                      {cat.label} {cat.count !== undefined && cat.count > 0 ? `(${cat.count})` : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => {
                 onNavigateSection('bestsellers');

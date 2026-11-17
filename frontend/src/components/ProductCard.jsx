@@ -15,6 +15,34 @@ export const ProductCard = ({
 
   const isOutOfStock = !product.inStock || product.stockQuantity === 0 || product.inventoryStatus === 'out_of_stock';
 
+  const isFreeSize =
+    product.options?.type === 'free_size' ||
+    product.options?.type === 'none' ||
+    product.category === 'earrings' ||
+    product.category === 'necklaces' ||
+    !product.options?.values ||
+    product.options.values.length <= 1 ||
+    product.options.values.some((v) =>
+      typeof v === 'string' && (
+        v.toLowerCase().includes('free') ||
+        v.toLowerCase().includes('flexible') ||
+        v.toLowerCase() === 'standard'
+      )
+    );
+
+  const hasCustomSizes = !isFreeSize && Array.isArray(product.options?.values) && product.options.values.length > 1;
+
+  const categoryLabel =
+    product.category === 'rings'
+      ? 'Silver Ring'
+      : product.category === 'earrings'
+      ? 'Silver Earrings'
+      : product.category === 'necklaces'
+      ? 'Silver Necklace'
+      : product.category === 'anklets'
+      ? 'Silver Anklet'
+      : 'Fine Silver';
+
   const displayImage = isHovered && product.secondaryImage && !imageError
     ? product.secondaryImage
     : product.primaryImage;
@@ -59,13 +87,13 @@ export const ProductCard = ({
 
         {/* Dynamic Marketing or Sold Out Badge */}
         {isOutOfStock ? (
-          <div className="absolute top-3 left-3 pointer-events-none z-10">
+          <div className="absolute top-3 left-3 pointer-none z-10">
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#8B261E] px-2 py-0.5 shadow-xs">
               Sold Out
             </span>
           </div>
         ) : (product.isBestseller || product.isNewArrival) ? (
-          <div className="absolute top-3 left-3 pointer-events-none z-10">
+          <div className="absolute top-3 left-3 pointer-none z-10">
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#FFFFFF] bg-[#A85F49] px-2 py-0.5 shadow-xs">
               {product.isBestseller ? 'Bestseller' : 'New Edition'}
             </span>
@@ -84,7 +112,7 @@ export const ProductCard = ({
       {/* Product Information */}
       <div className="pt-3 pb-1 flex flex-col gap-1">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-[#8E8172]">
-          <span>{product.category === 'rings' ? 'Silver Ring' : 'Silver Anklet'}</span>
+          <span>{categoryLabel}</span>
           <span aria-hidden="true">·</span>
           <span>Solid 925</span>
         </div>
@@ -100,11 +128,11 @@ export const ProductCard = ({
           <span className="text-[11px]">
             {isOutOfStock ? (
               <span className="text-[#8B261E] font-medium">Sold Out</span>
-            ) : (
+            ) : hasCustomSizes ? (
               <span className="text-[#8E8172]">
-                {product.options?.type === 'size' ? '6 Sizes Available' : 'Adjustable Drape'}
+                {product.options.values.length} Sizes Available
               </span>
-            )}
+            ) : null}
           </span>
         </div>
       </div>

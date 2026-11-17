@@ -66,6 +66,14 @@ export const Footer = ({
               </li>
               <li>
                 <button
+                  onClick={() => onNavigateCategory('earrings')}
+                  className="hover:text-[#A85F49] hover:underline transition-colors text-left"
+                >
+                  Silver Earrings
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => onNavigateSection('bestsellers')}
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >

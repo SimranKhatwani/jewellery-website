@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Heart, Trash2, ArrowRight } from 'lucide-react';
 import { isProductWishlisted } from '../services/productService';
+import { formatPrice } from '../services/storefrontService';
 
 export const WishlistDrawer = ({
   isOpen,
@@ -64,7 +65,17 @@ export const WishlistDrawer = ({
 
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] uppercase tracking-wider text-[#8E8172] block font-medium">
-                    {product.category === 'rings' ? 'Silver Ring' : 'Silver Anklet'}
+                    {product.category === 'rings'
+                      ? 'Silver Ring'
+                      : product.category === 'anklets'
+                      ? 'Silver Anklet'
+                      : product.category === 'earrings'
+                      ? 'Silver Earrings'
+                      : product.category === 'necklaces'
+                      ? 'Silver Necklace'
+                      : product.category
+                      ? product.category.charAt(0).toUpperCase() + product.category.slice(1)
+                      : 'Fine Jewellery'}
                   </span>
                   <h3
                     onClick={() => {
@@ -76,7 +87,7 @@ export const WishlistDrawer = ({
                     {product.name}
                   </h3>
                   <span className="text-xs font-mono font-medium block mt-1 text-[#593D30]">
-                    ${product.priceUSD} USD
+                    {formatPrice(product.priceUSD || product.price, product.currency)}
                   </span>
 
                   <div className="flex items-center gap-3 mt-2">
@@ -120,7 +131,7 @@ export const WishlistDrawer = ({
             <div className="flex justify-between text-xs text-[#8E8172]">
               <span>Saved Selection Value</span>
               <span className="font-mono tabular-nums text-[#593D30] font-medium">
-                ${wishlistedProducts.reduce((sum, p) => sum + p.priceUSD, 0)} USD
+                {formatPrice(wishlistedProducts.reduce((sum, p) => sum + (p.priceUSD || p.price || 0), 0))}
               </span>
             </div>
             <button

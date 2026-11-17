@@ -6,6 +6,8 @@ import { HandDrawnBenefitsBanner } from './components/HandDrawnBenefitsBanner';
 import { RingsSection } from './components/RingsSection';
 import { ShopByCategory } from './components/ShopByCategory';
 import { AnkletsSection } from './components/AnkletsSection';
+import { DynamicCategorySection } from './components/DynamicCategorySection';
+import { getStoredCategories } from './admin/api';
 import { BestsellersSection } from './components/BestsellersSection';
 import { NewArrivalsSection } from './components/NewArrivalsSection';
 import { BrandStorySection } from './components/BrandStorySection';
@@ -444,8 +446,70 @@ export default function App() {
   }
 
   // Filter products by category for public catalogue
-  const rings = products.filter((p) => p.category === 'rings');
-  const anklets = products.filter((p) => p.category === 'anklets');
+  const rings = useMemo(() => products.filter((p) => p.category === 'rings'), [products]);
+  const anklets = useMemo(() => products.filter((p) => p.category === 'anklets'), [products]);
+
+  // Dynamic products grouped by category
+  const productsByCategory = useMemo(() => {
+    const groups = {};
+    products.forEach((p) => {
+      const cat = p.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+    return groups;
+  }, [products]);
+
+  // Compute dynamic category navigation items for Header & ShopByCategory
+  const categoryNavItems = useMemo(() => {
+    const counts = {};
+    const firstProductMap = {};
+
+    products.forEach((p) => {
+      const cat = p.category || 'other';
+      counts[cat] = (counts[cat] || 0) + 1;
+      if (!firstProductMap[cat] && p.primaryImage) {
+        firstProductMap[cat] = p.primaryImage;
+      }
+    });
+
+    const labelMap = {
+      rings: 'Silver Rings',
+      anklets: 'Silver Anklets',
+      earrings: 'Silver Earrings',
+      necklaces: 'Silver Necklaces',
+      bracelets: 'Silver Bracelets',
+      pendants: 'Silver Pendants',
+    };
+
+    try {
+      const stored = getStoredCategories();
+      stored.forEach((s) => {
+        if (s.value && s.label) labelMap[s.value] = s.label;
+      });
+    } catch {
+      // fallback
+    }
+
+    // Include all categories present in products plus core defaults
+    const allCatSlugs = Array.from(
+      new Set(['rings', 'anklets', 'earrings', ...Object.keys(counts)])
+    );
+
+    return allCatSlugs.map((slug) => ({
+      slug,
+      label: labelMap[slug] || (slug.charAt(0).toUpperCase() + slug.slice(1)),
+      count: counts[slug] || 0,
+      image: firstProductMap[slug] || '',
+    }));
+  }, [products]);
+
+  // Non-ring, non-anklet categories that have products to display
+  const otherCategories = useMemo(() => {
+    return Object.keys(productsByCategory).filter(
+      (cat) => cat !== 'rings' && cat !== 'anklets'
+    );
+  }, [productsByCategory]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF] overflow-x-hidden">
@@ -463,11 +527,18 @@ export default function App() {
         onNavigateCategory={(cat) => {
           if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
           setTimeout(() => {
-            const el = document.getElementById(cat);
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
+            const targetId = cat === 'all' ? 'rings' : cat;
+            const el = document.getElementById(targetId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              window.scrollTo({ top: 400, behavior: 'smooth' });
+            }
+          }, 120);
         }}
         onNavigateSection={handleNavigateSection}
+        categories={categoryNavItems}
+        allProductsCount={products.length}
       />
 
       {/* Main Content Area */}
@@ -501,17 +572,37 @@ export default function App() {
               onToggleWishlist={handleToggleWishlist}
             />
 
-            {/* 6. Shop by category */}
+            {/* 6. Dynamic Category Sections (Earrings, Necklaces, and future added categories) */}
+            {otherCategories.map((catKey) => {
+              const catItem = categoryNavItems.find((c) => c.slug === catKey);
+              const label = catItem?.label || (catKey.charAt(0).toUpperCase() + catKey.slice(1));
+              return (
+                <DynamicCategorySection
+                  key={catKey}
+                  categoryKey={catKey}
+                  title={label}
+                  products={productsByCategory[catKey]}
+                  onSelectProduct={handleSelectProduct}
+                  wishlistIds={wishlistIds}
+                  onToggleWishlist={handleToggleWishlist}
+                />
+              );
+            })}
+
+            {/* 7. Shop by category */}
             <ShopByCategory
               onSelectCategory={(cat) => {
-                const el = document.getElementById(cat === 'all' ? 'rings' : cat);
+                const targetId = cat === 'all' ? 'rings' : cat;
+                const el = document.getElementById(targetId);
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
               ringCount={rings.length}
               ankletCount={anklets.length}
+              categories={categoryNavItems}
+              products={products}
             />
 
-            {/* 7. Silver anklets collection */}
+            {/* 8. Silver anklets collection */}
             <AnkletsSection
               anklets={anklets}
               onSelectProduct={handleSelectProduct}

@@ -36,9 +36,42 @@ export const ProductDetailPage = ({
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
+  // Sizing & Option calculations
+  const isFreeSize =
+    product.options?.type === 'free_size' ||
+    product.options?.type === 'none' ||
+    product.category === 'earrings' ||
+    product.category === 'necklaces' ||
+    !product.options?.values ||
+    product.options.values.length <= 1 ||
+    product.options.values.some((v) =>
+      typeof v === 'string' && (
+        v.toLowerCase().includes('free') ||
+        v.toLowerCase().includes('flexible') ||
+        v.toLowerCase() === 'standard'
+      )
+    );
+
+  const hasCustomSizes = !isFreeSize && Array.isArray(product.options?.values) && product.options.values.length > 1;
+
+  // Category labels
+  const categoryPluralLabel =
+    product.category === 'rings' ? 'Silver Rings' :
+    product.category === 'earrings' ? 'Silver Earrings' :
+    product.category === 'necklaces' ? 'Silver Necklaces' :
+    product.category === 'anklets' ? 'Silver Anklets' : 'Silver Jewellery';
+
+  const categorySingularLabel =
+    product.category === 'rings' ? 'Silver Ring' :
+    product.category === 'earrings' ? 'Silver Earrings' :
+    product.category === 'necklaces' ? 'Silver Necklace' :
+    product.category === 'anklets' ? 'Silver Anklet' : 'Fine Silver';
+
   // Selection states
-  const [selectedOption, setSelectedOption] = useState(product.options.default);
-  const [selectedFinish, setSelectedFinish] = useState(product.finishes[0] || 'High Polish');
+  const [selectedOption, setSelectedOption] = useState(
+    product.options?.default || product.options?.values?.[0] || ''
+  );
+  const [selectedFinish, setSelectedFinish] = useState(product.finishes?.[0] || 'High Polish');
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   
@@ -52,11 +85,11 @@ export const ProductDetailPage = ({
   // Reset image and selections when product changes
   useEffect(() => {
     setActiveImageIndex(0);
-    setSelectedOption(product.options.default);
-    setSelectedFinish(product.finishes[0] || 'High Polish');
+    setSelectedOption(product.options?.default || product.options?.values?.[0] || '');
+    setSelectedFinish(product.finishes?.[0] || 'High Polish');
     setQuantity(1);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [product.id]);
+  }, [product.id, product._id]);
 
   const handleMouseMove = (e) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -95,7 +128,7 @@ export const ProductDetailPage = ({
           <div className="flex items-center gap-2 text-xs text-[#8E8172] tracking-wider uppercase">
             <span>Aurelle</span>
             <span>/</span>
-            <span>{product.category === 'rings' ? 'Silver Rings' : 'Silver Anklets'}</span>
+            <span>{categoryPluralLabel}</span>
             <span>/</span>
             <span className="text-[#593D30] font-medium">{product.name}</span>
           </div>
@@ -218,7 +251,7 @@ export const ProductDetailPage = ({
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium">
-                  {product.category === 'rings' ? 'Silver Ring' : 'Silver Anklet'} · Solid 925
+                  {categorySingularLabel} · Solid 925
                 </span>
                 <span className="text-[11px] font-mono text-[#8E8172]">
                   SKU: {product.sku}
@@ -238,7 +271,7 @@ export const ProductDetailPage = ({
             </div>
 
             {/* Options Selector A: Surface Finish (Burnt Terracotta #A85F49 active) */}
-            {product.finishes.length > 0 && (
+            {product.finishes?.length > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="uppercase tracking-wider text-[#8E8172] font-medium">Surface Finish</span>
@@ -262,38 +295,40 @@ export const ProductDetailPage = ({
               </div>
             )}
 
-            {/* Options Selector B: Available Size or Length */}
-            <div className={`space-y-2 ${product.finishes.length > 0 ? 'pt-2 border-t border-[#D7C5AF]/30' : ''}`}>
-              <div className="flex justify-between items-center text-xs">
-                <span className="uppercase tracking-wider text-[#8E8172] font-medium">
-                  Available {product.category === 'rings' ? 'Ring Size (US)' : 'Size / Fit'}
-                </span>
-                <button
-                  onClick={() => onOpenSizeGuide(product.category === 'anklets' ? 'anklets' : 'rings')}
-                  className="flex items-center gap-1 text-[#A85F49] hover:text-[#8E4D3A] underline underline-offset-4 font-medium"
-                >
-                  <Ruler className="w-3.5 h-3.5" />
-                  <span>Size & Drape Guide</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {product.options.values.map((val) => (
+            {/* Options Selector B: Available Size or Length (Only rendered if product has custom multiple sizes; completely hidden for Free Size / Earrings) */}
+            {hasCustomSizes && product.options?.values?.length > 0 && (
+              <div className={`space-y-2 ${product.finishes?.length > 0 ? 'pt-2 border-t border-[#D7C5AF]/30' : ''}`}>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="uppercase tracking-wider text-[#8E8172] font-medium">
+                    Available {product.category === 'rings' ? 'Ring Size (US)' : 'Size / Fit'}
+                  </span>
                   <button
-                    key={val}
-                    onClick={() => setSelectedOption(val)}
-                    className={`py-2 px-2 text-xs text-center rounded-xs border transition-all truncate ${
-                      selectedOption === val
-                        ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF] font-medium shadow-xs'
-                        : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49]'
-                    }`}
-                    title={val}
+                    onClick={() => onOpenSizeGuide(product.category === 'anklets' ? 'anklets' : 'rings')}
+                    className="flex items-center gap-1 text-[#A85F49] hover:text-[#8E4D3A] underline underline-offset-4 font-medium"
                   >
-                    {val}
+                    <Ruler className="w-3.5 h-3.5" />
+                    <span>Size & Drape Guide</span>
                   </button>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {product.options.values.map((val) => (
+                    <button
+                      key={val}
+                      onClick={() => setSelectedOption(val)}
+                      className={`py-2 px-2 text-xs text-center rounded-xs border transition-all truncate ${
+                        selectedOption === val
+                          ? 'border-[#A85F49] bg-[#A85F49] text-[#FFFFFF] font-medium shadow-xs'
+                          : 'border-[#D7C5AF] bg-[#FFFFFF] text-[#593D30] hover:border-[#A85F49]'
+                      }`}
+                      title={val}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Inventory Status & Allocation Speed */}
             <div className="flex items-center justify-between text-xs pt-1">
@@ -352,7 +387,7 @@ export const ProductDetailPage = ({
                       try {
                         await onAddToCart({
                           product,
-                          selectedOption,
+                          selectedOption: hasCustomSizes ? selectedOption : null,
                           selectedFinish,
                           quantity,
                         });
@@ -403,7 +438,7 @@ export const ProductDetailPage = ({
                 Direct client assistance available through RKB Enterprises or our marketplace storefronts.
               </p>
               <p className="text-[11px] text-[#8E8172] leading-relaxed font-light">
-                Reference SKU <strong className="font-mono text-[#593D30]">{product.sku}</strong> with size ({selectedOption}) and finish ({selectedFinish}).
+                Reference SKU <strong className="font-mono text-[#593D30]">{product.sku}</strong>{hasCustomSizes && selectedOption ? ` with size (${selectedOption})` : ''} and finish ({selectedFinish}).
               </p>
             </div>
 

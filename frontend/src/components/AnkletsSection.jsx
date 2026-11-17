@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ProductCard } from './ProductCard';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { isProductWishlisted } from '../services/productService';
+import { formatPrice } from '../services/storefrontService';
 
 export const AnkletsSection = ({
   anklets,
@@ -71,7 +72,7 @@ export const AnkletsSection = ({
                 <div>
                   <span className="text-xs text-[#8E8172] block">Price</span>
                   <span className="text-lg font-mono tabular-nums font-medium text-[#593D30]">
-                    ${featuredAnklet.priceUSD} USD
+                    {formatPrice(featuredAnklet.priceUSD || featuredAnklet.price, featuredAnklet.currency)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs uppercase tracking-widest font-medium text-[#A85F49] group-hover:text-[#8E4D3A] transition-colors">

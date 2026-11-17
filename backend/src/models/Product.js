@@ -2,8 +2,8 @@ import mongoose, { Schema } from 'mongoose';
 
 const ProductOptionSchema = new Schema(
   {
-    type: { type: String, enum: ['size', 'length'], default: 'size' },
-    name: { type: String, default: 'Ring Size (US)' },
+    type: { type: String, enum: ['size', 'length', 'custom', 'free_size', 'none'], default: 'free_size' },
+    name: { type: String, default: 'Size' },
     values: { type: [String], default: [] },
     default: { type: String, default: '' },
   },

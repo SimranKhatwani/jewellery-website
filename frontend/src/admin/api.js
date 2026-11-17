@@ -263,25 +263,103 @@ export async function uploadMediaImage(file) {
 }
 
 // ----------------- Categories API -----------------
+export const DEFAULT_CATEGORIES = [
+  { value: 'rings', label: 'Rings' },
+  { value: 'anklets', label: 'Anklets' },
+  { value: 'earrings', label: 'Earrings' },
+  { value: 'necklaces', label: 'Necklaces' },
+];
+
+export function getStoredCategories() {
+  try {
+    const raw = localStorage.getItem('aurelle_custom_categories');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const map = new Map();
+        DEFAULT_CATEGORIES.forEach((c) => map.set(c.value, c));
+        parsed.forEach((c) => {
+          if (c && c.value && c.label) {
+            map.set(c.value, { value: c.value, label: c.label });
+          }
+        });
+        return Array.from(map.values());
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return DEFAULT_CATEGORIES;
+}
+
+export function saveStoredCategory(categoryObj) {
+  try {
+    const existing = getStoredCategories();
+    const map = new Map();
+    existing.forEach((c) => map.set(c.value, c));
+    map.set(categoryObj.value, {
+      value: categoryObj.value,
+      label: categoryObj.label,
+    });
+    const updated = Array.from(map.values());
+    localStorage.setItem('aurelle_custom_categories', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('aurelle_categories_updated', { detail: updated }));
+    return updated;
+  } catch {
+    return getStoredCategories();
+  }
+}
+
 export async function getAdminCategories() {
-  const res = await fetch(`${API_BASE_URL}/categories`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.categories || [];
+  try {
+    const res = await authFetch('/categories');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+        data.categories.forEach((c) => {
+          if (c.slug && c.name) {
+            saveStoredCategory({ value: c.slug, label: c.name });
+          }
+        });
+      }
+    }
+  } catch {
+    // fallback to stored
+  }
+  return getStoredCategories();
 }
 
 export async function createAdminCategory(payload) {
-  const res = await authFetch('/categories', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const normSlug = (payload.slug || payload.name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
 
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.message || 'Failed to create category');
+  const label = payload.name.trim();
+  saveStoredCategory({ value: normSlug, label });
+
+  try {
+    const res = await authFetch('/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: label,
+        slug: normSlug,
+        ...payload,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.category) {
+      saveStoredCategory({ value: data.category.slug, label: data.category.name });
+      return data.category;
+    }
+  } catch (err) {
+    console.warn('Backend category sync notice:', err.message);
   }
-  return data.category;
+
+  return { slug: normSlug, name: label };
 }
 
 // ----------------- Orders API -----------------

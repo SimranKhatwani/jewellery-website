@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowUpRight } from 'lucide-react';
+import { formatPrice } from '../services/storefrontService';
 
 export const SearchModal = ({
   isOpen,
@@ -44,7 +45,7 @@ export const SearchModal = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search silver rings, anklets, finishes (e.g., Molten, Snake, Curb)..."
+            placeholder="Search fine jewellery, rings, earrings, anklets, necklaces..."
             className="flex-1 bg-transparent text-sm sm:text-base outline-none text-[#593D30] placeholder:text-[#8E8172]/70"
           />
           {query && (
@@ -91,13 +92,23 @@ export const SearchModal = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] uppercase tracking-wider text-[#8E8172] block font-medium">
-                      {product.category === 'rings' ? 'Silver Ring' : 'Silver Anklet'}
+                      {product.category === 'rings'
+                        ? 'Silver Ring'
+                        : product.category === 'anklets'
+                        ? 'Silver Anklet'
+                        : product.category === 'earrings'
+                        ? 'Silver Earrings'
+                        : product.category === 'necklaces'
+                        ? 'Silver Necklace'
+                        : product.category
+                        ? product.category.charAt(0).toUpperCase() + product.category.slice(1)
+                        : 'Fine Jewellery'}
                     </span>
                     <h4 className="text-sm font-serif-display text-[#593D30] truncate group-hover:text-[#A85F49] transition-colors">
                       {product.name}
                     </h4>
                     <span className="text-xs font-mono font-medium text-[#593D30]">
-                      ${product.priceUSD} USD
+                      {formatPrice(product.priceUSD || product.price, product.currency)}
                     </span>
                   </div>
                   <ArrowUpRight className="w-4 h-4 text-[#8E8172] group-hover:text-[#A85F49] shrink-0 transition-colors" />

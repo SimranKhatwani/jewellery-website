@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { resolveMediaUrl } from '../services/productService';
 import { ProductFormModal, CURRENCY_OPTIONS } from './ProductFormModal';
 import { formatPrice, getStoreCurrency, setStoreCurrency } from '../services/storefrontService';
-import { updateAdminStoreCurrency } from './api';
+import { updateAdminStoreCurrency, getStoredCategories } from './api';
 
 export const CatalogueManager = ({
   products = [],
@@ -33,6 +33,15 @@ export const CatalogueManager = ({
 }) => {
   const [storeCurrency, setStoreCurrencyState] = useState(() => getStoreCurrency() || 'USD');
   const [isChangingCurrency, setIsChangingCurrency] = useState(false);
+  const [categoriesList, setCategoriesList] = useState(getStoredCategories);
+
+  useEffect(() => {
+    const handleCategoriesUpdate = () => {
+      setCategoriesList(getStoredCategories());
+    };
+    window.addEventListener('aurelle_categories_updated', handleCategoriesUpdate);
+    return () => window.removeEventListener('aurelle_categories_updated', handleCategoriesUpdate);
+  }, []);
 
   useEffect(() => {
     const handleCurrChange = (e) => {
@@ -220,8 +229,11 @@ export const CatalogueManager = ({
               className="px-2.5 py-1.5 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
             >
               <option value="all">All Categories</option>
-              <option value="rings">Rings</option>
-              <option value="anklets">Anklets</option>
+              {categoriesList.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
             </select>
           </div>
 

@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { uploadMediaImage } from './api';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus } from 'lucide-react';
+import { uploadMediaImage, getStoredCategories, saveStoredCategory, createAdminCategory } from './api';
 import { resolveMediaUrl } from '../services/productService';
 import { getStoreCurrency, setStoreCurrency } from '../services/storefrontService';
 
@@ -26,6 +27,27 @@ export const ProductFormModal = ({
   const [slug, setSlug] = useState(product?.slug || '');
   const [sku, setSku] = useState(product?.sku || '');
   const [category, setCategory] = useState(product?.category || 'rings');
+  const [categoriesList, setCategoriesList] = useState(() => {
+    const list = getStoredCategories();
+    if (product?.category && !list.some((c) => c.value === product.category)) {
+      const formattedLabel = product.category.charAt(0).toUpperCase() + product.category.slice(1);
+      return [...list, { value: product.category, label: formattedLabel }];
+    }
+    return list;
+  });
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categorySyncLoading, setCategorySyncLoading] = useState(false);
+
+  useEffect(() => {
+    const handleCategoriesUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setCategoriesList(e.detail);
+      }
+    };
+    window.addEventListener('aurelle_categories_updated', handleCategoriesUpdate);
+    return () => window.removeEventListener('aurelle_categories_updated', handleCategoriesUpdate);
+  }, []);
   const [currency, setCurrency] = useState(product?.currency || getStoreCurrency() || 'USD');
   const [priceUSD, setPriceUSD] = useState(product?.priceUSD ?? product?.price ?? 150);
   const [subtitle, setSubtitle] = useState(product?.subtitle || '');
@@ -44,16 +66,42 @@ export const ProductFormModal = ({
   const [secondaryImage, setSecondaryImage] = useState(product?.secondaryImage || '');
   const [detailImage, setDetailImage] = useState(product?.detailImage || '');
 
-  // Options & Sizes
-  const [optionType, setOptionType] = useState(
-    product?.options?.type || (category === 'anklets' ? 'length' : 'size')
-  );
-  const [optionValuesStr, setOptionValuesStr] = useState(
-    product?.options?.values?.join(', ') ||
-      (category === 'anklets'
-        ? '21 cm + 4 cm Extender, 24 cm + 4 cm Extender'
-        : 'US 5, US 6, US 7, US 8, US 9')
-  );
+  // Auto-detect initial option type and values
+  const getInitialOptionType = () => {
+    if (product?.options?.type === 'free_size' || product?.options?.type === 'none') {
+      return 'free_size';
+    }
+    const vals = product?.options?.values || [];
+    if (vals.some((v) => typeof v === 'string' && (v.toLowerCase().includes('free') || v.toLowerCase().includes('flexible')))) {
+      return 'free_size';
+    }
+    if (product?.category === 'earrings' || product?.category === 'necklaces') {
+      if (!product?.options?.values || product.options.values.length <= 1) {
+        return 'free_size';
+      }
+    }
+    if (!product && (category === 'earrings' || category === 'necklaces')) {
+      return 'free_size';
+    }
+    return 'custom';
+  };
+
+  const getInitialOptionValuesStr = (initialType) => {
+    if (initialType === 'free_size') {
+      return 'Free Size / Flexible';
+    }
+    if (product?.options?.values && product.options.values.length > 0) {
+      return product.options.values.join(', ');
+    }
+    if (category === 'anklets') {
+      return '21 cm + 4 cm Extender, 24 cm + 4 cm Extender';
+    }
+    return 'US 5, US 6, US 7, US 8, US 9';
+  };
+
+  const initialOptType = getInitialOptionType();
+  const [optionType, setOptionType] = useState(initialOptType);
+  const [optionValuesStr, setOptionValuesStr] = useState(getInitialOptionValuesStr(initialOptType));
 
   // Specifications
   const [purity, setPurity] = useState(product?.specifications?.purity || 'Solid 925 Sterling Silver (Hallmarked)');
@@ -69,6 +117,27 @@ export const ProductFormModal = ({
 
   const fileInputRef = useRef(null);
 
+  const getCategoryPrefix = (cat) => {
+    switch (cat) {
+      case 'anklets':
+        return 'AUR-ANK-0925';
+      case 'earrings':
+        return 'AUR-EAR-0925';
+      case 'necklaces':
+        return 'AUR-NCK-0925';
+      case 'rings':
+        return 'AUR-RNG-0925';
+      case 'bracelets':
+        return 'AUR-BRC-0925';
+      case 'pendants':
+        return 'AUR-PND-0925';
+      default: {
+        const clean = (cat || 'ITM').replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase();
+        return `AUR-${clean || 'ITM'}-0925`;
+      }
+    }
+  };
+
   // Auto-generate slug and SKU when name changes in create mode
   const handleNameChange = (val) => {
     setName(val);
@@ -80,9 +149,86 @@ export const ProductFormModal = ({
       setSlug(generatedSlug);
     }
     if (!isEditing && !sku) {
-      const prefix = category === 'anklets' ? 'AUR-ANK-0925' : 'AUR-RNG-0925';
+      const prefix = getCategoryPrefix(category);
       const code = val.slice(0, 3).toUpperCase() || 'ITM';
       setSku(`${prefix}-${code}`);
+    }
+  };
+
+  // Auto-select option type and values when category changes
+  const handleCategoryChange = (newCat) => {
+    setCategory(newCat);
+    if (!isEditing) {
+      const prefix = getCategoryPrefix(newCat);
+      const code = (name || 'ITM').slice(0, 3).toUpperCase();
+      setSku(`${prefix}-${code}`);
+    }
+    if (newCat === 'rings') {
+      if (optionType !== 'free_size' || optionValuesStr === 'Free Size / Flexible') {
+        setOptionType('custom');
+        setOptionValuesStr('US 5, US 6, US 7, US 8, US 9');
+      }
+    } else if (newCat === 'anklets') {
+      if (optionType !== 'free_size' || optionValuesStr === 'Free Size / Flexible') {
+        setOptionType('custom');
+        setOptionValuesStr('21 cm + 4 cm Extender, 24 cm + 4 cm Extender');
+      }
+    } else {
+      setOptionType('free_size');
+      setOptionValuesStr('Free Size / Flexible');
+    }
+  };
+
+  // Add new category on the fly
+  const handleAddNewCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+
+    const slug = trimmed
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]+/g, '');
+
+    const existing = categoriesList.find(
+      (c) => c.value === slug || c.label.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      handleCategoryChange(existing.value);
+      setIsAddingCategory(false);
+      setNewCategoryName('');
+      return;
+    }
+
+    const newCatObj = { value: slug, label: trimmed };
+    const updated = saveStoredCategory(newCatObj);
+    setCategoriesList(updated);
+    handleCategoryChange(slug);
+    setIsAddingCategory(false);
+    setNewCategoryName('');
+
+    setCategorySyncLoading(true);
+    try {
+      await createAdminCategory({ name: trimmed, slug });
+    } catch (err) {
+      console.warn('Category persist error:', err);
+    } finally {
+      setCategorySyncLoading(false);
+    }
+  };
+
+  // Switch between custom sizes and free size / flexible
+  const handleOptionTypeChange = (newType) => {
+    setOptionType(newType);
+    if (newType === 'free_size') {
+      setOptionValuesStr('Free Size / Flexible');
+    } else {
+      if (optionValuesStr === 'Free Size / Flexible' || !optionValuesStr.trim()) {
+        if (category === 'anklets') {
+          setOptionValuesStr('21 cm + 4 cm Extender, 24 cm + 4 cm Extender');
+        } else {
+          setOptionValuesStr('US 5, US 6, US 7, US 8, US 9');
+        }
+      }
     }
   };
 
@@ -128,10 +274,26 @@ export const ProductFormModal = ({
       return;
     }
 
-    const values = optionValuesStr
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    let finalOptions;
+    if (optionType === 'free_size') {
+      finalOptions = {
+        type: 'free_size',
+        name: 'Size',
+        values: ['Free Size'],
+        default: 'Free Size',
+      };
+    } else {
+      const values = optionValuesStr
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      finalOptions = {
+        type: category === 'anklets' ? 'length' : 'size',
+        name: category === 'anklets' ? 'Available Length' : 'Available Ring Size (US)',
+        values: values.length > 0 ? values : ['Standard'],
+        default: values[0] || 'Standard',
+      };
+    }
 
     const activeCurrencyObj = CURRENCY_OPTIONS.find((c) => c.code === currency) || { code: 'USD', symbol: '$' };
     const stock = Math.max(0, parseInt(stockQuantity, 10) || 0);
@@ -158,12 +320,7 @@ export const ProductFormModal = ({
       primaryImage: primaryImage.trim(),
       secondaryImage: secondaryImage.trim() || undefined,
       detailImage: detailImage.trim() || undefined,
-      options: {
-        type: optionType,
-        name: optionType === 'length' ? 'Available Length' : 'Available Ring Size',
-        values: values.length > 0 ? values : ['Standard'],
-        default: values[0] || 'Standard',
-      },
+      options: finalOptions,
       specifications: {
         purity,
         hallmark,
@@ -313,19 +470,99 @@ export const ProductFormModal = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#593D30] mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-                  >
-                    <option value="rings">Rings</option>
-                    <option value="anklets">Anklets</option>
-                    <option value="earrings">Earrings (New)</option>
-                    <option value="necklaces">Necklaces (New)</option>
-                  </select>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-medium text-[#593D30]">
+                      Category *
+                    </label>
+                    {!isAddingCategory && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCategory(true)}
+                        className="text-[11px] font-semibold text-[#A85F49] hover:text-[#8E4D3A] flex items-center gap-0.5 transition-colors cursor-pointer"
+                        title="Add a new jewellery category"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Category</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {!isAddingCategory ? (
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={category}
+                        onChange={(e) => {
+                          if (e.target.value === '__add_new__') {
+                            setIsAddingCategory(true);
+                          } else {
+                            handleCategoryChange(e.target.value);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
+                      >
+                        {categoriesList.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                        <option value="__add_new__">+ Add New Category...</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCategory(true)}
+                        className="p-2 bg-[#FAF7F2] hover:bg-[#F2ECE1] border border-[#D7C5AF] hover:border-[#A85F49] text-[#A85F49] rounded-xs shrink-0 transition-colors flex items-center justify-center cursor-pointer"
+                        title="Add new category"
+                        aria-label="Add new category"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-[#FAF7F2] border border-[#A85F49]/40 rounded-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-[#A85F49] uppercase tracking-wider">
+                          Create New Category
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingCategory(false);
+                            setNewCategoryName('');
+                          }}
+                          className="text-[#8E8172] hover:text-[#593D30] text-xs px-1 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="e.g. Bracelets, Pendants..."
+                          className="flex-1 px-2.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs text-xs focus:outline-none focus:border-[#A85F49]"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddNewCategory();
+                            } else if (e.key === 'Escape') {
+                              setIsAddingCategory(false);
+                              setNewCategoryName('');
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddNewCategory}
+                          disabled={!newCategoryName.trim() || categorySyncLoading}
+                          className="px-3 py-1.5 bg-[#A85F49] hover:bg-[#8E4D3A] disabled:opacity-50 text-white rounded-xs text-xs font-semibold shrink-0 cursor-pointer"
+                        >
+                          {categorySyncLoading ? 'Adding...' : 'Add'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Currency & Price Selector */}
@@ -667,26 +904,49 @@ export const ProductFormModal = ({
                   </label>
                   <select
                     value={optionType}
-                    onChange={(e) => setOptionType(e.target.value)}
+                    onChange={(e) => handleOptionTypeChange(e.target.value)}
                     className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                   >
-                    <option value="size">Ring Size (US)</option>
-                    <option value="length">Anklet Length</option>
+                    <option value="custom">Custom Sized (Multiple Sizes)</option>
+                    <option value="free_size">Free Size / Flexible (Universal)</option>
                   </select>
+                  <p className="text-[10px] text-[#8E8172] mt-1">
+                    {optionType === 'free_size'
+                      ? 'Universal single fit (Earrings, Necklaces, or Free Size Rings).'
+                      : 'Multiple selectable sizes or lengths for customers.'}
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-[#593D30] mb-1">
                     Available Sizes / Values
                   </label>
-                  <input
-                    type="text"
-                    value={optionValuesStr}
-                    onChange={(e) => setOptionValuesStr(e.target.value)}
-                    placeholder="US 6, US 7, US 8..."
-                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
-                  />
-                  <p className="text-[10px] text-[#8E8172] mt-1">Comma-separated values</p>
+                  {optionType === 'free_size' ? (
+                    <input
+                      type="text"
+                      value="Free Size / Flexible"
+                      readOnly
+                      disabled
+                      className="w-full px-3 py-2 bg-[#F2ECE1] border border-[#D7C5AF]/70 rounded-xs text-[#8E8172] cursor-not-allowed select-none font-medium text-xs"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={optionValuesStr}
+                      onChange={(e) => setOptionValuesStr(e.target.value)}
+                      placeholder={
+                        category === 'anklets'
+                          ? '21 cm + 4 cm Extender, 24 cm + 4 cm Extender'
+                          : 'US 5, US 6, US 7, US 8, US 9'
+                      }
+                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49] text-xs font-mono"
+                    />
+                  )}
+                  <p className="text-[10px] text-[#8E8172] mt-1">
+                    {optionType === 'free_size'
+                      ? 'Universal size. This size will NOT be displayed on the customer website.'
+                      : 'Comma-separated values (e.g. US 5, US 6, US 7). Displayed as size buttons on website.'}
+                  </p>
                 </div>
               </div>
             </div>

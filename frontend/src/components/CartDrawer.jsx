@@ -124,14 +124,29 @@ export const CartDrawer = ({
                       </span>
                     )}
 
-                    {/* Selected options */}
+                    {/* Selected options (filtering out Free Size badges) */}
                     {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1 text-[11px] text-[#593D30]/80">
-                        {Object.entries(item.selectedOptions).map(([key, val]) => (
-                          <span key={key} className="bg-[#FFFFFF] border border-[#D7C5AF]/50 px-1.5 py-0.5 rounded-xs capitalize">
-                            {key}: <strong className="font-medium text-[#593D30]">{val}</strong>
-                          </span>
-                        ))}
+                        {Object.entries(item.selectedOptions)
+                          .filter(([key, val]) => {
+                            if (!val) return false;
+                            const vLower = String(val).toLowerCase();
+                            if (
+                              vLower === 'free size' ||
+                              vLower === 'universal' ||
+                              vLower === 'flexible' ||
+                              vLower === 'free size / flexible' ||
+                              vLower === 'standard'
+                            ) {
+                              return false;
+                            }
+                            return true;
+                          })
+                          .map(([key, val]) => (
+                            <span key={key} className="bg-[#FFFFFF] border border-[#D7C5AF]/50 px-1.5 py-0.5 rounded-xs capitalize">
+                              {key}: <strong className="font-medium text-[#593D30]">{val}</strong>
+                            </span>
+                          ))}
                       </div>
                     )}
 
