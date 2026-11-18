@@ -21,6 +21,12 @@ export function setAdminAuth(token, admin) {
   try {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(admin));
+    if (admin?.storeSlug) {
+      localStorage.setItem('aurelle_store_slug', admin.storeSlug);
+    }
+    if (admin?.tenantId) {
+      localStorage.setItem('aurelle_tenant_id', String(admin.tenantId));
+    }
   } catch {
     // ignore storage error
   }
@@ -30,6 +36,8 @@ export function clearAdminAuth() {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_USER_KEY);
+    localStorage.removeItem('aurelle_store_slug');
+    localStorage.removeItem('aurelle_tenant_id');
   } catch {
     // ignore
   }
@@ -50,6 +58,17 @@ async function authFetch(endpoint, options = {}) {
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const storedUser = getStoredAdminUser();
+  const storeSlug = storedUser?.storeSlug || localStorage.getItem('aurelle_store_slug');
+  const tenantId = storedUser?.tenantId || localStorage.getItem('aurelle_tenant_id');
+
+  if (storeSlug && !headers.has('x-store-slug')) {
+    headers.set('x-store-slug', storeSlug);
+  }
+  if (tenantId && !headers.has('x-tenant-id')) {
+    headers.set('x-tenant-id', String(tenantId));
   }
 
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -135,6 +154,12 @@ export async function checkAdminSession() {
     const data = await res.json();
     if (data.success && data.admin) {
       localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(data.admin));
+      if (data.admin.storeSlug) {
+        localStorage.setItem('aurelle_store_slug', data.admin.storeSlug);
+      }
+      if (data.admin.tenantId) {
+        localStorage.setItem('aurelle_tenant_id', String(data.admin.tenantId));
+      }
       return data.admin;
     }
     return null;

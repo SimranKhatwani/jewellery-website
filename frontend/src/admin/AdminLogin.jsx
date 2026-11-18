@@ -38,9 +38,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) 
       <div className="w-full max-w-md bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-sm shadow-xl p-8 sm:p-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.28em] text-[#A85F49]">
-            AURELLE ATELIER
-          </span>
+
           <h1 className="font-serif text-3xl sm:text-4xl font-light text-[#593D30] tracking-wide mt-2">
             Catalogue Admin
           </h1>
@@ -69,7 +67,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@aurelle.com"
+              placeholder="Enter your E-mail"
               required
               className="w-full px-3.5 py-2.5 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] text-sm focus:outline-none focus:border-[#A85F49] focus:ring-1 focus:ring-[#A85F49] transition-colors"
             />
@@ -86,7 +84,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) 
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+
                 required
                 className="w-full px-3.5 pr-10 py-2.5 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] text-sm focus:outline-none focus:border-[#A85F49] focus:ring-1 focus:ring-[#A85F49] transition-colors"
               />
@@ -121,19 +119,8 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) 
           </button>
         </form>
 
-        {/* Back to Storefront Link & Super Admin Link */}
-        <div className="mt-8 pt-6 border-t border-[#D7C5AF]/40 space-y-3">
-          <div className="flex items-center justify-between text-xs text-[#8E8172]">
-            <span>Platform Super Admin?</span>
-            <button
-              type="button"
-              onClick={onGoToSuperAdmin}
-              className="text-[#A85F49] hover:underline font-mono text-xs"
-            >
-              http://localhost:3000/sa
-            </button>
-          </div>
-
+        {/* Back to Storefront Link */}
+        <div className="mt-8 pt-6 border-t border-[#D7C5AF]/40">
           <div className="text-center">
             <button
               type="button"

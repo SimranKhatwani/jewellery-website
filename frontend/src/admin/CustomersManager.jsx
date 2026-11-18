@@ -403,7 +403,7 @@ export const CustomersManager = ({ admin }) => {
                                 </span>
                               )}
                               <span className="font-serif font-medium text-sm text-[#593D30] group-hover:text-[#A85F49] transition-colors">
-                                {c.name || 'Aurelle Customer'}
+                                {c.name || 'Store Customer'}
                               </span>
                             </div>
 

@@ -18,9 +18,14 @@ async function ensureCustomerRecord(user, tenantId = null) {
     resolvedTenantId = defaultTenant?._id || null;
   }
 
-  let customer = await Customer.findOne({
+  const query = {
     $or: [{ userId: user._id }, { email: user.email }],
-  });
+  };
+  if (resolvedTenantId) {
+    query.tenantId = resolvedTenantId;
+  }
+
+  let customer = await Customer.findOne(query);
 
   if (!customer) {
     customer = await Customer.create({
@@ -223,13 +228,171 @@ export const changeCustomerPassword = async (req, res, next) => {
 };
 
 /**
+ * Synchronize customer orders strictly for a specific tenant
+ */
+export const syncTenantCustomers = async (tenantId) => {
+  if (!tenantId) return;
+
+  // 1. Find all orders strictly belonging to this tenant
+  const tenantOrders = await Order.find({ tenantId }).lean();
+
+  // Group tenant orders by customer email
+  const customerOrdersMap = new Map();
+  for (const o of tenantOrders) {
+    const email = String(o.customerInfo?.email || o.shippingAddress?.email || '').toLowerCase().trim();
+    if (!email) continue;
+    if (!customerOrdersMap.has(email)) {
+      customerOrdersMap.set(email, {
+        userId: o.userId || null,
+        name: o.customerInfo?.name || o.shippingAddress?.name || 'Customer',
+        phone: o.customerInfo?.phone || o.shippingAddress?.phone || '',
+        isGuest: Boolean(o.customerInfo?.isGuest || !o.userId),
+        orders: [],
+      });
+    }
+    const c = customerOrdersMap.get(email);
+    if (!c.userId && o.userId) c.userId = o.userId;
+    c.orders.push(o);
+  }
+
+  // Upsert or update Customer documents strictly for this tenant
+  for (const [email, info] of customerOrdersMap.entries()) {
+    const totalOrders = info.orders.length;
+    const totalSpent = info.orders
+      .filter((o) => o.orderStatus !== 'cancelled')
+      .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
+    const lastOrder = info.orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+    let user = null;
+    if (info.userId) {
+      user = await User.findById(info.userId).lean();
+    }
+    if (!user) {
+      user = await User.findOne({ email }).lean();
+    }
+
+    const isGuest = !user;
+
+    await Customer.findOneAndUpdate(
+      { tenantId, email },
+      {
+        $set: {
+          tenantId,
+          userId: user ? user._id : null,
+          name: (user ? user.name : info.name) || email.split('@')[0],
+          email,
+          phone: (user ? user.phoneNumber : info.phone) || '',
+          status: (user ? user.status : 'active') || 'active',
+          isGuest,
+          totalOrders,
+          totalSpent: Math.round(totalSpent * 100) / 100,
+          lastOrderDate: lastOrder ? lastOrder.createdAt : null,
+        },
+        ...(isGuest ? { $addToSet: { tags: 'guest' } } : { $pull: { tags: 'guest' } }),
+      },
+      { upsert: true, new: true }
+    );
+  }
+
+  // 2. Also ensure registered shoppers who explicitly registered for this tenant are updated
+  const tenantRegistrations = await Customer.find({ tenantId, userId: { $ne: null } }).lean();
+  for (const reg of tenantRegistrations) {
+    const orders = tenantOrders.filter((o) =>
+      (reg.userId && String(o.userId) === String(reg.userId)) ||
+      (o.customerInfo?.email && o.customerInfo.email.toLowerCase().trim() === reg.email.toLowerCase().trim())
+    );
+    const totalOrders = orders.length;
+    const totalSpent = orders
+      .filter((o) => o.orderStatus !== 'cancelled')
+      .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
+    const lastOrder = orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+    await Customer.updateOne(
+      { _id: reg._id },
+      {
+        $set: {
+          totalOrders,
+          totalSpent: Math.round(totalSpent * 100) / 100,
+          lastOrderDate: lastOrder ? lastOrder.createdAt : null,
+        },
+      }
+    );
+  }
+};
+
+/**
+ * One-time repair and strict tenant partitioning of historical customer records
+ */
+export const repairAndSyncCustomers = async () => {
+  try {
+    const aurelleTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+    if (!aurelleTenant) return;
+
+    // 1. Remove store owners and staff who have 0 orders from Customer collection
+    const staffMemberships = await TenantMembership.find({
+      status: 'active',
+      roleId: { $ne: null },
+    }).lean();
+    const staffUserIds = staffMemberships.map((m) => String(m.userId));
+
+    if (staffUserIds.length > 0) {
+      await Customer.deleteMany({
+        userId: { $in: staffUserIds },
+        totalOrders: 0,
+      });
+    }
+
+    // 2. Re-attribute existing customers back to their genuine tenant based on Orders
+    const givaTenant = await Tenant.findOne({ slug: 'giva-jewels' });
+    if (givaTenant) {
+      // Find any customers incorrectly linked to GIVA
+      const givaCustomers = await Customer.find({ tenantId: givaTenant._id }).lean();
+      for (const gc of givaCustomers) {
+        const givaOrdersCount = await Order.countDocuments({
+          tenantId: givaTenant._id,
+          $or: [
+            ...(gc.userId ? [{ userId: gc.userId }] : []),
+            { 'customerInfo.email': gc.email },
+          ],
+        });
+
+        // If this customer has no orders on GIVA, they belong to Aurelle (e.g. Siya, Dinesh, Priya)
+        if (givaOrdersCount === 0) {
+          if (gc.email === 'teststoreowner@giva.com') {
+            await Customer.deleteOne({ _id: gc._id });
+          } else {
+            await Customer.updateOne({ _id: gc._id }, { $set: { tenantId: aurelleTenant._id } });
+          }
+        }
+      }
+    }
+
+    // 3. Sync customer orders strictly per tenant
+    const allTenants = await Tenant.find().lean();
+    for (const t of allTenants) {
+      await syncTenantCustomers(t._id);
+    }
+  } catch (err) {
+    console.warn('[Customer Repair] Warning during customer re-partitioning:', err.message);
+  }
+};
+
+export const syncExistingCustomersToCollection = async () => {
+  return repairAndSyncCustomers();
+};
+
+/**
  * GET /api/v1/customers
  * GET /api/customers
- * Store Admin endpoint to list all customers from `customers` collection for tenant
+ * Store Admin endpoint to list all customers strictly belonging to the active tenant
  */
 export const listStoreCustomers = async (req, res, next) => {
   try {
     const tenantId = req.tenant?._id;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant store context required.' });
+    }
+
     const {
       page = 1,
       limit = 20,
@@ -240,13 +403,13 @@ export const listStoreCustomers = async (req, res, next) => {
       sortOrder = 'desc',
     } = req.query;
 
-    // Keep customers collection continuously synchronized with users and orders
-    await syncExistingCustomersToCollection(req.tenant?.slug || 'aurelle');
+    // Run repair check and sync this tenant's orders
+    await repairAndSyncCustomers();
+    await syncTenantCustomers(tenantId);
 
-    const query = {};
-    if (tenantId) {
-      query.$or = [{ tenantId }, { tenantId: null }];
-    }
+    // Strictly enforce tenant boundary
+    const query = { tenantId };
+
     if (status && status !== 'all') {
       query.status = status;
     }
@@ -280,7 +443,7 @@ export const listStoreCustomers = async (req, res, next) => {
     const [total, customers, allCustomersForMetrics] = await Promise.all([
       Customer.countDocuments(query),
       Customer.find(query).sort(sort).skip(skip).limit(numLimit).lean(),
-      Customer.find(tenantId ? { $or: [{ tenantId }, { tenantId: null }] } : {}).lean(),
+      Customer.find({ tenantId }).lean(),
     ]);
 
     const metrics = {
@@ -307,18 +470,20 @@ export const listStoreCustomers = async (req, res, next) => {
 
 /**
  * GET /api/v1/customers/:id
- * Store Admin endpoint to get a single customer details with full purchase history from `customers` collection
+ * Store Admin endpoint to get a single customer details with full purchase history, strictly scoped to tenant
  */
 export const getStoreCustomerById = async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id).lean();
+    const tenantId = req.tenant?._id;
+    const customer = await Customer.findOne({ _id: req.params.id, tenantId }).lean();
     if (!customer) {
-      throw new NotFoundError('Customer record not found in customers collection.');
+      throw new NotFoundError('Customer record not found for this store.');
     }
 
-    // Find all purchase orders for this customer
+    // Find purchase orders strictly for this tenant and customer
     const email = String(customer.email || '').toLowerCase().trim();
     const orders = await Order.find({
+      tenantId,
       $or: [
         ...(customer.userId ? [{ userId: customer.userId }] : []),
         { 'customerInfo.email': email },
@@ -327,7 +492,7 @@ export const getStoreCustomerById = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Recompute authoritative totals
+    // Recompute authoritative totals for this tenant
     const totalSpent = orders
       .filter((o) => o.orderStatus !== 'cancelled')
       .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
@@ -354,19 +519,24 @@ export const getStoreCustomerById = async (req, res, next) => {
 
 /**
  * PATCH /api/v1/customers/:id
- * Store Admin endpoint to update customer status, tags, notes
+ * Store Admin endpoint to update customer status, tags, notes strictly within tenant boundary
  */
 export const updateStoreCustomer = async (req, res, next) => {
   try {
+    const tenantId = req.tenant?._id;
     const { status, tags, notes } = req.body;
     const updates = {};
     if (status !== undefined) updates.status = status;
     if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags : [tags];
     if (notes !== undefined) updates.notes = String(notes).trim();
 
-    const customer = await Customer.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true });
+    const customer = await Customer.findOneAndUpdate(
+      { _id: req.params.id, tenantId },
+      { $set: updates },
+      { new: true }
+    );
     if (!customer) {
-      throw new NotFoundError('Customer record not found in customers collection.');
+      throw new NotFoundError('Customer record not found for this store.');
     }
 
     res.json({
@@ -376,105 +546,5 @@ export const updateStoreCustomer = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
-  }
-};
-
-/**
- * Automatic Backfill / Sync of existing users & guest orders into `customers` collection
- */
-export const syncExistingCustomersToCollection = async (targetTenantSlug = 'aurelle') => {
-  try {
-    const tenant = (await Tenant.findOne({ slug: targetTenantSlug })) || (await Tenant.findOne({ status: 'active' }));
-    const tenantId = tenant ? tenant._id : null;
-
-    // 1. Sync all registered Users (excluding super admins)
-    const users = await User.find({ isSuperAdmin: false }).lean();
-    for (const u of users) {
-      const email = String(u.email || '').toLowerCase().trim();
-      if (!email) continue;
-
-      const userOrders = await Order.find({
-        $or: [{ userId: u._id }, { 'customerInfo.email': email }],
-      }).lean();
-
-      const totalOrders = userOrders.length;
-      const totalSpent = userOrders
-        .filter((o) => o.orderStatus !== 'cancelled')
-        .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
-      const lastOrder = userOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-      await Customer.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            tenantId,
-            userId: u._id,
-            name: u.name || email.split('@')[0],
-            email,
-            phone: u.phoneNumber || '',
-            status: u.status || 'active',
-            isGuest: false,
-            totalOrders,
-            totalSpent: Math.round(totalSpent * 100) / 100,
-            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
-          },
-          $pull: { tags: 'guest' },
-        },
-        { upsert: true }
-      );
-    }
-
-    // 2. Sync all guest orders from Order collection
-    const guestOrders = await Order.find({
-      $or: [{ userId: null }, { 'customerInfo.isGuest': true }],
-    }).lean();
-
-    const guestMap = new Map();
-    for (const o of guestOrders) {
-      const email = String(o.customerInfo?.email || o.shippingAddress?.email || '').toLowerCase().trim();
-      if (!email) continue;
-      if (!guestMap.has(email)) {
-        guestMap.set(email, {
-          name: o.customerInfo?.name || o.shippingAddress?.name || 'Guest Customer',
-          phone: o.customerInfo?.phone || o.shippingAddress?.phone || '',
-          orders: [],
-        });
-      }
-      guestMap.get(email).orders.push(o);
-    }
-
-    for (const [email, info] of guestMap.entries()) {
-      const existing = await Customer.findOne({ email });
-      if (existing && existing.userId) {
-        continue;
-      }
-
-      const totalOrders = info.orders.length;
-      const totalSpent = info.orders
-        .filter((o) => o.orderStatus !== 'cancelled')
-        .reduce((sum, o) => sum + (o.pricing?.totalPayable || 0), 0);
-      const lastOrder = info.orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-      await Customer.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            tenantId,
-            name: info.name,
-            email,
-            phone: info.phone,
-            status: 'active',
-            isGuest: true,
-            totalOrders,
-            totalSpent: Math.round(totalSpent * 100) / 100,
-            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
-          },
-          $addToSet: { tags: 'guest' },
-        },
-        { upsert: true }
-      );
-    }
-  } catch (err) {
-    console.warn('[CustomerSync] Auto-sync notice:', err.message);
   }
 };

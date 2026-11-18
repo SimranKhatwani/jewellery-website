@@ -16,7 +16,7 @@ const startServer = async () => {
     // Attempt database connection
     try {
       await connectDB();
-      // Synchronize existing customers collection with users and orders
+      // Synchronize and strictly partition customers collection per tenant
       syncExistingCustomersToCollection().catch((err) => {
         console.warn('[Startup] Initial customer sync notice:', err.message);
       });

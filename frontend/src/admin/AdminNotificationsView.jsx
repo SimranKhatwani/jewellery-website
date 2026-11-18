@@ -61,22 +61,20 @@ export const AdminNotificationsView = ({
           <button
             type="button"
             onClick={() => setFilterUnreadOnly(false)}
-            className={`px-3 py-1.5 rounded-xs transition-colors font-medium ${
-              !filterUnreadOnly
-                ? 'bg-[#593D30] text-[#FFFFFF]'
-                : 'text-[#8E8172] hover:text-[#593D30]'
-            }`}
+            className={`px-3 py-1.5 rounded-xs transition-colors font-medium ${!filterUnreadOnly
+              ? 'bg-[#593D30] text-[#FFFFFF]'
+              : 'text-[#8E8172] hover:text-[#593D30]'
+              }`}
           >
             All Alerts ({notifications.length})
           </button>
           <button
             type="button"
             onClick={() => setFilterUnreadOnly(true)}
-            className={`px-3 py-1.5 rounded-xs transition-colors font-medium flex items-center gap-1.5 ${
-              filterUnreadOnly
-                ? 'bg-[#593D30] text-[#FFFFFF]'
-                : 'text-[#8E8172] hover:text-[#593D30]'
-            }`}
+            className={`px-3 py-1.5 rounded-xs transition-colors font-medium flex items-center gap-1.5 ${filterUnreadOnly
+              ? 'bg-[#593D30] text-[#FFFFFF]'
+              : 'text-[#8E8172] hover:text-[#593D30]'
+              }`}
           >
             <span>Unread</span>
             {unreadCount > 0 && (
@@ -87,16 +85,14 @@ export const AdminNotificationsView = ({
           </button>
         </div>
 
-        <span className="text-[11px] text-[#8E8172]">
-          Socket.io Real-Time Push Active
-        </span>
+
       </div>
 
       {/* Notifications List */}
       <div className="bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs shadow-xs divide-y divide-[#D7C5AF]/30 overflow-hidden">
         {displayedNotifications.length === 0 ? (
           <div className="py-20 text-center space-y-2">
-            <Sparkles className="w-8 h-8 text-[#D7C5AF] mx-auto" />
+
             <h4 className="font-serif text-base text-[#593D30]">
               {filterUnreadOnly ? 'No unread notifications' : 'No notifications yet'}
             </h4>
@@ -110,9 +106,8 @@ export const AdminNotificationsView = ({
           displayedNotifications.map((notif) => (
             <div
               key={notif._id}
-              className={`p-5 transition-colors flex items-start gap-4 ${
-                !notif.isRead ? 'bg-[#FAF7F2]/60' : 'bg-[#FFFFFF]'
-              }`}
+              className={`p-5 transition-colors flex items-start gap-4 ${!notif.isRead ? 'bg-[#FAF7F2]/60' : 'bg-[#FFFFFF]'
+                }`}
             >
               {/* Unread indicator */}
               <div className="mt-1 shrink-0">

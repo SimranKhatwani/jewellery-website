@@ -89,10 +89,10 @@ export const AdminSidebar = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-sans font-bold uppercase tracking-[0.28em] text-[#A85F49] block">
-                AURELLE ATELIER
+                {admin?.storeName ? admin.storeName.toUpperCase() : 'STORE ATELIER'}
               </span>
-              <h2 className="font-serif text-xl font-light text-[#593D30] tracking-wide mt-0.5">
-                Store Admin
+              <h2 className="font-serif text-xl font-light text-[#593D30] tracking-wide mt-0.5 truncate max-w-[180px]">
+                {admin?.storeName || 'Store Admin'}
               </h2>
             </div>
             {/* Mobile close button */}

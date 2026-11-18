@@ -172,6 +172,30 @@ export const resolveLegacyTenant = async (req, _res, next) => {
     }
 
     if (!tenant) {
+      // Check if JWT payload carries tenantId or storeSlug
+      if (req.admin?.tenantId && mongoose.Types.ObjectId.isValid(String(req.admin.tenantId))) {
+        tenant = await Tenant.findById(req.admin.tenantId);
+      } else if (req.admin?.storeSlug) {
+        tenant = await Tenant.findOne({ slug: String(req.admin.storeSlug).toLowerCase().trim() });
+      }
+    }
+
+    if (!tenant) {
+      // If user/admin is authenticated and not specifying a tenant header,
+      // resolve to their primary assigned store from TenantMembership
+      const authUserId = req.user?._id || req.admin?.userId || req.admin?.id;
+      if (authUserId && mongoose.Types.ObjectId.isValid(String(authUserId))) {
+        const membership = await TenantMembership.findOne({
+          userId: authUserId,
+          status: 'active',
+        }).populate('tenantId');
+        if (membership?.tenantId && membership.tenantId.status !== 'archived') {
+          tenant = membership.tenantId;
+        }
+      }
+    }
+
+    if (!tenant) {
       tenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
     }
 

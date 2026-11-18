@@ -41,7 +41,7 @@ export const AdminHeader = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[10px] text-[#8E8172] uppercase tracking-[0.16em]">
-              <span>Store Admin</span>
+              <span>{admin?.storeName || 'Store Admin'}</span>
               <span>/</span>
               <span className="text-[#A85F49] font-semibold truncate">
                 {TAB_TITLES[activeTab] || 'Management'}

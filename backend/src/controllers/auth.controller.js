@@ -1,11 +1,16 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { Admin } from '../models/Admin.js';
 import { User } from '../models/User.js';
+import { Tenant } from '../models/Tenant.js';
+import { TenantMembership } from '../models/TenantMembership.js';
+import { USER_STATUS, MEMBERSHIP_STATUS } from '../config/constants.js';
 import { config } from '../config/env.js';
 
 /**
  * POST /api/auth/login
  * Public endpoint for admin authentication
+ * Supports unified login across legacy Admin and multi-tenant User/Store Admins
  */
 export const login = async (req, res, next) => {
   try {
@@ -19,9 +24,13 @@ export const login = async (req, res, next) => {
       return;
     }
 
-    const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (!admin) {
+    // 1. Look up user across both Admin and unified User models
+    let admin = await Admin.findOne({ email: normalizedEmail });
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (!admin && !user) {
       res.status(401).json({
         success: false,
         message: 'Invalid administrative credentials.',
@@ -29,7 +38,15 @@ export const login = async (req, res, next) => {
       return;
     }
 
-    const isMatch = await admin.comparePassword(password);
+    // 2. Validate password against available identity records
+    let isMatch = false;
+    if (admin) {
+      isMatch = await admin.comparePassword(password);
+    }
+    if (!isMatch && user) {
+      isMatch = await user.comparePassword(password);
+    }
+
     if (!isMatch) {
       res.status(401).json({
         success: false,
@@ -38,29 +55,119 @@ export const login = async (req, res, next) => {
       return;
     }
 
-    // Sync tokenVersion across Admin and bridged User
+    // 3. If User exists, verify account status
+    if (user && user.status && user.status !== USER_STATUS.ACTIVE) {
+      res.status(403).json({
+        success: false,
+        message: `Account is ${user.status}. Please contact support.`,
+      });
+      return;
+    }
+
+    // 4. Resolve Store Admin & Multi-Tenant Authority
+    let userMemberships = [];
+    if (user) {
+      userMemberships = await TenantMembership.find({
+        userId: user._id,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      })
+        .populate('tenantId', '_id name slug status')
+        .populate('roleId', 'name slug permissions');
+    }
+
+    // Check if the user has administrative privileges:
+    // Either legacy Admin model, User.isSuperAdmin, or active TenantMembership (store_admin, etc.)
+    const hasStoreAccess =
+      Boolean(admin) ||
+      Boolean(user?.isSuperAdmin) ||
+      userMemberships.length > 0;
+
+    if (!hasStoreAccess) {
+      res.status(403).json({
+        success: false,
+        message: 'Access denied: This account does not possess store administrative privileges.',
+      });
+      return;
+    }
+
+    // 5. Auto-bridge / sync between User and Admin models
+    if (!admin && user) {
+      admin = await Admin.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+          email: normalizedEmail,
+          name: user.name || 'Store Admin',
+          passwordHash: user.passwordHash,
+          role: user.isSuperAdmin ? 'superadmin' : 'admin',
+          tokenVersion: user.tokenVersion || 0,
+          lastLogin: new Date(),
+        },
+        { upsert: true, new: true }
+      );
+    } else if (admin && user) {
+      // Sync password hash from the successful match
+      if (admin.passwordHash !== user.passwordHash) {
+        admin.passwordHash = user.passwordHash;
+      }
+      admin.lastLogin = new Date();
+      await admin.save();
+    } else if (admin && !user) {
+      // Bridge legacy Admin to User
+      user = await User.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+          name: admin.name || 'Aurelle Admin',
+          email: admin.email,
+          passwordHash: admin.passwordHash,
+          isSuperAdmin: admin.role === 'superadmin',
+          status: USER_STATUS.ACTIVE,
+          tokenVersion: admin.tokenVersion || 0,
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    // 6. Determine primary store tenant for this admin
+    let primaryTenant = null;
+    if (userMemberships.length > 0) {
+      primaryTenant = userMemberships[0].tenantId;
+    } else {
+      // Check if user owns a tenant directly
+      primaryTenant = await Tenant.findOne({ ownerId: user?._id || admin._id, status: { $ne: 'archived' } });
+      if (!primaryTenant) {
+        // Fallback for platform superadmin or default admin
+        primaryTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+      }
+    }
+
+    // Sync token versions across both records
     const currentAdminVersion = admin.tokenVersion || 0;
-    const bridgedUser = await User.findOne({ email: admin.email });
-    const targetVersion = Math.max(currentAdminVersion, bridgedUser?.tokenVersion || 0);
+    const currentUserVersion = user?.tokenVersion || 0;
+    const targetVersion = Math.max(currentAdminVersion, currentUserVersion);
 
     admin.tokenVersion = targetVersion;
     admin.lastLogin = new Date();
     await admin.save();
 
-    if (bridgedUser && (bridgedUser.tokenVersion || 0) !== targetVersion) {
-      bridgedUser.tokenVersion = targetVersion;
-      await bridgedUser.save();
+    if (user && (user.tokenVersion || 0) !== targetVersion) {
+      user.tokenVersion = targetVersion;
+      user.lastLoginAt = new Date();
+      await user.save();
     }
 
-    // Sign JWT with tokenVersion for session invalidation
+    // Sign JWT with tokenVersion and tenant metadata
     const jwtSecret = config.jwt.secret;
     const expiresIn = config.jwt.expiresIn;
 
     const token = jwt.sign(
       {
         id: admin._id,
+        userId: user?._id || admin._id,
         email: admin.email,
         role: admin.role,
+        isSuperAdmin: Boolean(user?.isSuperAdmin || admin.role === 'superadmin'),
+        tenantId: primaryTenant?._id,
+        storeSlug: primaryTenant?.slug,
         tokenVersion: targetVersion,
       },
       jwtSecret,
@@ -73,9 +180,14 @@ export const login = async (req, res, next) => {
       token,
       admin: {
         id: admin._id,
+        userId: user?._id || admin._id,
         email: admin.email,
         name: admin.name,
         role: admin.role,
+        isSuperAdmin: Boolean(user?.isSuperAdmin || admin.role === 'superadmin'),
+        tenantId: primaryTenant?._id,
+        storeSlug: primaryTenant?.slug,
+        storeName: primaryTenant?.name,
         tokenVersion: targetVersion,
         lastLogin: admin.lastLogin,
       },
@@ -92,7 +204,7 @@ export const login = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     const adminId = req.admin?.id || req.admin?.userId;
-    if (adminId) {
+    if (adminId && mongoose.Types.ObjectId.isValid(String(adminId))) {
       await Admin.findByIdAndUpdate(adminId, { $inc: { tokenVersion: 1 } });
     }
     if (req.user) {
@@ -114,7 +226,23 @@ export const logout = async (req, res, next) => {
  */
 export const getMe = async (req, res, next) => {
   try {
-    const admin = await Admin.findById(req.admin?.id).select('-passwordHash');
+    const adminId = req.admin?.id || req.admin?.userId;
+    let admin = null;
+    if (adminId && mongoose.Types.ObjectId.isValid(String(adminId))) {
+      admin = await Admin.findById(adminId).select('-passwordHash').lean();
+    }
+    if (!admin && req.admin?.email) {
+      admin = await Admin.findOne({ email: req.admin.email }).select('-passwordHash').lean();
+    }
+    if (!admin && req.user) {
+      admin = {
+        _id: req.user._id,
+        id: req.user._id,
+        email: req.user.email,
+        name: req.user.name,
+        role: req.user.isSuperAdmin ? 'superadmin' : 'admin',
+      };
+    }
 
     if (!admin) {
       res.status(404).json({
@@ -124,9 +252,31 @@ export const getMe = async (req, res, next) => {
       return;
     }
 
+    // Attach storeSlug and tenant details
+    let primaryTenant = null;
+    const userId = req.user?._id || admin.id || admin._id;
+    if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+      const membership = await TenantMembership.findOne({
+        userId,
+        status: MEMBERSHIP_STATUS.ACTIVE,
+      }).populate('tenantId', '_id name slug');
+      if (membership?.tenantId) {
+        primaryTenant = membership.tenantId;
+      }
+    }
+
+    if (!primaryTenant) {
+      primaryTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+    }
+
     res.json({
       success: true,
-      admin,
+      admin: {
+        ...admin,
+        tenantId: primaryTenant?._id,
+        storeSlug: primaryTenant?.slug,
+        storeName: primaryTenant?.name,
+      },
     });
   } catch (error) {
     next(error);
