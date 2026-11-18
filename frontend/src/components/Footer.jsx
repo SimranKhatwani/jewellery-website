@@ -233,7 +233,7 @@ export const Footer = ({
         </div>
 
         {/* Bottom Row: Legal & Plain-text Purchase Notice */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#F7F1E9]/75">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#F7F1E9]/75 border-b border-[#D7C5AF]/15 pb-6">
           <p>{copyrightText}</p>
           <div className="flex flex-wrap items-center gap-6">
             <button
@@ -264,6 +264,19 @@ export const Footer = ({
             <span>Hallmarked Quality</span>
             {isAurelle && <span>Amazon and Flipkart</span>}
           </div>
+        </div>
+
+        {/* Agency Attribution - Universal across all tenant storefronts */}
+        <div className="pt-4 text-center text-[12px] text-[#F7F1E9]/70 font-light tracking-wide">
+          <span>Designed &amp; Developed by ❤️ </span>
+          <a
+            href="https://www.requingroup.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#FFFFFF] hover:text-[#D7C5AF]  hover:decoration-[#FFFFFF] underline transition-colors font-medium inline-flex items-center gap-1"
+          >
+            Requin Solutions Pvt. Ltd
+          </a>
         </div>
 
       </div>
