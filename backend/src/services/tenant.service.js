@@ -14,6 +14,7 @@ import { sendStaffInvitationEmail, sendStaffWelcomeEmail } from './email.service
 import { ensureSystemRoles } from './role.service.js';
 import { sanitizeContentData } from '../utils/sanitize.js';
 import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
+import { config as env } from '../config/env.js';
 
 export const createTenant = async ({ userId, name, slug, customDomain = null, req = null }) => {
   const normalizedSlug = slug.toLowerCase().trim();
@@ -308,6 +309,10 @@ export const transferTenantOwnership = async ({ tenantId, currentOwnerId, newOwn
 
 export const inviteStaffMember = async ({ tenantId, inviterId, email, roleId, req = null }) => {
   const normalizedEmail = email.toLowerCase().trim();
+  const superAdminEmail = (env.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+  if (normalizedEmail === superAdminEmail || normalizedEmail.startsWith('superadmin@')) {
+    throw new BadRequestError('Cannot invite platform superadmin account as store staff.');
+  }
 
   // 1. Verify Role exists and is applicable to this tenant
   const role = await Role.findOne({
@@ -409,6 +414,10 @@ export const createStaffMemberDirectly = async ({
   req = null,
 }) => {
   const normalizedEmail = email.toLowerCase().trim();
+  const superAdminEmail = (env.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+  if (normalizedEmail === superAdminEmail || normalizedEmail.startsWith('superadmin@')) {
+    throw new BadRequestError('Cannot add platform superadmin account as store staff.');
+  }
 
   await ensureSystemRoles();
 
@@ -548,7 +557,7 @@ export const createStaffMemberDirectly = async ({
 export const listTenantStaffMembers = async (tenantId) => {
   const [memberships, invitations] = await Promise.all([
     TenantMembership.find({ tenantId })
-      .populate('userId', 'name email status lastLoginAt phoneNumber')
+      .populate('userId', 'name email status lastLoginAt phoneNumber isSuperAdmin')
       .populate('roleId', 'name slug permissions isSystemRole')
       .populate('invitedBy', 'name email'),
     Invitation.find({ tenantId, status: 'pending' })
@@ -556,9 +565,30 @@ export const listTenantStaffMembers = async (tenantId) => {
       .populate('invitedBy', 'name email'),
   ]);
 
+  const superAdminEmail = (env.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+
+  // Strict isolation: Never expose platform superadmin accounts in tenant store staff
+  const members = memberships.filter((m) => {
+    if (!m.userId) return false;
+    if (m.userId.isSuperAdmin) return false;
+    const email = (m.userId.email || '').toLowerCase().trim();
+    if (email === superAdminEmail || email.startsWith('superadmin@') || email.includes('superadmin')) {
+      return false;
+    }
+    return true;
+  });
+
+  const pendingInvitations = invitations.filter((inv) => {
+    const email = (inv.email || '').toLowerCase().trim();
+    if (email === superAdminEmail || email.startsWith('superadmin@') || email.includes('superadmin')) {
+      return false;
+    }
+    return true;
+  });
+
   return {
-    members: memberships,
-    pendingInvitations: invitations,
+    members,
+    pendingInvitations,
   };
 };
 
@@ -594,6 +624,12 @@ export const updateStaffMembership = async ({
   const user = await User.findById(membership.userId);
   if (!user) {
     throw new NotFoundError('User account associated with this membership was not found.');
+  }
+
+  // Prevent modifying platform superadmin accounts from store admin panel
+  const superAdminEmail = (env.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+  if (user.isSuperAdmin || (user.email && (user.email.toLowerCase() === superAdminEmail || user.email.toLowerCase().startsWith('superadmin@')))) {
+    throw new ForbiddenError('Platform superadmin accounts cannot be modified from the store admin panel.');
   }
 
   let oldEmail = user.email;
@@ -718,6 +754,13 @@ export const removeStaffMember = async ({ tenantId, membershipId, removerId, req
   const tenant = await Tenant.findById(tenantId);
   if (tenant && tenant.ownerId.equals(membership.userId)) {
     throw new ForbiddenError('Cannot remove the store owner from store membership.');
+  }
+
+  // Prevent modifying or removing platform superadmin accounts from store admin panel
+  const superAdminEmail = (env.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+  const targetUser = await User.findById(membership.userId);
+  if (targetUser && (targetUser.isSuperAdmin || (targetUser.email && (targetUser.email.toLowerCase() === superAdminEmail || targetUser.email.toLowerCase().startsWith('superadmin@'))))) {
+    throw new ForbiddenError('Platform superadmin accounts cannot be modified or removed from store admin panel.');
   }
 
   await TenantMembership.deleteOne({ _id: membershipId, tenantId });

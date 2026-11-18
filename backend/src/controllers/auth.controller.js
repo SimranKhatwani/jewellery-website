@@ -90,6 +90,9 @@ export const login = async (req, res, next) => {
       return;
     }
 
+    const superAdminEmail = (config.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+    const isPlatformSuperAdmin = normalizedEmail === superAdminEmail || (Boolean(user?.isSuperAdmin) && normalizedEmail.startsWith('superadmin@'));
+
     // 5. Auto-bridge / sync between User and Admin models
     if (!admin && user) {
       admin = await Admin.findOneAndUpdate(
@@ -98,7 +101,7 @@ export const login = async (req, res, next) => {
           email: normalizedEmail,
           name: user.name || 'Store Admin',
           passwordHash: user.passwordHash,
-          role: user.isSuperAdmin ? 'superadmin' : 'admin',
+          role: isPlatformSuperAdmin ? 'superadmin' : 'admin',
           tokenVersion: user.tokenVersion || 0,
           lastLogin: new Date(),
         },
@@ -109,6 +112,7 @@ export const login = async (req, res, next) => {
       if (admin.passwordHash !== user.passwordHash) {
         admin.passwordHash = user.passwordHash;
       }
+      admin.role = isPlatformSuperAdmin ? 'superadmin' : 'admin';
       admin.lastLogin = new Date();
       await admin.save();
     } else if (admin && !user) {
@@ -119,7 +123,7 @@ export const login = async (req, res, next) => {
           name: admin.name || 'Aurelle Admin',
           email: admin.email,
           passwordHash: admin.passwordHash,
-          isSuperAdmin: admin.role === 'superadmin',
+          isSuperAdmin: isPlatformSuperAdmin,
           status: USER_STATUS.ACTIVE,
           tokenVersion: admin.tokenVersion || 0,
         },
@@ -165,7 +169,7 @@ export const login = async (req, res, next) => {
         userId: user?._id || admin._id,
         email: admin.email,
         role: admin.role,
-        isSuperAdmin: Boolean(user?.isSuperAdmin || admin.role === 'superadmin'),
+        isSuperAdmin: isPlatformSuperAdmin,
         tenantId: primaryTenant?._id,
         storeSlug: primaryTenant?.slug,
         tokenVersion: targetVersion,
@@ -176,9 +180,9 @@ export const login = async (req, res, next) => {
 
     // Determine resolved role and permissions for response
     const primaryMembership = userMemberships.length > 0 ? userMemberships[0] : null;
-    const resolvedRoleSlug = primaryMembership?.roleId?.slug || (user?.isSuperAdmin || admin.role === 'superadmin' ? 'superadmin' : 'store_admin');
+    const resolvedRoleSlug = primaryMembership?.roleId?.slug || (isPlatformSuperAdmin ? 'superadmin' : 'store_admin');
     const resolvedRoleName = primaryMembership?.roleId?.name || (resolvedRoleSlug === 'superadmin' ? 'Platform Super Admin' : 'Store Administrator');
-    const resolvedPermissions = (user?.isSuperAdmin || admin.role === 'superadmin')
+    const resolvedPermissions = isPlatformSuperAdmin
       ? ['*']
       : (primaryMembership?.roleId?.permissions || (resolvedRoleSlug === 'store_admin' ? ['*'] : []));
 
@@ -194,7 +198,7 @@ export const login = async (req, res, next) => {
         role: resolvedRoleSlug,
         roleName: resolvedRoleName,
         permissions: resolvedPermissions,
-        isSuperAdmin: Boolean(user?.isSuperAdmin || admin.role === 'superadmin'),
+        isSuperAdmin: isPlatformSuperAdmin,
         tenantId: primaryTenant?._id,
         storeSlug: primaryTenant?.slug,
         storeName: primaryTenant?.name,
@@ -263,10 +267,14 @@ export const getMe = async (req, res, next) => {
     }
 
     // Attach storeSlug, tenant details, and RBAC permissions
+    const superAdminEmail = (config.superAdmin?.email || 'superadmin@aurelle.com').toLowerCase().trim();
+    const currentEmail = (req.user?.email || admin.email || '').toLowerCase().trim();
+    const isPlatformSuperAdmin = currentEmail === superAdminEmail || (Boolean(req.user?.isSuperAdmin) && currentEmail.startsWith('superadmin@'));
+
     let primaryTenant = null;
-    let resolvedRoleSlug = admin.role;
-    let resolvedRoleName = admin.role === 'superadmin' ? 'Platform Super Admin' : 'Store Administrator';
-    let resolvedPermissions = admin.role === 'superadmin' || req.user?.isSuperAdmin ? ['*'] : [];
+    let resolvedRoleSlug = isPlatformSuperAdmin ? 'superadmin' : (admin.role === 'superadmin' ? 'store_admin' : admin.role);
+    let resolvedRoleName = isPlatformSuperAdmin ? 'Platform Super Admin' : 'Store Administrator';
+    let resolvedPermissions = isPlatformSuperAdmin ? ['*'] : [];
 
     const userId = req.user?._id || admin.id || admin._id;
     if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
@@ -281,10 +289,10 @@ export const getMe = async (req, res, next) => {
         primaryTenant = membership.tenantId;
       }
       if (membership?.roleId) {
-        resolvedRoleSlug = membership.roleId.slug || resolvedRoleSlug;
-        resolvedRoleName = membership.roleId.name || resolvedRoleName;
-        resolvedPermissions = membership.roleId.permissions || [];
-      } else if (req.user?.isSuperAdmin || admin.role === 'superadmin') {
+        resolvedRoleSlug = isPlatformSuperAdmin ? 'superadmin' : (membership.roleId.slug || resolvedRoleSlug);
+        resolvedRoleName = isPlatformSuperAdmin ? 'Platform Super Admin' : (membership.roleId.name || resolvedRoleName);
+        resolvedPermissions = isPlatformSuperAdmin ? ['*'] : (membership.roleId.permissions || []);
+      } else if (isPlatformSuperAdmin) {
         resolvedPermissions = ['*'];
       } else {
         resolvedPermissions = ['*']; // Default fallback for store owner

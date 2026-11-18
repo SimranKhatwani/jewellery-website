@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Lock, Mail, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { customerLogin, customerRegister } from '../services/storefrontService';
 import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
@@ -7,13 +7,14 @@ export const CustomerAuthModal = ({
   isOpen,
   onClose,
   onSuccess,
+  storeInfo,
 }) => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Login form state
+  // Login form state - starts strictly empty to prevent autofilling admin credentials
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -25,6 +26,21 @@ export const CustomerAuthModal = ({
   const [registerPhone, setRegisterPhone] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+
+  // Reset all inputs whenever the modal opens to guarantee no prefilled or auto-filled data
+  useEffect(() => {
+    if (isOpen) {
+      setLoginEmail('');
+      setLoginPassword('');
+      setFirstName('');
+      setLastName('');
+      setRegisterEmail('');
+      setRegisterPhone('');
+      setRegisterPassword('');
+      setError(null);
+      setSuccessMsg(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -84,7 +100,7 @@ export const CustomerAuthModal = ({
         <div className="flex items-center justify-between p-6 bg-[#F7F1E9] border-b border-[#D7C5AF]/40">
           <div>
             <span className="text-[10px] uppercase tracking-[0.25em] text-[#8E8172] font-semibold block">
-              Aurelle Atelier Account
+              {storeInfo?.slug === 'aurelle' || !storeInfo?.slug ? 'Aurelle' : (storeInfo?.name || 'Store')} Atelier Account
             </span>
             <h2 className="text-xl font-serif-display text-[#593D30]">
               {activeTab === 'login' ? 'Customer Sign In' : 'Create Customer Account'}
@@ -139,7 +155,27 @@ export const CustomerAuthModal = ({
           )}
 
           {activeTab === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
+              {/* Dummy hidden inputs to absorb browser credential autofill */}
+              <input
+                type="text"
+                name="prevent_autofill_email"
+                id="prevent_autofill_email"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+                autoComplete="off"
+              />
+              <input
+                type="password"
+                name="prevent_autofill_pwd"
+                id="prevent_autofill_pwd"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+                autoComplete="off"
+              />
+
               <div>
                 <label className="block text-xs uppercase tracking-wider text-[#8E8172] font-medium mb-1">
                   Email Address
@@ -148,6 +184,11 @@ export const CustomerAuthModal = ({
                   <Mail className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
+                    name="customer_login_email_clean"
+                    id="customer_login_email_clean"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-form-type="other"
                     required
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
@@ -165,6 +206,11 @@ export const CustomerAuthModal = ({
                   <Lock className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type={showLoginPassword ? 'text' : 'password'}
+                    name="customer_login_pwd_clean"
+                    id="customer_login_pwd_clean"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-form-type="other"
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
@@ -197,7 +243,23 @@ export const CustomerAuthModal = ({
               </button>
             </form>
           ) : (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3" autoComplete="off">
+              <input
+                type="text"
+                name="prevent_autofill_reg_email"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+                autoComplete="off"
+              />
+              <input
+                type="password"
+                name="prevent_autofill_reg_pwd"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                aria-hidden="true"
+                autoComplete="off"
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-[#8E8172] font-medium mb-1">

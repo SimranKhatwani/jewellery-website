@@ -42,7 +42,7 @@ export const Header = ({
   const announcementBg = announcementConfig.bgColor || '#A85F49';
   const announcementTextColor = announcementConfig.textColor || '#FFFFFF';
 
-  const brandName = storeInfo?.name || 'AURELLE';
+  const brandName = isAurelle ? 'AURELLE' : (storeInfo?.name || 'AURELLE');
   const brandTagline =
     storeInfo?.settings?.branding?.tagline ||
     storeInfo?.config?.branding?.tagline ||

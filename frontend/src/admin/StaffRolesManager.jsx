@@ -197,14 +197,21 @@ export const StaffRolesManager = ({ admin }) => {
         getSystemPermissions(),
       ]);
 
-      if (Array.isArray(staffRes)) {
-        setStaffData({ members: staffRes, pendingInvitations: [] });
-      } else if (staffRes && staffRes.members) {
-        setStaffData({
-          members: staffRes.members || [],
-          pendingInvitations: staffRes.pendingInvitations || [],
-        });
-      }
+      const rawMembers = Array.isArray(staffRes) ? staffRes : (staffRes?.members || []);
+      const cleanMembers = rawMembers.filter((m) => {
+        const u = m.userId || {};
+        const email = (u.email || '').toLowerCase().trim();
+        return !u.isSuperAdmin && u.role !== 'superadmin' && !email.startsWith('superadmin@') && !email.includes('superadmin');
+      });
+      const cleanInvitations = (staffRes?.pendingInvitations || []).filter((inv) => {
+        const email = (inv.email || '').toLowerCase().trim();
+        return !email.startsWith('superadmin@') && !email.includes('superadmin');
+      });
+
+      setStaffData({
+        members: cleanMembers,
+        pendingInvitations: cleanInvitations,
+      });
 
       setRoles(Array.isArray(rolesRes) ? rolesRes : []);
       setPermissions(Array.isArray(permsRes) ? permsRes : []);
@@ -240,6 +247,11 @@ export const StaffRolesManager = ({ admin }) => {
       const user = m.userId || {};
       const role = m.roleId || {};
       const query = searchTerm.toLowerCase().trim();
+
+      // Strict isolation: Never display platform superadmin accounts in store staff list
+      if (user.isSuperAdmin || user.role === 'superadmin' || user.email?.toLowerCase().includes('superadmin')) {
+        return false;
+      }
 
       const matchesSearch =
         !query ||

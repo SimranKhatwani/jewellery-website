@@ -882,6 +882,7 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleCustomerLoginSuccess}
+        storeInfo={storeInfo}
       />
 
       {/* Customer Profile & Address Book Modal */}

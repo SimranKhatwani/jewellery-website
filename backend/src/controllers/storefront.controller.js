@@ -321,7 +321,7 @@ export const getStoreInfo = async (req, res, next) => {
       success: true,
       store: {
         id: tenant._id,
-        name: tenant.name,
+        name: tenant.slug === 'aurelle' ? 'AURELLE' : tenant.name,
         slug: tenant.slug,
         customDomain: tenant.customDomain || null,
         status: tenant.status,
