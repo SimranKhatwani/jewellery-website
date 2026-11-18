@@ -357,7 +357,7 @@ export const StaffRolesManager = ({ admin }) => {
                 className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs flex items-center gap-2 shadow-xs transition-colors font-medium"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Create Role</span>
+                <span> Create Role</span>
               </button>
             )}
           </div>
@@ -409,8 +409,8 @@ export const StaffRolesManager = ({ admin }) => {
           <button
             onClick={() => setActiveTab('members')}
             className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${activeTab === 'members'
-                ? 'border-[#A85F49] text-[#A85F49]'
-                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
+              ? 'border-[#A85F49] text-[#A85F49]'
+              : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
               }`}
           >
             <Users className="w-4 h-4" />
@@ -419,8 +419,8 @@ export const StaffRolesManager = ({ admin }) => {
           <button
             onClick={() => setActiveTab('roles')}
             className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${activeTab === 'roles'
-                ? 'border-[#A85F49] text-[#A85F49]'
-                : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
+              ? 'border-[#A85F49] text-[#A85F49]'
+              : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
               }`}
           >
             <Shield className="w-4 h-4" />
@@ -557,10 +557,10 @@ export const StaffRolesManager = ({ admin }) => {
                         <td className="py-3.5 px-4">
                           <span
                             className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-xs border ${m.status === 'active'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : m.status === 'suspended'
-                                  ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : m.status === 'suspended'
+                                ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                               }`}
                           >
                             {m.status}
@@ -588,8 +588,8 @@ export const StaffRolesManager = ({ admin }) => {
                                 <button
                                   onClick={() => handleToggleMemberStatus(m)}
                                   className={`px-2 py-1 text-[11px] border rounded-xs transition-colors ${m.status === 'active'
-                                      ? 'border-amber-300 text-amber-800 hover:bg-amber-50'
-                                      : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50'
+                                    ? 'border-amber-300 text-amber-800 hover:bg-amber-50'
+                                    : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50'
                                     }`}
                                   title={m.status === 'active' ? 'Suspend Member' : 'Activate Member'}
                                 >
@@ -725,8 +725,8 @@ export const StaffRolesManager = ({ admin }) => {
                               <div
                                 key={mod.id}
                                 className={`px-2.5 py-1.5 rounded-xs border text-[11px] flex items-center justify-between transition-colors ${isEnabled
-                                    ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-medium'
-                                    : 'bg-zinc-50 border-zinc-200 text-zinc-400'
+                                  ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-medium'
+                                  : 'bg-zinc-50 border-zinc-200 text-zinc-400'
                                   }`}
                               >
                                 <div className="flex items-center gap-1.5 truncate mr-1">
@@ -881,6 +881,162 @@ export const StaffRolesManager = ({ admin }) => {
 };
 
 // =====================================================================
+// SUB-COMPONENT: MANUAL ROLE CREATOR SECTION
+// Reusable inline form to enter a new role with On/Off module switches
+// =====================================================================
+const ManualRoleCreatorSection = ({
+  manualRoleName,
+  setManualRoleName,
+  manualRoleDescription,
+  setManualRoleDescription,
+  manualPermissions,
+  setManualPermissions,
+  onCancel,
+}) => {
+  return (
+    <div className="p-3.5 bg-[#FAF7F2]/90 border border-[#A85F49]/40 rounded-xs space-y-3 animate-in fade-in duration-150">
+      <div className="flex items-center justify-between pb-1.5 border-b border-[#D7C5AF]/40">
+        <span className="text-[11px] font-serif font-medium text-[#593D30] flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#A85F49]" />
+          <span>Enter Custom Role Details & Module Permissions</span>
+        </span>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-[10px] text-[#A85F49] hover:underline font-medium"
+        >
+          &larr; Choose existing role instead
+        </button>
+      </div>
+
+      {/* Manual Role Name */}
+      <div>
+        <label className="block text-[11px] font-medium text-[#8E8172] mb-1">
+          Custom Role Name *
+        </label>
+        <input
+          type="text"
+          required
+          value={manualRoleName}
+          onChange={(e) => setManualRoleName(e.target.value)}
+          placeholder="e.g. Inventory Supervisor, Customer Care Lead, Orders Specialist"
+          className="w-full px-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+        />
+      </div>
+
+      {/* Manual Role Description */}
+      <div>
+        <label className="block text-[11px] font-medium text-[#8E8172] mb-1">
+          Role Description (Optional)
+        </label>
+        <input
+          type="text"
+          value={manualRoleDescription}
+          onChange={(e) => setManualRoleDescription(e.target.value)}
+          placeholder="Brief summary of duties and responsibilities"
+          className="w-full px-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+        />
+      </div>
+
+      {/* Module Permissions with On/Off Switches */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8E8172]">
+            Admin Modules Access (On/Off Switches)
+          </label>
+          <div className="flex items-center gap-2 text-[10px]">
+            <button
+              type="button"
+              onClick={() => setManualPermissions(ADMIN_MODULES.flatMap((m) => m.allPermissions))}
+              className="text-[#A85F49] hover:underline font-medium"
+            >
+              All ON
+            </button>
+            <span className="text-[#D7C5AF]">•</span>
+            <button
+              type="button"
+              onClick={() => setManualPermissions([])}
+              className="text-[#8E8172] hover:underline font-medium"
+            >
+              All OFF
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          {ADMIN_MODULES.map((mod) => {
+            const isEnabled = mod.allPermissions.some((p) => manualPermissions.includes(p));
+            const isFull = mod.allPermissions.every((p) => manualPermissions.includes(p));
+            const Icon = mod.icon;
+
+            return (
+              <div
+                key={mod.id}
+                className={`p-2 rounded-xs border text-xs flex items-center justify-between transition-colors ${
+                  isEnabled
+                    ? 'bg-[#FFFFFF] border-emerald-300 shadow-2xs'
+                    : 'bg-zinc-50 border-zinc-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isEnabled ? 'text-emerald-700' : 'text-zinc-400'}`} />
+                  <div className="min-w-0">
+                    <div className={`font-medium truncate text-[11px] ${isEnabled ? 'text-[#593D30]' : 'text-zinc-500'}`}>
+                      {mod.name}
+                    </div>
+                    <div className="text-[9px] text-[#8E8172] truncate">{mod.description}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {isEnabled && (
+                    <select
+                      value={isFull ? 'full' : 'read'}
+                      onChange={(e) => {
+                        const toRemove = new Set(mod.allPermissions);
+                        const base = manualPermissions.filter((k) => !toRemove.has(k));
+                        if (e.target.value === 'full') {
+                          setManualPermissions([...base, ...mod.allPermissions]);
+                        } else {
+                          setManualPermissions([...base, ...mod.readPermissions]);
+                        }
+                      }}
+                      className="text-[9px] px-1 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30]"
+                    >
+                      <option value="full">Full Access</option>
+                      <option value="read">View Only</option>
+                    </select>
+                  )}
+
+                  {/* Interactive slide switch */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isEnabled) {
+                        const toRemove = new Set(mod.allPermissions);
+                        setManualPermissions((prev) => prev.filter((k) => !toRemove.has(k)));
+                      } else {
+                        setManualPermissions((prev) => Array.from(new Set([...prev, ...mod.allPermissions])));
+                      }
+                    }}
+                    className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                      isEnabled ? 'bg-emerald-600 justify-end' : 'bg-stone-300 justify-start'
+                    }`}
+                    aria-label={`Toggle ${mod.name}`}
+                  >
+                    <div className="bg-[#FFFFFF] w-3 h-3 rounded-full shadow-xs transform transition-transform" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================================
 // SUB-COMPONENT: EDIT TEAM MEMBER MODAL
 // Allows store admin to edit Member Name, Email, Password, Phone & Role
 // =====================================================================
@@ -893,6 +1049,14 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
   const [roleId, setRoleId] = useState(currentRole._id || roles[0]?._id || '');
   const [status, setStatus] = useState(membership.status || 'active');
+
+  // Manual role creation states
+  const [isManualRole, setIsManualRole] = useState(false);
+  const [manualRoleName, setManualRoleName] = useState('');
+  const [manualRoleDescription, setManualRoleDescription] = useState('');
+  const [manualPermissions, setManualPermissions] = useState(() =>
+    ADMIN_MODULES.flatMap((m) => m.allPermissions)
+  );
 
   // Password reset section
   const [changePassword, setChangePassword] = useState(false);
@@ -928,7 +1092,35 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
     try {
       if (!name.trim()) throw new Error('Please enter the staff member name.');
       if (!email.trim() || !email.includes('@')) throw new Error('Please enter a valid email address.');
-      if (!roleId) throw new Error('Please select an assigned role.');
+
+      let assignedRoleId = roleId;
+
+      if (isManualRole) {
+        if (!manualRoleName.trim()) {
+          throw new Error('Please enter a role name for the new custom role.');
+        }
+        if (manualPermissions.length === 0) {
+          throw new Error('Please enable at least one module switch for the new role.');
+        }
+
+        const generatedSlug =
+          manualRoleName
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || `role-${Date.now()}`;
+
+        const createdRole = await createTenantRole({
+          name: manualRoleName.trim(),
+          slug: generatedSlug,
+          description: manualRoleDescription.trim() || `Custom role created during staff member update`,
+          permissions: manualPermissions,
+        });
+
+        assignedRoleId = createdRole._id || createdRole.id;
+      }
+
+      if (!assignedRoleId) throw new Error('Please select or enter an assigned role.');
 
       let cleanPhone = undefined;
       if (phoneNumber && String(phoneNumber).trim()) {
@@ -948,7 +1140,7 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phoneNumber: cleanPhone,
-        roleId,
+        roleId: assignedRoleId,
         status,
         ...(changePassword && password ? { password } : {}),
       };
@@ -1032,10 +1224,28 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
             {/* Role & Status Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-[#8E8172] mb-1">Assigned Role *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-[#8E8172]">Assigned Role *</label>
+                  {!isManualRole && (
+                    <button
+                      type="button"
+                      onClick={() => setIsManualRole(true)}
+                      className="text-[10px] text-[#A85F49] hover:underline font-medium"
+                    >
+                      + Enter manually
+                    </button>
+                  )}
+                </div>
                 <select
-                  value={roleId}
-                  onChange={(e) => setRoleId(e.target.value)}
+                  value={isManualRole ? '__manual__' : roleId}
+                  onChange={(e) => {
+                    if (e.target.value === '__manual__') {
+                      setIsManualRole(true);
+                    } else {
+                      setIsManualRole(false);
+                      setRoleId(e.target.value);
+                    }
+                  }}
                   className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                 >
                   {roles.map((r) => (
@@ -1043,6 +1253,7 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
                       {r.name} {r.isSystemRole ? '(Universal Admin)' : ''}
                     </option>
                   ))}
+                  <option value="__manual__">+ Enter Role Manually (New Custom Role)...</option>
                 </select>
               </div>
 
@@ -1058,6 +1269,22 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
                 </select>
               </div>
             </div>
+
+            {/* Manual Role Creator Section if isManualRole is true */}
+            {isManualRole && (
+              <ManualRoleCreatorSection
+                manualRoleName={manualRoleName}
+                setManualRoleName={setManualRoleName}
+                manualRoleDescription={manualRoleDescription}
+                setManualRoleDescription={setManualRoleDescription}
+                manualPermissions={manualPermissions}
+                setManualPermissions={setManualPermissions}
+                onCancel={() => {
+                  setIsManualRole(false);
+                  setRoleId(currentRole._id || roles[0]?._id || '');
+                }}
+              />
+            )}
 
             {/* Password Change / Reset Section */}
             <div className="p-3.5 bg-[#FAF7F2]/50 border border-[#D7C5AF]/60 rounded-xs space-y-3">
@@ -1345,16 +1572,16 @@ const RoleFormModal = ({ editingRole, onClose, onSuccess }) => {
                     <div
                       key={mod.id}
                       className={`p-3.5 rounded-xs border transition-all ${isOn
-                          ? 'bg-[#FFFFFF] border-[#A85F49]/70 shadow-xs ring-1 ring-[#A85F49]/15'
-                          : 'bg-[#FAF7F2]/40 border-[#D7C5AF]/50 hover:bg-[#FFFFFF]'
+                        ? 'bg-[#FFFFFF] border-[#A85F49]/70 shadow-xs ring-1 ring-[#A85F49]/15'
+                        : 'bg-[#FAF7F2]/40 border-[#D7C5AF]/50 hover:bg-[#FFFFFF]'
                         }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-start gap-3">
                           <div
                             className={`p-2 rounded-xs border shrink-0 mt-0.5 ${isOn
-                                ? 'bg-[#FAF7F2] text-[#A85F49] border-[#D7C5AF]'
-                                : 'bg-zinc-100 text-zinc-400 border-zinc-200'
+                              ? 'bg-[#FAF7F2] text-[#A85F49] border-[#D7C5AF]'
+                              : 'bg-zinc-100 text-zinc-400 border-zinc-200'
                               }`}
                           >
                             <Icon className="w-4 h-4" />
@@ -1458,6 +1685,14 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
   const [createdSummary, setCreatedSummary] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Manual role creation states
+  const [isManualRole, setIsManualRole] = useState(false);
+  const [manualRoleName, setManualRoleName] = useState('');
+  const [manualRoleDescription, setManualRoleDescription] = useState('');
+  const [manualPermissions, setManualPermissions] = useState(() =>
+    ADMIN_MODULES.flatMap((m) => m.allPermissions)
+  );
+
   // Generate strong random password helper
   const handleGeneratePassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
@@ -1477,8 +1712,38 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
       if (!email || !email.includes('@')) {
         throw new Error('Please enter a valid email address.');
       }
-      if (!roleId) {
-        throw new Error('Please select an administrative role.');
+
+      let assignedRoleId = roleId;
+      let assignedRoleName = roles.find((r) => r._id === roleId)?.name || 'Staff Member';
+
+      if (isManualRole) {
+        if (!manualRoleName.trim()) {
+          throw new Error('Please enter a role name for the new custom role.');
+        }
+        if (manualPermissions.length === 0) {
+          throw new Error('Please enable at least one module switch for the new custom role.');
+        }
+
+        const generatedSlug =
+          manualRoleName
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || `role-${Date.now()}`;
+
+        const createdRole = await createTenantRole({
+          name: manualRoleName.trim(),
+          slug: generatedSlug,
+          description: manualRoleDescription.trim() || `Custom role created during staff onboarding`,
+          permissions: manualPermissions,
+        });
+
+        assignedRoleId = createdRole._id || createdRole.id;
+        assignedRoleName = createdRole.name || manualRoleName.trim();
+      }
+
+      if (!assignedRoleId) {
+        throw new Error('Please select or enter an administrative role.');
       }
 
       if (mode === 'direct') {
@@ -1498,7 +1763,7 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
           email: email.trim().toLowerCase(),
           password,
           phoneNumber: phoneNumber ? sanitizePhoneInput(phoneNumber) : undefined,
-          roleId,
+          roleId: assignedRoleId,
         };
 
         await createTenantStaffDirectly(payload);
@@ -1506,14 +1771,14 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
           name: payload.name,
           email: payload.email,
           password: payload.password,
-          roleName: roles.find((r) => r._id === roleId)?.name || 'Staff Member',
+          roleName: assignedRoleName,
         });
       } else {
         // Invite mode
         const payload = {
           name: name.trim() || undefined,
           email: email.trim().toLowerCase(),
-          roleId,
+          roleId: assignedRoleId,
         };
         await inviteTenantStaff(payload);
         onSuccess({ email: payload.email });
@@ -1535,8 +1800,8 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#1A1816]/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-lg w-full p-6 shadow-xl animate-in fade-in duration-200">
-        <div className="flex items-center justify-between pb-3 border-b border-[#D7C5AF]/40 mb-4">
+      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-lg w-full p-6 shadow-xl max-h-[92vh] flex flex-col animate-in fade-in duration-200">
+        <div className="flex items-center justify-between pb-3 border-b border-[#D7C5AF]/40 mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <span className="p-1.5 bg-[#FAF7F2] text-[#A85F49] rounded-xs border border-[#D7C5AF]">
               <UserPlus className="w-4 h-4" />
@@ -1601,8 +1866,9 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Mode Selector Tabs */}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+            <div className="overflow-y-auto pr-1 space-y-4 flex-1">
+              {/* Mode Selector Tabs */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF7F2] rounded-xs border border-[#D7C5AF]/50">
               <button
                 type="button"
@@ -1735,28 +2001,64 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
               </>
             )}
 
-            {/* Role Dropdown */}
-            <div>
-              <label className="block text-xs font-medium text-[#8E8172] mb-1">Assign Role & Permissions *</label>
-              <select
-                required
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-              >
-                {roles.length === 0 ? (
-                  <option value="">No roles available (Create a role in Roles tab)</option>
-                ) : (
-                  roles.map((r) => (
-                    <option key={r._id || r.slug} value={r._id}>
-                      {r.name} {r.isSystemRole ? '(Universal Store Admin)' : ''}
-                    </option>
-                  ))
-                )}
-              </select>
+              {/* Role Dropdown */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-[#8E8172]">Assign Role & Permissions *</label>
+                  {!isManualRole && (
+                    <button
+                      type="button"
+                      onClick={() => setIsManualRole(true)}
+                      className="text-[10px] text-[#A85F49] hover:underline font-medium"
+                    >
+                      + Enter role manually
+                    </button>
+                  )}
+                </div>
+                <select
+                  required
+                  value={isManualRole ? '__manual__' : roleId}
+                  onChange={(e) => {
+                    if (e.target.value === '__manual__') {
+                      setIsManualRole(true);
+                    } else {
+                      setIsManualRole(false);
+                      setRoleId(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                >
+                  {roles.length === 0 ? (
+                    <option value="">No roles available (Create a role in Roles tab)</option>
+                  ) : (
+                    roles.map((r) => (
+                      <option key={r._id || r.slug} value={r._id}>
+                        {r.name} {r.isSystemRole ? '(Universal Store Admin)' : ''}
+                      </option>
+                    ))
+                  )}
+                  <option value="__manual__">+ Enter Role Manually (New Custom Role)...</option>
+                </select>
+              </div>
+
+              {/* Manual Role Creator Section if isManualRole is true */}
+              {isManualRole && (
+                <ManualRoleCreatorSection
+                  manualRoleName={manualRoleName}
+                  setManualRoleName={setManualRoleName}
+                  manualRoleDescription={manualRoleDescription}
+                  setManualRoleDescription={setManualRoleDescription}
+                  manualPermissions={manualPermissions}
+                  setManualPermissions={setManualPermissions}
+                  onCancel={() => {
+                    setIsManualRole(false);
+                    setRoleId(roles[0]?._id || '');
+                  }}
+                />
+              )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#D7C5AF]/40">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#D7C5AF]/40 mt-3 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
