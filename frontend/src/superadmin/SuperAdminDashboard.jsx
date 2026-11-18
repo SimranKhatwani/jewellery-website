@@ -318,8 +318,6 @@ export const SuperAdminDashboard = ({
         return 'Platform Security & Audit Logs';
       case 'settings':
         return 'Platform System Settings';
-      case 'support':
-        return 'Support & Help Desk';
       default:
         return 'Super Admin Console';
     }
@@ -1496,32 +1494,6 @@ export const SuperAdminDashboard = ({
 
             <div className="p-4 bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs text-xs text-[#8E8172] shadow-xs">
               Notice: Platform security parameters and cluster credentials are strictly maintained in server environment variables (.env) and cannot be modified via client requests.
-            </div>
-          </main>
-        )}
-
-        {/* ------------------------------------------------------------- */}
-        {/* VIEW 8: SUPPORT PLACEHOLDER */}
-        {/* ------------------------------------------------------------- */}
-        {activeSection === 'support' && (
-          <main className="p-4 sm:p-6 lg:p-8 space-y-6">
-            <div>
-              <h1 className="font-serif text-2xl font-light text-[#593D30]">
-                Platform Help Desk & Support
-              </h1>
-              <p className="text-xs text-[#8E8172]">Store owner ticket escalations and customer issue resolution</p>
-            </div>
-
-            <div className="p-12 bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs text-center max-w-lg mx-auto my-12 space-y-3 shadow-xs">
-              <div className="w-12 h-12 mx-auto rounded-full bg-[#A85F49]/10 border border-[#A85F49]/30 flex items-center justify-center text-[#A85F49]">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <h3 className="font-serif text-lg text-[#593D30]">Support Module Coming Soon</h3>
-              <p className="text-xs text-[#8E8172] leading-relaxed">
-                Platform-wide customer inquiry handling, store merchant escalation tickets, and automated dispute resolution will be activated alongside Phase 4 sales and checkout integration.
-              </p>
             </div>
           </main>
         )}
