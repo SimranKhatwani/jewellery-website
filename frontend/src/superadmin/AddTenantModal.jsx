@@ -7,6 +7,15 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
   const [slug, setSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [customDomain, setCustomDomain] = useState('');
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [businessPhone, setBusinessPhone] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('India');
+  const [currency, setCurrency] = useState('INR');
+
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
@@ -21,6 +30,14 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
       setSlug('');
       setIsSlugManuallyEdited(false);
       setCustomDomain('');
+      setBusinessDescription('');
+      setBusinessPhone('');
+      setAddressLine1('');
+      setCity('');
+      setState('');
+      setPostalCode('');
+      setCountry('India');
+      setCurrency('INR');
       setOwnerName('');
       setOwnerEmail('');
       setOwnerPassword('');
@@ -85,6 +102,17 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
         name: name.trim(),
         slug: slug.trim(),
         customDomain: customDomain.trim() || undefined,
+        businessDescription: businessDescription.trim() || undefined,
+        businessPhone: businessPhone.trim() || undefined,
+        currency,
+        currencySymbol: currency === 'USD' ? '$' : (currency === 'EUR' ? '€' : (currency === 'GBP' ? '£' : '₹')),
+        businessAddress: {
+          addressLine1: addressLine1.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          postalCode: postalCode.trim(),
+          country: country.trim(),
+        },
         ownerName: ownerName.trim() || undefined,
         ownerEmail: ownerEmail.trim().toLowerCase(),
         ownerPassword,
@@ -103,15 +131,15 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs shadow-2xl text-[#593D30] overflow-hidden my-8">
+      <div className="w-full max-w-2xl bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs shadow-2xl text-[#593D30] overflow-hidden my-8 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#D7C5AF]/60 flex items-center justify-between bg-[#FAF7F2]">
+        <div className="px-6 py-4 border-b border-[#D7C5AF]/60 flex items-center justify-between bg-[#FAF7F2] shrink-0">
           <div>
             <h2 className="font-serif text-xl text-[#593D30]">
               Create New Store / Tenant
             </h2>
             <p className="text-xs text-[#8E8172] mt-0.5">
-              Provision a new isolated store tenant with its owner credentials and SaaS subscription plan
+              Provision a new isolated store tenant with its owner credentials, branding and storefront URL
             </p>
           </div>
           <button
@@ -125,35 +153,35 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs overflow-y-auto flex-1">
           {errorMsg && (
             <div className="p-3 bg-[#A85F49]/10 border border-[#A85F49]/30 rounded-xs text-[#A85F49]">
               {errorMsg}
             </div>
           )}
 
-          {/* Section: Store Details */}
+          {/* Section: Business Information */}
           <div className="space-y-3 pb-3 border-b border-[#D7C5AF]/40">
             <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#A85F49]">
-              Store Information
+              1. Business & Store Identity
             </h3>
-
-            <div>
-              <label className="block text-[#8E8172] mb-1 font-medium">Store Name *</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. Tanishq Fine Jewellery"
-                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-              />
-            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">Store / Business Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g. Royal Jewellery"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[#8E8172] mb-1 font-medium">
-                  Store Slug (URL Key) *
+                  Storefront URL Key (Slug) *
                 </label>
                 <div className="flex items-center">
                   <span className="px-2 py-2 bg-[#D7C5AF]/30 border border-r-0 border-[#D7C5AF] text-[#8E8172] font-mono text-[11px] rounded-l-xs">
@@ -164,21 +192,125 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
                     required
                     value={slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
-                    placeholder="tanishq-jewellery"
+                    placeholder="royal-jewellery"
                     className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-r-xs font-mono text-[11px] text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                   />
                 </div>
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[#8E8172] mb-1 font-medium">
-                  Custom Domain (Optional)
+                  Business Phone
                 </label>
                 <input
                   type="text"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                  placeholder="e.g. store.tanishq.com"
+                  value={businessPhone}
+                  onChange={(e) => setBusinessPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">
+                  Store Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                >
+                  <option value="INR">INR (₹)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="AED">AED (AED)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[#8E8172] mb-1 font-medium">Business Description</label>
+              <textarea
+                rows="2"
+                value={businessDescription}
+                onChange={(e) => setBusinessDescription(e.target.value)}
+                placeholder="Brief description of the jewellery house, heritage, or specialties..."
+                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#8E8172] mb-1 font-medium">
+                Custom Domain (Optional)
+              </label>
+              <input
+                type="text"
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value)}
+                placeholder="e.g. store.royaljewellery.com"
+                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+            </div>
+          </div>
+
+          {/* Section: Business Address */}
+          <div className="space-y-3 pb-3 border-b border-[#D7C5AF]/40">
+            <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#A85F49]">
+              2. Business Registered Address
+            </h3>
+
+            <div>
+              <label className="block text-[#8E8172] mb-1 font-medium">Address Line</label>
+              <input
+                type="text"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="Suite, building, street..."
+                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">City</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Jaipur"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+              <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">State</label>
+                <input
+                  type="text"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="Rajasthan"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+              <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">Postal Code</label>
+                <input
+                  type="text"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="302001"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+              <div>
+                <label className="block text-[#8E8172] mb-1 font-medium">Country</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="India"
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                 />
               </div>
@@ -188,13 +320,10 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
           {/* Section: Subscription Plan Selection */}
           <div className="space-y-3 pb-3 border-b border-[#D7C5AF]/40">
             <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#A85F49]">
-              Subscription Plan & Quotas
+              3. Subscription Plan Tier
             </h3>
 
             <div>
-              <label className="block text-[#8E8172] mb-1 font-medium">
-                Choose Subscription Plan Tier *
-              </label>
               <select
                 value={selectedPlanId}
                 onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -210,20 +339,17 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
                   ))
                 )}
               </select>
-              <p className="text-[11px] text-[#8E8172] mt-1">
-                The tenant's catalog limits, staff allocation, and feature flags will immediately bind to this plan.
-              </p>
             </div>
           </div>
 
           {/* Section: Store Owner Account */}
           <div className="space-y-3">
             <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#A85F49]">
-              Store Owner Account
+              4. Store Administrator Account
             </h3>
 
             <div>
-              <label className="block text-[#8E8172] mb-1 font-medium">Owner Full Name</label>
+              <label className="block text-[#8E8172] mb-1 font-medium">Admin Full Name</label>
               <input
                 type="text"
                 value={ownerName}
@@ -235,19 +361,19 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[#8E8172] mb-1 font-medium">Owner Email Address *</label>
+                <label className="block text-[#8E8172] mb-1 font-medium">Admin Login Email *</label>
                 <input
                   type="email"
                   required
                   value={ownerEmail}
                   onChange={(e) => setOwnerEmail(e.target.value)}
-                  placeholder="owner@tanishq.com"
+                  placeholder="admin@royaljewellery.com"
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                 />
               </div>
 
               <div>
-                <label className="block text-[#8E8172] mb-1 font-medium">Initial Password *</label>
+                <label className="block text-[#8E8172] mb-1 font-medium">Admin Password *</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -268,12 +394,12 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
               </div>
             </div>
             <p className="text-[11px] text-[#8E8172]">
-              The owner will use these credentials to log in to the Store Administration dashboard (/admin).
+              The store administrator will use these credentials to log in to the shared Store Admin panel (/admin).
             </p>
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-[#D7C5AF]/60 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-[#D7C5AF]/60 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}

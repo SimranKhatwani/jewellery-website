@@ -375,10 +375,22 @@ function createContactShadowTexture() {
   return texture;
 }
 
-export const RotatingRingHero = ({ onExploreClick }) => {
+export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
   const containerRef = useRef(null);
   const [isSceneReady, setIsSceneReady] = useState(false);
   const [hasWebGLError, setHasWebGLError] = useState(false);
+
+  const heroConfig = storeInfo?.settings?.hero || storeInfo?.config?.hero || {};
+  const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
+  const subheading =
+    heroConfig.subheading ||
+    (isAurelle ? 'AURELLE FINE SILVER' : `${(storeInfo?.name || 'FINE').toUpperCase()} FINE JEWELLERY`);
+  const heading =
+    heroConfig.heading ||
+    (isAurelle ? 'A Little Extraordinary' : `${storeInfo?.name || 'Curated'} Collections`);
+  const ctaText = heroConfig.ctaText || 'Explore Collection';
+  const ctaLink = heroConfig.ctaLink || 'rings';
+  const customBgUrl = heroConfig.desktopImageUrl || '';
 
   // Interaction drag state
   const isDraggingRef = useRef(false);
@@ -817,20 +829,27 @@ export const RotatingRingHero = ({ onExploreClick }) => {
 
   return (
     <section
-      aria-label="AURELLE Luxury Fine Silver Jewellery"
+      aria-label={`${storeInfo?.name || 'AURELLE'} Luxury Fine Jewellery`}
       className="relative w-full overflow-hidden bg-[#0A0908] text-[#FFFFFF] min-h-[760px] md:min-h-[820px] lg:h-[92vh] max-h-[1020px] flex items-end justify-center border-b border-[#D7C5AF]/20"
     >
-      {/* 1. Black Marble & Gold Veins Luxury Showroom Background with Dark Walnut Wooden Table Pedestal */}
+      {/* 1. Black Marble & Gold Veins Luxury Showroom Background with Dark Walnut Wooden Table Pedestal or Custom Banner */}
       <div className="absolute inset-0 overflow-hidden select-none">
-        {/* Photorealistic Dark Black Marble Wall with Gold Veins, Spotlight & Dark Walnut Wooden Pedestal Table */}
-        <img
-          src={heroWoodPedestalBg}
-          alt="Luxury black marble jewellery showroom with dark walnut wooden pedestal table"
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
+        {customBgUrl ? (
+          <img
+            src={customBgUrl}
+            alt={`${storeInfo?.name || 'Store'} hero showcase`}
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        ) : (
+          <img
+            src={heroWoodPedestalBg}
+            alt="Luxury black marble jewellery showroom with dark walnut wooden pedestal table"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        )}
 
         {/* 3D WebGL Canvas Container (normal pointer cursor) */}
-        {!hasWebGLError && (
+        {!hasWebGLError && !customBgUrl && (
           <div
             ref={containerRef}
             className={`absolute inset-0 w-full h-full cursor-default transition-opacity duration-700 ${
@@ -845,11 +864,11 @@ export const RotatingRingHero = ({ onExploreClick }) => {
         {/* Left Side Content Block: Vertically Centered */}
         <div className="absolute left-6 sm:left-10 md:left-14 lg:left-16 xl:left-20 top-1/2 -translate-y-1/2 max-w-sm sm:max-w-md lg:max-w-xl text-left pointer-events-auto space-y-3 sm:space-y-3.5">
           <span className="text-[11px] sm:text-xs md:text-sm font-mono uppercase tracking-[0.32em] text-[#E0BA79] font-medium block drop-shadow-md">
-            AURELLE FINE SILVER
+            {subheading}
           </span>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif-display text-[#FFFFFF] leading-[1.08] tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]">
-            A Little Extraordinary
+            {heading}
           </h1>
         </div>
 
@@ -857,10 +876,10 @@ export const RotatingRingHero = ({ onExploreClick }) => {
         <div className="absolute right-6 sm:right-10 md:right-14 lg:right-16 xl:right-20 bottom-8 sm:bottom-10 md:bottom-12 lg:bottom-14 pointer-events-auto">
           <button
             type="button"
-            onClick={() => onExploreClick('rings')}
+            onClick={() => onExploreClick(ctaLink ? ctaLink.replace('#', '') : 'rings')}
             className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-full bg-[#A85F49] hover:bg-[#8F4E3A] text-[#FFFFFF] text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-300 shadow-[0_6px_24px_rgba(0,0,0,0.6)] hover:shadow-2xl flex items-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            <span>Explore Collection</span>
+            <span>{ctaText}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

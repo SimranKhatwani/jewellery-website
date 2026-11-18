@@ -136,8 +136,30 @@ export const updateTenantDetails = async (tenantId, updateData, userId, req = nu
     }
   }
 
-  if (updateData.settings) {
-    tenant.settings = { ...tenant.settings, ...updateData.settings };
+  if (updateData.settings && typeof updateData.settings === 'object') {
+    const existing = tenant.settings ? (tenant.settings.toObject ? tenant.settings.toObject() : tenant.settings) : {};
+
+    const deepMerge = (target, source) => {
+      const output = { ...target };
+      for (const key of Object.keys(source)) {
+        if (
+          source[key] &&
+          typeof source[key] === 'object' &&
+          !Array.isArray(source[key]) &&
+          target[key] &&
+          typeof target[key] === 'object' &&
+          !Array.isArray(target[key])
+        ) {
+          output[key] = deepMerge(target[key], source[key]);
+        } else {
+          output[key] = source[key];
+        }
+      }
+      return output;
+    };
+
+    tenant.settings = deepMerge(existing, updateData.settings);
+    tenant.markModified('settings');
   }
 
   await tenant.save();

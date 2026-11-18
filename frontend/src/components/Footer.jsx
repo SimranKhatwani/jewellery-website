@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 
 export const Footer = ({
+  storeInfo = null,
   onNavigateCategory,
   onOpenSizeGuide,
   onNavigateSection,
@@ -9,6 +10,25 @@ export const Footer = ({
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
+  const brandName = storeInfo?.name || 'AURELLE';
+  const s = storeInfo?.settings || storeInfo?.config || {};
+  const footerConfig = s.footer || {};
+  const logoUrl = s.branding?.logoUrl || storeInfo?.logoUrl || '';
+
+  const brandDescription =
+    footerConfig.description ||
+    s.description ||
+    (isAurelle
+      ? 'Sculptural fine jewellery conceived exclusively in solid 925 sterling silver. Celebrating tactile weights, fluid drape, and timeless personal expression.'
+      : `${brandName} fine jewellery conceived exclusively in solid 925 sterling silver. Celebrating tactile weights, fluid drape, and timeless personal expression.`);
+
+  const copyrightText =
+    footerConfig.copyrightText ||
+    (isAurelle
+      ? `© ${new Date().getFullYear()} AURELLE. Distributed by RKB Enterprises.`
+      : `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -26,18 +46,28 @@ export const Footer = ({
 
           {/* Col 1: Brand & Purchase Statement (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <span className="text-2xl font-serif-display font-light tracking-[0.25em] text-[#FFFFFF] block">
-              AURELLE
-            </span>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={brandName}
+                className="h-8 max-w-[160px] object-contain brightness-0 invert"
+              />
+            ) : (
+              <span className="text-2xl font-serif-display font-light tracking-[0.25em] text-[#FFFFFF] block">
+                {brandName}
+              </span>
+            )}
             <p className="text-xs text-[#F7F1E9]/85 font-light leading-relaxed max-w-sm">
-              Sculptural fine jewellery conceived exclusively in solid 925 sterling silver. Celebrating tactile weights, fluid drape, and timeless personal expression.
+              {brandDescription}
             </p>
             <div className="p-3.5 bg-[#F7F1E9] rounded-xs border border-[#D7C5AF]/50 space-y-1 shadow-xs text-[#593D30]">
               <span className="text-[10px] uppercase tracking-wider text-[#A85F49] font-medium block">
-                Purchasing Aurelle
+                Purchasing {brandName}
               </span>
               <p className="text-xs text-[#593D30] leading-relaxed font-medium">
-                You can also find us on Amazon and Flipkart.
+                {isAurelle
+                  ? 'You can also find us on Amazon and Flipkart.'
+                  : `Online allocations and custom inquiries handled directly through ${brandName} client concierge.`}
               </p>
             </div>
           </div>
@@ -126,7 +156,7 @@ export const Footer = ({
                   onClick={() => onNavigateSection('contact')}
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >
-                  Contact RKB Enterprises
+                  {isAurelle ? 'Contact RKB Enterprises' : `Contact ${brandName}`}
                 </button>
               </li>
               <li>
@@ -179,7 +209,7 @@ export const Footer = ({
 
         {/* Bottom Row: Legal & Plain-text Purchase Notice */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#F7F1E9]/75">
-          <p>© {new Date().getFullYear()} AURELLE. Distributed by RKB Enterprises.</p>
+          <p>{copyrightText}</p>
           <div className="flex flex-wrap items-center gap-6">
             <button
               onClick={onOpenReturnPolicy}
@@ -189,7 +219,7 @@ export const Footer = ({
             </button>
             <span>Solid 925 Sterling Silver</span>
             <span>Hallmarked Quality</span>
-            <span>Amazon and Flipkart</span>
+            {isAurelle && <span>Amazon and Flipkart</span>}
           </div>
         </div>
 

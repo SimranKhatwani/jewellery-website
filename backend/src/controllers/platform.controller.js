@@ -440,7 +440,21 @@ export const listPlatformSubscriptions = async (req, res, next) => {
 
 export const createPlatformTenant = async (req, res, next) => {
   try {
-    const { name, slug, customDomain, ownerName, ownerEmail, ownerPassword, planId } = req.body;
+    const {
+      name,
+      slug,
+      customDomain,
+      businessDescription,
+      businessPhone,
+      businessAddress,
+      currency,
+      currencySymbol,
+      branding,
+      ownerName,
+      ownerEmail,
+      ownerPassword,
+      planId,
+    } = req.body;
 
     if (!name || !name.trim()) {
       throw new BadRequestError('Store name is required.');
@@ -495,6 +509,65 @@ export const createPlatformTenant = async (req, res, next) => {
       });
     }
 
+    // Prepare initial store settings with dynamic defaults
+    const initialSettings = {
+      currency: currency || 'INR',
+      currencySymbol: currencySymbol || (currency === 'USD' ? '$' : '₹'),
+      description: businessDescription?.trim() || '',
+      supportEmail: normalizedEmail,
+      contactPhone: businessPhone?.trim() || '',
+      businessAddress: {
+        addressLine1: businessAddress?.addressLine1?.trim() || '',
+        addressLine2: businessAddress?.addressLine2?.trim() || '',
+        city: businessAddress?.city?.trim() || '',
+        state: businessAddress?.state?.trim() || '',
+        postalCode: businessAddress?.postalCode?.trim() || '',
+        country: businessAddress?.country?.trim() || 'India',
+      },
+      branding: {
+        logoUrl: branding?.logoUrl || '',
+        faviconUrl: branding?.faviconUrl || '',
+        tagline: branding?.tagline || `${name.trim()} Atelier`,
+        primaryColor: branding?.primaryColor || '#593D30',
+        secondaryColor: '#F7F1E9',
+        accentColor: branding?.accentColor || '#A85F49',
+      },
+      announcement: {
+        enabled: true,
+        text: `Welcome to ${name.trim()} · Solid 925 Sterling Silver Collections · Complimentary Insured Express Dispatch on All Orders`,
+        link: '',
+        bgColor: branding?.accentColor || '#A85F49',
+        textColor: '#FFFFFF',
+      },
+      hero: {
+        heading: `${name.trim()} Collections`,
+        subheading: `${name.trim().toUpperCase()} FINE JEWELLERY`,
+        description:
+          businessDescription?.trim() ||
+          'Sculptural fine jewellery conceived in solid 925 sterling silver. Celebrating tactile weights and timeless personal expression.',
+        desktopImageUrl: '',
+        mobileImageUrl: '',
+        ctaText: 'Explore Collection',
+        ctaLink: '#categories',
+      },
+      footer: {
+        description:
+          businessDescription?.trim() ||
+          `${name.trim()} fine jewellery crafted in solid 925 sterling silver. Timeless elegance and modern craftsmanship.`,
+        contactEmail: normalizedEmail,
+        contactPhone: businessPhone?.trim() || '',
+        address: businessAddress?.addressLine1
+          ? `${businessAddress.addressLine1}, ${businessAddress.city || ''} ${businessAddress.state || ''} ${businessAddress.country || ''}`.trim()
+          : '',
+        copyrightText: `© ${new Date().getFullYear()} ${name.trim()}. All rights reserved.`,
+      },
+      seo: {
+        title: `${name.trim()} | 925 Sterling Silver Fine Jewellery`,
+        description:
+          businessDescription?.trim() || `Explore ${name.trim()} fine jewellery collections.`,
+      },
+    };
+
     // Create Tenant
     const tenant = await Tenant.create({
       name: name.trim(),
@@ -504,6 +577,7 @@ export const createPlatformTenant = async (req, res, next) => {
       ownerId: ownerUser._id,
       status: TENANT_STATUS.ACTIVE,
       plan: selectedPlan.slug || 'starter',
+      settings: initialSettings,
     });
 
     // Resolve or create store_admin role

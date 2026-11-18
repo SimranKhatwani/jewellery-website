@@ -9,6 +9,7 @@ const TAB_TITLES = {
   notifications: 'Store Notifications & Alerts',
   analytics: 'Analytics & Reports',
   reports: 'Analytics & Reports',
+  settings: 'Store Settings & White-Label Branding',
 };
 
 export const AdminHeader = ({

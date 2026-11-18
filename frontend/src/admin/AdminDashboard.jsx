@@ -21,6 +21,7 @@ import { OrdersManager } from './OrdersManager';
 import { CustomersManager } from './CustomersManager';
 import { AdminNotificationsView } from './AdminNotificationsView';
 import { AnalyticsReportsModule } from './analytics/AnalyticsReportsModule';
+import { StoreSettingsManager } from './StoreSettingsManager';
 import { AdminPlaceholder } from './AdminPlaceholder';
 import { notifyCatalogueChanged } from '../services/productService';
 import { initSocket } from '../services/socketService';
@@ -35,7 +36,7 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = localStorage.getItem('aurelle_admin_active_tab');
-      if (['overview', 'catalogue', 'orders', 'customers', 'notifications', 'analytics', 'reports'].includes(saved)) {
+      if (['overview', 'catalogue', 'orders', 'customers', 'notifications', 'analytics', 'reports', 'settings'].includes(saved)) {
         return saved;
       }
     } catch {
@@ -403,7 +404,7 @@ export const AdminDashboard = ({
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
           admin={admin}
-          onViewStorefront={onViewStorefront}
+          onViewStorefront={() => onViewStorefront && onViewStorefront(admin?.storeSlug)}
           onGoToSuperAdmin={onGoToSuperAdmin}
           adminNotificationsOpen={adminNotificationsOpen}
           setAdminNotificationsOpen={setAdminNotificationsOpen}
@@ -422,7 +423,7 @@ export const AdminDashboard = ({
               stats={stats}
               adminUnreadCount={adminUnreadCount}
               onNavigateTab={handleSelectTab}
-              onViewStorefront={onViewStorefront}
+              onViewStorefront={() => onViewStorefront && onViewStorefront(admin?.storeSlug)}
               onOpenCreateProduct={handleOpenCreateModal}
             />
           )}
@@ -480,6 +481,15 @@ export const AdminDashboard = ({
               admin={admin}
               initialSubTab={activeTab === 'reports' ? 'reports' : 'overview'}
               onNavigateCatalogue={() => handleSelectTab('catalogue')}
+            />
+          )}
+
+          {activeTab === 'settings' && (
+            <StoreSettingsManager
+              admin={admin}
+              onStoreUpdated={() => {
+                loadProducts();
+              }}
             />
           )}
         </main>

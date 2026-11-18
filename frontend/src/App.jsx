@@ -44,6 +44,7 @@ import {
   validateCoupon,
   getCustomerUser,
   fetchStoreInfo,
+  getStoreSlug,
 } from './services/storefrontService';
 import {
   getPublishedProducts,
@@ -95,8 +96,15 @@ export default function App() {
     return window.location.hash === '#return-policy';
   });
 
-  // Dynamic products state fetched from MongoDB backend API (with local catalogue fallback)
-  const [products, setProducts] = useState(PRODUCTS);
+  // Dynamic store configuration & tenant identity state
+  const [storeInfo, setStoreInfo] = useState(null);
+  const [isStoreNotFound, setIsStoreNotFound] = useState(false);
+
+  // Dynamic products state fetched from MongoDB backend API (scoped to active tenant)
+  const [products, setProducts] = useState(() => {
+    const slug = getStoreSlug();
+    return slug === 'aurelle' ? PRODUCTS : [];
+  });
 
   // Selected product for PDP view
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -144,10 +152,46 @@ export default function App() {
     }
   }, []);
 
+  const loadStoreContext = useCallback(async () => {
+    try {
+      setIsStoreNotFound(false);
+      const store = await fetchStoreInfo();
+      if (store) {
+        setStoreInfo(store);
+        if (store.status === 'suspended') {
+          setIsStoreNotFound(true);
+        }
+        if (store.name && typeof document !== 'undefined') {
+          document.title = store.settings?.seo?.title || `${store.name} | Fine Jewellery`;
+        }
+      } else {
+        const slug = getStoreSlug();
+        if (slug !== 'aurelle') {
+          setIsStoreNotFound(true);
+        }
+      }
+    } catch (err) {
+      console.warn('[Storefront] Could not load store info:', err);
+    }
+  }, []);
+
   const [, setCurrencyTick] = useState(0);
 
+  // Fetch catalogue from backend API and subscribe to live admin updates
+  const refreshCatalogue = useCallback(async () => {
+    try {
+      const res = await getPublishedProducts();
+      if (res && Array.isArray(res.products)) {
+        setProducts(res.products);
+      }
+    } catch (err) {
+      console.warn('[Storefront] Failed to load backend products:', err);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchStoreInfo();
+    loadStoreContext();
+    refreshCatalogue();
     refreshCart();
 
     const handleCurrencyChange = () => {
@@ -155,7 +199,7 @@ export default function App() {
     };
     window.addEventListener('aurelle_currency_updated', handleCurrencyChange);
     return () => window.removeEventListener('aurelle_currency_updated', handleCurrencyChange);
-  }, [refreshCart]);
+  }, [loadStoreContext, refreshCatalogue, refreshCart]);
 
   // Cart action handlers
   const handleAddToCart = useCallback(async ({ product, selectedOption, selectedFinish, quantity }) => {
@@ -249,11 +293,21 @@ export default function App() {
     await refreshCart();
   }, [refreshCart]);
 
-  // Synchronize route changes for /admin, #admin, /sa, and #sa
+  // Synchronize route changes for /admin, #admin, /sa, #sa, and direct store slug paths
   useEffect(() => {
+    let lastSlug = getStoreSlug();
+
     const handleRouteCheck = () => {
       setIsSuperAdminView(checkIsSuperAdminRoute());
       setIsAdminView(checkIsAdminRoute());
+
+      const currentSlug = getStoreSlug();
+      if (currentSlug !== lastSlug) {
+        lastSlug = currentSlug;
+        loadStoreContext();
+        refreshCatalogue();
+        refreshCart();
+      }
     };
 
     window.addEventListener('popstate', handleRouteCheck);
@@ -262,22 +316,9 @@ export default function App() {
       window.removeEventListener('popstate', handleRouteCheck);
       window.removeEventListener('hashchange', handleRouteCheck);
     };
-  }, []);
-
-  // Fetch catalogue from backend API and subscribe to live admin updates
-  const refreshCatalogue = useCallback(async () => {
-    try {
-      const res = await getPublishedProducts();
-      if (res.products && res.products.length > 0) {
-        setProducts(res.products);
-      }
-    } catch (err) {
-      console.warn('[Aurelle] Failed to load backend products:', err);
-    }
-  }, []);
+  }, [loadStoreContext, refreshCatalogue, refreshCart]);
 
   useEffect(() => {
-    refreshCatalogue();
     const unsubscribe = subscribeCatalogueChanges(() => {
       refreshCatalogue();
     });
@@ -421,10 +462,17 @@ export default function App() {
   };
 
   // Exit Admin Panel handler
-  const handleExitAdmin = () => {
+  const handleExitAdmin = (targetSlug) => {
     setIsAdminView(false);
     window.location.hash = '';
-    window.history.pushState(null, '', '/');
+    const slug = targetSlug || localStorage.getItem('aurelle_store_slug') || 'aurelle';
+    try {
+      localStorage.setItem('aurelle_store_slug', slug);
+    } catch {
+      // ignore
+    }
+    window.history.pushState(null, '', `/${slug}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   // Render Super Admin Console if on /sa or #sa route
@@ -442,6 +490,37 @@ export default function App() {
       <React.Suspense fallback={<AdminLoadingFallback label="Loading Store Admin Workspace..." />}>
         <AdminApp onExitAdmin={handleExitAdmin} />
       </React.Suspense>
+    );
+  }
+
+  // Render Store Unavailable if store does not exist or is suspended
+  if (isStoreNotFound) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-6 text-center text-[#593D30]">
+        <div className="max-w-md p-8 bg-white border border-[#D7C5AF]/60 rounded-xs shadow-xl space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF7F2] border border-[#D7C5AF] flex items-center justify-center text-[#A85F49]">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <h2 className="font-serif text-2xl">Store Unavailable</h2>
+          <p className="text-xs text-[#8E8172] leading-relaxed">
+            The requested store (/<code>{getStoreSlug()}</code>) is either inactive, suspended, or does not exist on this platform.
+          </p>
+          <button
+            onClick={() => {
+              try {
+                localStorage.setItem('aurelle_store_slug', 'aurelle');
+              } catch {}
+              window.history.pushState(null, '', '/aurelle');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+            className="px-5 py-2.5 bg-[#593D30] hover:bg-[#A85F49] text-white rounded-xs text-xs uppercase tracking-wider font-medium transition-colors cursor-pointer"
+          >
+            Return to Platform Storefront
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -515,6 +594,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#593D30] selection:bg-[#A85F49] selection:text-[#FFFFFF] overflow-x-hidden">
       {/* 1 & 2. Announcement Strip & Minimal Navigation Header */}
       <Header
+        storeInfo={storeInfo}
         wishlistCount={wishlistedProducts.length}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         cartCount={cart.totalItems || cart.items.reduce((s, it) => s + it.quantity, 0)}
@@ -558,19 +638,36 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 3. Realistic 3D Rotating Silver Solitaire Ring Hero */}
-            <RotatingRingHero onExploreClick={handleExploreHeroTarget} />
+            {/* 3. Realistic 3D Rotating Silver Solitaire Ring Hero / Custom Banner */}
+            <RotatingRingHero storeInfo={storeInfo} onExploreClick={handleExploreHeroTarget} />
 
             {/* 4. Hand-drawn benefits banner (placed immediately below hero slideshow) */}
             <HandDrawnBenefitsBanner />
 
+            {/* If the store currently has 0 published products, display an elegant curated notice */}
+            {products.length === 0 && (
+              <div className="py-20 px-6 text-center max-w-lg mx-auto space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF7F2] border border-[#D7C5AF] flex items-center justify-center text-[#A85F49]">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h3 className="font-serif text-2xl text-[#593D30]">Curating New Creations</h3>
+                <p className="text-xs text-[#8E8172] font-light leading-relaxed">
+                  {storeInfo?.name || 'This store'} has not published any pieces yet. Check back shortly or contact our atelier directly.
+                </p>
+              </div>
+            )}
+
             {/* 5. Featured silver rings collection */}
-            <RingsSection
-              rings={rings}
-              onSelectProduct={handleSelectProduct}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-            />
+            {rings.length > 0 && (
+              <RingsSection
+                rings={rings}
+                onSelectProduct={handleSelectProduct}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            )}
 
             {/* 6. Dynamic Category Sections (Earrings, Necklaces, and future added categories) */}
             {otherCategories.map((catKey) => {
@@ -590,50 +687,59 @@ export default function App() {
             })}
 
             {/* 7. Shop by category */}
-            <ShopByCategory
-              onSelectCategory={(cat) => {
-                const targetId = cat === 'all' ? 'rings' : cat;
-                const el = document.getElementById(targetId);
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              ringCount={rings.length}
-              ankletCount={anklets.length}
-              categories={categoryNavItems}
-              products={products}
-            />
+            {products.length > 0 && (
+              <ShopByCategory
+                onSelectCategory={(cat) => {
+                  const targetId = cat === 'all' ? 'rings' : cat;
+                  const el = document.getElementById(targetId);
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                ringCount={rings.length}
+                ankletCount={anklets.length}
+                categories={categoryNavItems}
+                products={products}
+              />
+            )}
 
             {/* 8. Silver anklets collection */}
-            <AnkletsSection
-              anklets={anklets}
-              onSelectProduct={handleSelectProduct}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-            />
+            {anklets.length > 0 && (
+              <AnkletsSection
+                anklets={anklets}
+                onSelectProduct={handleSelectProduct}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            )}
 
             {/* 8. Curated Bestsellers & New arrivals */}
-            <BestsellersSection
-              products={products}
-              onSelectProduct={handleSelectProduct}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-            />
+            {products.some((p) => p.isBestseller) && (
+              <BestsellersSection
+                products={products}
+                onSelectProduct={handleSelectProduct}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            )}
 
-            <NewArrivalsSection
-              products={products}
-              onSelectProduct={handleSelectProduct}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-            />
+            {products.some((p) => p.isNewArrival) && (
+              <NewArrivalsSection
+                products={products}
+                onSelectProduct={handleSelectProduct}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            )}
 
-            {/* 9. Brand story & purchasing channels (RKB Enterprises information) */}
-            <BrandStorySection />
-            <ContactSection />
+            {/* 9. Brand story & purchasing channels */}
+            <BrandStorySection storeInfo={storeInfo} />
+            <ContactSection storeInfo={storeInfo} />
           </>
         )}
       </main>
 
       {/* 10. Footer */}
       <Footer
+        storeInfo={storeInfo}
         onNavigateCategory={(cat) => {
           if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
           setTimeout(() => {

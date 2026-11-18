@@ -12,6 +12,7 @@ import {
   X,
   ShieldCheck,
   Store,
+  Settings,
 } from 'lucide-react';
 
 export const AdminSidebar = ({
@@ -69,6 +70,13 @@ export const AdminSidebar = ({
       id: 'analytics',
       label: 'Analytics & Reports',
       icon: BarChart3,
+      badge: null,
+      disabled: false,
+    },
+    {
+      id: 'settings',
+      label: 'Store Settings',
+      icon: Settings,
       badge: null,
       disabled: false,
     },

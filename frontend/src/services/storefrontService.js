@@ -13,13 +13,26 @@ function getApiBaseUrl() {
 
 const API_BASE_URL = getApiBaseUrl();
 
+const RESERVED_ROUTES = new Set([
+  'admin',
+  'sa',
+  'superadmin',
+  'api',
+  'assets',
+  'store',
+  'favicon.ico',
+  'robots.txt',
+  'sitemap.xml',
+]);
+
 /**
  * Resolve active storefront slug dynamically.
  * Priority:
  * 1. Query param: ?store=<slug> or ?tenant=<slug>
  * 2. URL path: /store/<slug>
- * 3. Saved localStorage: aurelle_store_slug
- * 4. Default: 'aurelle'
+ * 3. Direct route path: /:storeSlug (e.g. /royal-jewellery, /giva-jewels, /aurelle)
+ * 4. Saved localStorage: aurelle_store_slug
+ * 5. Default: 'aurelle'
  */
 export function getStoreSlug() {
   if (typeof window === 'undefined') return 'aurelle';
@@ -33,15 +46,25 @@ export function getStoreSlug() {
       return clean;
     }
 
-    const pathMatch = window.location.pathname.match(/^\/store\/([a-zA-Z0-9_-]+)/i);
-    if (pathMatch && pathMatch[1]) {
-      const clean = pathMatch[1].toLowerCase();
+    const storePathMatch = window.location.pathname.match(/^\/store\/([a-zA-Z0-9_-]+)/i);
+    if (storePathMatch && storePathMatch[1]) {
+      const clean = storePathMatch[1].toLowerCase();
       localStorage.setItem('aurelle_store_slug', clean);
       return clean;
     }
 
+    // Direct slug route: e.g. /royal-jewellery or /giva-jewels
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (segments.length > 0) {
+      const firstSegment = segments[0].toLowerCase().trim();
+      if (!RESERVED_ROUTES.has(firstSegment) && /^[a-z0-9_-]+$/.test(firstSegment)) {
+        localStorage.setItem('aurelle_store_slug', firstSegment);
+        return firstSegment;
+      }
+    }
+
     const saved = localStorage.getItem('aurelle_store_slug');
-    if (saved && saved.trim()) {
+    if (saved && saved.trim() && !RESERVED_ROUTES.has(saved.trim().toLowerCase())) {
       return saved.trim().toLowerCase();
     }
   } catch {
@@ -137,9 +160,17 @@ export function getStorefrontHeaders() {
 
 let cachedStoreInfo = null;
 
-export async function fetchStoreInfo() {
+export function getCachedStoreInfo() {
+  return cachedStoreInfo;
+}
+
+export function clearStoreInfoCache() {
+  cachedStoreInfo = null;
+}
+
+export async function fetchStoreInfo(explicitSlug = null) {
   try {
-    const storeSlug = getStoreSlug();
+    const storeSlug = explicitSlug || getStoreSlug();
     const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/info`, {
       headers: getStorefrontHeaders(),
     });
@@ -150,6 +181,9 @@ export async function fetchStoreInfo() {
         cachedStoreInfo = store;
         if (store.currency && typeof window !== 'undefined') {
           localStorage.setItem('aurelle_store_currency', store.currency);
+        }
+        if (store.currencySymbol && typeof window !== 'undefined') {
+          localStorage.setItem('aurelle_store_currency_symbol', store.currencySymbol);
         }
         return store;
       }

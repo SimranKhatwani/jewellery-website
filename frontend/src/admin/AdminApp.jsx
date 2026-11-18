@@ -71,7 +71,7 @@ export const AdminApp = ({ onExitAdmin }) => {
     <AdminDashboard
       admin={adminUser}
       onLogout={() => setAdminUser(null)}
-      onViewStorefront={onExitAdmin}
+      onViewStorefront={(slug) => onExitAdmin && onExitAdmin(slug || adminUser?.storeSlug)}
       onGoToSuperAdmin={handleGoToSuperAdmin}
     />
   );

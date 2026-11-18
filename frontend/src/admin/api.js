@@ -736,6 +736,29 @@ export async function updateAdminCustomer(customerId, updates = {}) {
   return data;
 }
 
+// ----------------- Store Settings & White-Label Configuration -----------------
+export async function getTenantStoreSettings() {
+  const res = await authFetch('/v1/tenants/current');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch store settings');
+  }
+  return data.data || data.tenant || data;
+}
+
+export async function updateTenantStoreSettings(payload) {
+  const res = await authFetch('/v1/tenants/current', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update store settings');
+  }
+  return data.data || data.tenant || data;
+}
+
 
 
 

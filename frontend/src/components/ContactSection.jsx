@@ -1,11 +1,29 @@
 import React, { useState } from 'react';
 import { Check, MessageCircle, Mail, ExternalLink } from 'lucide-react';
 
-export const ContactSection = () => {
+export const ContactSection = ({ storeInfo = null }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
+  const brandName = storeInfo?.name || 'AURELLE';
+  const s = storeInfo?.settings || storeInfo?.config || {};
+  const contactSection = s.sections?.contact || {};
+
+  if (contactSection.enabled === false) return null;
+
+  const sectionHeading = contactSection.title || (isAurelle ? 'How to Acquire Aurelle Silver' : `How to Connect & Order with ${brandName}`);
+  const contactEmail = s.footer?.contactEmail || s.supportEmail || 'concierge@aurelle.com';
+  const contactPhone = s.footer?.contactPhone || s.contactPhone || '+91 98765 43210';
+  const businessAddress =
+    s.footer?.address ||
+    (s.businessAddress?.addressLine1
+      ? `${s.businessAddress.addressLine1}, ${s.businessAddress.city || ''} ${s.businessAddress.state || ''}`.trim()
+      : isAurelle
+      ? 'RKB Enterprises, Jaipur'
+      : `${brandName} Atelier`);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,7 +33,7 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contact" aria-label="Contact Aurelle and RKB Enterprises" className="py-20 md:py-24 bg-[#F7F1E9] border-t border-[#D7C5AF]/40 px-6">
+    <section id="contact" aria-label={`Contact ${brandName}`} className="py-20 md:py-24 bg-[#F7F1E9] border-t border-[#D7C5AF]/40 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
@@ -26,43 +44,45 @@ export const ContactSection = () => {
                 Purchasing Channels
               </span>
               <h2 className="text-3xl sm:text-4xl font-serif-display font-light text-[#593D30] tracking-tight">
-                How to Acquire Aurelle Silver
+                {sectionHeading}
               </h2>
             </div>
 
             <p className="text-sm text-[#8E8172] leading-relaxed font-light">
-              Aurelle creations are distributed in limited production batches. To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.
+              {isAurelle
+                ? 'Aurelle creations are distributed in limited production batches. To purchase, contact RKB Enterprises or find us on Amazon and Flipkart.'
+                : `${brandName} creations are crafted in small artisanal batches. Directly order online or reach out to our client concierge for customized allocations.`}
             </p>
 
             <div className="space-y-4 pt-2">
               <div className="p-4 bg-[#FFFFFF] rounded-xs border border-[#D7C5AF]/40 space-y-1 shadow-xs">
                 <span className="text-[11px] uppercase tracking-wider text-[#8E8172] font-medium block">
-                  Authorised Distributor
+                  {isAurelle ? 'Authorised Distributor' : 'Official Store & Concierge'}
                 </span>
                 <p className="text-sm font-medium text-[#593D30]">
-                  RKB Enterprises
+                  {isAurelle ? 'RKB Enterprises' : brandName}
                 </p>
                 <p className="text-xs text-[#8E8172] font-light">
-                  Direct client inquiries, retail partner orders, and domestic distribution.
+                  {businessAddress}
                 </p>
               </div>
 
               <div className="p-4 bg-[#FFFFFF] rounded-xs border border-[#D7C5AF]/40 space-y-1 shadow-xs">
                 <span className="text-[11px] uppercase tracking-wider text-[#8E8172] font-medium block">
-                  Verified Online Marketplaces
+                  Direct Inquiries & Orders
                 </span>
                 <p className="text-sm font-medium text-[#593D30]">
-                  Amazon and Flipkart
+                  {contactEmail}
                 </p>
                 <p className="text-xs text-[#8E8172] font-light">
-                  Search for official Aurelle hallmarked 925 sterling silver rings and anklets.
+                  Direct phone / assistance: {contactPhone}
                 </p>
               </div>
 
-              {/* Direct Inquiry Triggers for RKB Enterprises */}
+              {/* Direct Inquiry Triggers */}
               <div className="pt-2 flex flex-col sm:flex-row gap-3">
                 <a
-                  href="https://api.whatsapp.com/send?text=Hello%20RKB%20Enterprises%2C%20I%20would%20like%20to%20inquire%20about%20purchasing%20Aurelle%20fine%20silver%20jewellery."
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hello ${brandName}, I would like to inquire about purchasing fine silver jewellery.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 px-3 bg-[#A85F49] text-[#FFFFFF] text-xs uppercase tracking-wider font-medium rounded-xs hover:bg-[#8E4D3A] transition-colors flex items-center justify-center gap-2 shadow-xs"
@@ -71,11 +91,11 @@ export const ContactSection = () => {
                   <span>WhatsApp Inquiry</span>
                 </a>
                 <a
-                  href="mailto:?subject=Aurelle%20Jewellery%20Inquiry%20-%20RKB%20Enterprises&body=Hello%20RKB%20Enterprises%2C%0D%0A%0D%0AI%20would%20like%20to%20inquire%20about%20allocations%20and%20ordering%20for%20Aurelle%20fine%20silver%20jewellery."
+                  href={`mailto:${contactEmail}?subject=${encodeURIComponent(`${brandName} Jewellery Inquiry`)}`}
                   className="flex-1 py-2.5 px-3 bg-[#FFFFFF] text-[#593D30] border border-[#D7C5AF] text-xs uppercase tracking-wider font-medium rounded-xs hover:border-[#A85F49] hover:text-[#A85F49] transition-colors flex items-center justify-center gap-2"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Email RKB Team</span>
+                  <span>Email Atelier</span>
                 </a>
               </div>
             </div>

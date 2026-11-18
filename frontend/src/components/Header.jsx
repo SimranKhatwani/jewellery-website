@@ -9,6 +9,7 @@ import {
 import { initSocket } from '../services/socketService';
 
 export const Header = ({
+  storeInfo = null,
   wishlistCount,
   onOpenWishlist,
   cartCount = 0,
@@ -29,6 +30,28 @@ export const Header = ({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const announcementConfig = storeInfo?.settings?.announcement || storeInfo?.config?.announcement || {};
+  const showAnnouncement = announcementConfig.enabled !== false;
+  const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
+  const announcementText =
+    announcementConfig.text ||
+    (isAurelle
+      ? '925 Sterling Silver Atelier · Discover Your Next Favourite Piece — Shop At RKB Enterprises or Explore Our Collections on Amazon & Flipkart · Solid 925 Sterling Silver · Complimentary Insured Express Dispatch on All Allocations'
+      : `Welcome to ${storeInfo?.name || 'our store'} · Solid 925 Sterling Silver Collections · Complimentary Insured Express Dispatch on All Orders`);
+  const announcementBg = announcementConfig.bgColor || '#A85F49';
+  const announcementTextColor = announcementConfig.textColor || '#FFFFFF';
+
+  const brandName = storeInfo?.name || 'AURELLE';
+  const brandTagline =
+    storeInfo?.settings?.branding?.tagline ||
+    storeInfo?.config?.branding?.tagline ||
+    (isAurelle ? 'Silver Atelier' : `${brandName} Atelier`);
+  const brandLogoUrl =
+    storeInfo?.settings?.branding?.logoUrl ||
+    storeInfo?.config?.branding?.logoUrl ||
+    storeInfo?.logoUrl ||
+    '';
 
   const defaultCategories = [
     { slug: 'rings', label: 'Silver Rings' },
@@ -102,53 +125,58 @@ export const Header = ({
 
   return (
     <div className="sticky top-0 z-40 w-full transition-colors">
-      {/* Announcement Marquee Strip: Burnt Terracotta #A85F49 (Moving State) */}
-      <div 
-        aria-label="Announcements" 
-        className="w-full bg-[#A85F49] text-[#FFFFFF] text-[11px] sm:text-xs py-2 overflow-hidden border-b border-[#FFFFFF]/10 shadow-xs select-none"
-      >
-        <div className="animate-marquee whitespace-nowrap">
-          {/* Loop Set 1 */}
-          <div className="flex items-center gap-6 shrink-0 pr-6">
-            <span className="tracking-[0.22em] uppercase font-medium text-[#F7F1E9]">925 Sterling Silver Atelier</span>
-            <span aria-hidden="true" className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.18em] uppercase font-light text-[#FFFFFF]">Discover Your Next Favourite Piece — Shop At RKB Enterprises or Explore Our Collections on Amazon & Flipkart</span>
-            <span aria-hidden="true" className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.22em] uppercase font-medium text-[#F7F1E9]">Solid 925 Sterling Silver</span>
-            <span aria-hidden="true" className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.18em] uppercase font-light text-[#FFFFFF]">Complimentary Insured Express Dispatch on All Allocations</span>
-            <span aria-hidden="true" className="opacity-75 text-[#F7F1E9]">·</span>
-          </div>
+      {/* Announcement Marquee Strip: Dynamic background and text colors */}
+      {showAnnouncement && (
+        <div 
+          aria-label="Announcements" 
+          style={{ backgroundColor: announcementBg, color: announcementTextColor }}
+          className="w-full text-[11px] sm:text-xs py-2 overflow-hidden border-b border-[#FFFFFF]/10 shadow-xs select-none"
+        >
+          <div className="animate-marquee whitespace-nowrap">
+            {/* Loop Set 1 */}
+            <div className="flex items-center gap-6 shrink-0 pr-6">
+              <span className="tracking-[0.22em] uppercase font-medium opacity-90">{brandName}</span>
+              <span aria-hidden="true" className="opacity-75">·</span>
+              <span className="tracking-[0.18em] uppercase font-light">{announcementText}</span>
+              <span aria-hidden="true" className="opacity-75">·</span>
+            </div>
 
-          {/* Loop Set 2 (Identical clone for seamless infinite movement) */}
-          <div aria-hidden="true" className="flex items-center gap-6 shrink-0 pr-6">
-            <span className="tracking-[0.22em] uppercase font-medium text-[#F7F1E9]">925 Sterling Silver Atelier</span>
-            <span className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.18em] uppercase font-light text-[#FFFFFF]">Discover Your Next Favourite Piece — Shop At RKB Enterprises or Explore Our Collections on Amazon & Flipkart</span>
-            <span className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.22em] uppercase font-medium text-[#F7F1E9]">Solid 925 Sterling Silver</span>
-            <span className="opacity-75 text-[#F7F1E9]">·</span>
-            <span className="tracking-[0.18em] uppercase font-light text-[#FFFFFF]">Complimentary Insured Express Dispatch on All Allocations</span>
-            <span className="opacity-75 text-[#F7F1E9]">·</span>
+            {/* Loop Set 2 (Identical clone for seamless infinite movement) */}
+            <div aria-hidden="true" className="flex items-center gap-6 shrink-0 pr-6">
+              <span className="tracking-[0.22em] uppercase font-medium opacity-90">{brandName}</span>
+              <span className="opacity-75">·</span>
+              <span className="tracking-[0.18em] uppercase font-light">{announcementText}</span>
+              <span className="opacity-75">·</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Navigation Bar: Warm Ivory #F7F1E9 */}
       <header className="w-full bg-[#F7F1E9]/98 backdrop-blur-md border-b border-[#D7C5AF]/40 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 px-6 py-3.5 md:py-4">
           
-          {/* Brand Wordmark */}
+          {/* Brand Wordmark / Dynamic Logo */}
           <button
             onClick={onNavigateHome}
             className="flex flex-col items-start text-left focus-visible:outline-none group shrink-0"
           >
-            <span className="text-xl md:text-2xl font-serif-display font-light tracking-[0.28em] text-[#593D30] uppercase whitespace-nowrap group-hover:text-[#A85F49] transition-colors leading-none">
-              AURELLE
-            </span>
-            <span className="text-[8.5px] uppercase tracking-[0.38em] text-[#8E8172] font-medium mt-1">
-              Silver Atelier
-            </span>
+            {brandLogoUrl ? (
+              <img
+                src={brandLogoUrl}
+                alt={brandName}
+                className="h-8 md:h-10 max-w-[180px] object-contain"
+              />
+            ) : (
+              <>
+                <span className="text-xl md:text-2xl font-serif-display font-light tracking-[0.28em] text-[#593D30] uppercase whitespace-nowrap group-hover:text-[#A85F49] transition-colors leading-none">
+                  {brandName}
+                </span>
+                <span className="text-[8.5px] uppercase tracking-[0.38em] text-[#8E8172] font-medium mt-1">
+                  {brandTagline}
+                </span>
+              </>
+            )}
           </button>
 
           {/* Navigation Links: Deep Chocolate #593D30 with Terracotta #A85F49 Hover */}

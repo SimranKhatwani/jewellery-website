@@ -1,9 +1,27 @@
 import React from 'react';
 import { ShieldCheck, Compass, Sparkles } from 'lucide-react';
 
-export const BrandStorySection = () => {
+export const BrandStorySection = ({ storeInfo = null }) => {
+  const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
+  const brandName = storeInfo?.name || 'AURELLE';
+  const brandStory = storeInfo?.settings?.sections?.brandStory || storeInfo?.config?.sections?.brandStory || {};
+  
+  if (brandStory.enabled === false) return null;
+
+  const subtitle = brandStory.subtitle || (isAurelle ? 'The Silver Philosophy' : 'Our Metallurgical Story');
+  const title =
+    brandStory.title ||
+    (isAurelle ? 'Sculptural Form, Understated Permanence.' : `Sculptural Form & Passion at ${brandName}`);
+  const content =
+    brandStory.content ||
+    (isAurelle
+      ? 'At AURELLE, silver is not treated as a secondary metal, but as a medium of pure sculptural expression. We design exclusively with solid 925 sterling silver—embracing its natural weight, luminous cool reflectivity, and evolving character.'
+      : `At ${brandName}, silver is crafted with devotion and contemporary elegance. We design with solid 925 sterling silver—embracing its natural weight, luminous cool reflectivity, and enduring character.`);
+  const imageUrl =
+    brandStory.imageUrl || '/src/assets/images/campaign_silver_rings_editorial_1792133668744.jpg';
+
   return (
-    <section id="brand-story" aria-label="Aurelle Brand Philosophy" className="py-24 md:py-32 bg-[#FFFFFF] px-6">
+    <section id="brand-story" aria-label={`${brandName} Brand Philosophy`} className="py-24 md:py-32 bg-[#FFFFFF] px-6">
       <div className="max-w-7xl mx-auto">
 
         {/* Editorial Split Grid */}
@@ -13,8 +31,8 @@ export const BrandStorySection = () => {
           <div className="lg:col-span-5 relative">
             <div className="aspect-4/5 bg-[#F7F1E9] rounded-xs overflow-hidden shadow-xs border border-[#D7C5AF]/40">
               <img
-                src="/src/assets/images/campaign_silver_rings_editorial_1792133668744.jpg"
-                alt="Aurelle sterling silver metallurgical craft"
+                src={imageUrl}
+                alt={`${brandName} sterling silver metallurgical craft`}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
@@ -35,15 +53,15 @@ export const BrandStorySection = () => {
           <div className="lg:col-span-7 space-y-8 lg:pl-6">
             <div>
               <span className="text-xs uppercase tracking-[0.25em] text-[#8E8172] font-medium block mb-3">
-                The Silver Philosophy
+                {subtitle}
               </span>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-display font-light text-[#593D30] tracking-tight leading-[1.15] text-balance">
-                Sculptural Form, Understated Permanence.
+                {title}
               </h2>
             </div>
 
             <p className="text-base md:text-lg text-[#593D30]/90 font-light leading-relaxed">
-              At AURELLE, silver is not treated as a secondary metal, but as a medium of pure sculptural expression. We design exclusively with solid 925 sterling silver—embracing its natural weight, luminous cool reflectivity, and evolving character.
+              {content}
             </p>
 
             <p className="text-sm md:text-base text-[#8E8172] font-light leading-relaxed">

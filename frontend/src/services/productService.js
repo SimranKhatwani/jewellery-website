@@ -1,5 +1,5 @@
 import { PRODUCTS } from '../data/products';
-import { setStoreCurrency, getStoreCurrency } from './storefrontService';
+import { setStoreCurrency, getStoreCurrency, getStoreSlug, getStorefrontHeaders } from './storefrontService';
 
 function getApiBaseUrl() {
   const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
@@ -11,15 +11,25 @@ function getApiBaseUrl() {
 const API_BASE_URL = getApiBaseUrl();
 
 /**
- * Fetch all published products from backend API with local dataset fallback
+ * Fetch all published products from backend API with local dataset fallback for Aurelle
  */
 export async function getPublishedProducts() {
+  const storeSlug = getStoreSlug();
+  const isAurelle = storeSlug === 'aurelle';
+  const headers = getStorefrontHeaders ? getStorefrontHeaders() : { Accept: 'application/json' };
+
   try {
-    const res = await fetch(`${API_BASE_URL}/products?limit=100`, {
-      headers: {
-        Accept: 'application/json',
-      },
+    // Prefer tenant-scoped storefront API endpoint
+    let res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/products?limit=100`, {
+      headers,
     });
+
+    if (!res.ok) {
+      // Fallback to legacy endpoint with tenant headers
+      res = await fetch(`${API_BASE_URL}/products?limit=100`, {
+        headers,
+      });
+    }
 
     if (!res.ok) {
       throw new Error(`Server returned HTTP ${res.status}`);
@@ -31,26 +41,34 @@ export async function getPublishedProducts() {
       setStoreCurrency(data.currency, data.currencySymbol);
     }
 
-    if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+    if (data.success && Array.isArray(data.products)) {
+      if (data.products.length > 0) {
+        return {
+          products: data.products.map(formatProduct),
+          isApiLive: true,
+          total: data.total || data.products.length,
+        };
+      }
+      // If store has 0 products:
+      // If default aurelle, fallback to static catalogue; for any other store, return empty list!
       return {
-        products: data.products.map(formatProduct),
+        products: isAurelle ? PRODUCTS : [],
         isApiLive: true,
-        total: data.total || data.products.length,
+        total: isAurelle ? PRODUCTS.length : 0,
       };
     }
 
-    // If server responded with empty products list, fallback to static products
     return {
-      products: PRODUCTS,
+      products: isAurelle ? PRODUCTS : [],
       isApiLive: true,
-      total: PRODUCTS.length,
+      total: isAurelle ? PRODUCTS.length : 0,
     };
   } catch (err) {
-    console.warn('[Aurelle API] Backend unreachable or database initializing, using local catalogue fallback:', err);
+    console.warn(`[Storefront API] Failed to load products for '${storeSlug}':`, err.message);
     return {
-      products: PRODUCTS,
+      products: isAurelle ? PRODUCTS : [],
       isApiLive: false,
-      total: PRODUCTS.length,
+      total: isAurelle ? PRODUCTS.length : 0,
     };
   }
 }
@@ -59,8 +77,17 @@ export async function getPublishedProducts() {
  * Fetch a single product by its slug
  */
 export async function getProductBySlug(slug) {
+  const storeSlug = getStoreSlug();
+  const headers = getStorefrontHeaders ? getStorefrontHeaders() : { Accept: 'application/json' };
+
   try {
-    const res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(slug)}`);
+    let res = await fetch(
+      `${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(slug)}`,
+      { headers }
+    );
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(slug)}`, { headers });
+    }
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.product) {
@@ -68,11 +95,14 @@ export async function getProductBySlug(slug) {
       }
     }
   } catch {
-    // ignore network error and check static dataset
+    // ignore network error
   }
 
-  const staticMatch = PRODUCTS.find((p) => p.slug === slug || p.id === slug);
-  return staticMatch || null;
+  if (storeSlug === 'aurelle') {
+    const staticMatch = PRODUCTS.find((p) => p.slug === slug || p.id === slug);
+    return staticMatch || null;
+  }
+  return null;
 }
 
 /**
