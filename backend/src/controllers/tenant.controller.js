@@ -43,6 +43,20 @@ export const update = async (req, res, next) => {
 
 export const inviteStaff = async (req, res, next) => {
   try {
+    if (req.body.password && String(req.body.password).trim()) {
+      const result = await tenantService.createStaffMemberDirectly({
+        tenantId: req.tenant._id,
+        creatorId: req.user._id,
+        name: req.body.name || req.body.email.split('@')[0],
+        email: req.body.email,
+        password: req.body.password,
+        phoneNumber: req.body.phoneNumber,
+        roleId: req.body.roleId,
+        req,
+      });
+      return sendSuccess(res, result, 'Staff member created successfully with login credentials.', 201);
+    }
+
     const membership = await tenantService.inviteStaffMember({
       tenantId: req.tenant._id,
       inviterId: req.user._id,
@@ -53,6 +67,25 @@ export const inviteStaff = async (req, res, next) => {
     });
 
     return sendSuccess(res, membership, 'Staff member invited successfully.', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createStaff = async (req, res, next) => {
+  try {
+    const result = await tenantService.createStaffMemberDirectly({
+      tenantId: req.tenant._id,
+      creatorId: req.user._id,
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
+      phoneNumber: req.body.phoneNumber,
+      roleId: req.body.roleId,
+      req,
+    });
+
+    return sendSuccess(res, result, 'Staff member created successfully with login credentials.', 201);
   } catch (error) {
     next(error);
   }

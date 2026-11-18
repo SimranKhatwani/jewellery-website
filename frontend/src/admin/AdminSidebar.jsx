@@ -28,20 +28,27 @@ export const AdminSidebar = ({
   isOpenMobile = false,
   onCloseMobile,
 }) => {
-  const navItems = [
+  const userPermissions = admin?.permissions || [];
+  const isSuperOrStoreAdmin =
+    admin?.isSuperAdmin ||
+    admin?.role === 'superadmin' ||
+    admin?.role === 'store_admin' ||
+    userPermissions.includes('*');
+
+  const allNavItems = [
     {
       id: 'overview',
       label: 'Overview',
       icon: LayoutDashboard,
       badge: null,
-      disabled: false,
+      permission: null,
     },
     {
       id: 'catalogue',
       label: 'Catalogue Management',
       icon: Package,
       badge: productsCount > 0 ? String(productsCount) : null,
-      disabled: false,
+      permission: 'products:read',
     },
     {
       id: 'orders',
@@ -49,14 +56,21 @@ export const AdminSidebar = ({
       icon: Receipt,
       badge: pendingOrdersCount > 0 ? `${pendingOrdersCount} new` : null,
       badgeVariant: pendingOrdersCount > 0 ? 'accent' : 'neutral',
-      disabled: false,
+      permission: 'orders:read',
     },
     {
       id: 'customers',
       label: 'Customers',
       icon: Users,
       badge: null,
-      disabled: false,
+      permission: 'customers:read',
+    },
+    {
+      id: 'staff',
+      label: 'Team & Roles (RBAC)',
+      icon: ShieldCheck,
+      badge: null,
+      permission: 'staff:read',
     },
     {
       id: 'notifications',
@@ -64,23 +78,29 @@ export const AdminSidebar = ({
       icon: Bell,
       badge: unreadNotificationsCount > 0 ? String(unreadNotificationsCount) : null,
       badgeVariant: 'accent',
-      disabled: false,
+      permission: null,
     },
     {
       id: 'analytics',
       label: 'Analytics & Reports',
       icon: BarChart3,
       badge: null,
-      disabled: false,
+      permission: 'analytics:view',
     },
     {
       id: 'settings',
       label: 'Store Settings',
       icon: Settings,
       badge: null,
-      disabled: false,
+      permission: 'tenant:read',
     },
   ];
+
+  const navItems = allNavItems.filter((item) => {
+    if (!item.permission) return true;
+    if (isSuperOrStoreAdmin) return true;
+    return userPermissions.includes(item.permission);
+  });
 
   const handleNavClick = (tabId) => {
     onSelectTab(tabId);
@@ -199,6 +219,10 @@ export const AdminSidebar = ({
             <div className="min-w-0">
               <div className="text-xs font-semibold text-[#593D30] truncate">
                 {admin?.name || 'Administrator'}
+              </div>
+              <div className="text-[10px] text-[#A85F49] font-medium truncate flex items-center gap-1 mt-0.5">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                <span>{admin?.roleName || admin?.role || 'Store Administrator'}</span>
               </div>
               <div className="text-[10px] text-[#8E8172] truncate">
                 {admin?.email || ''}

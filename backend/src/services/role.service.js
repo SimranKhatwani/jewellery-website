@@ -1,20 +1,48 @@
 import { Role } from '../models/Role.js';
 import { Permission } from '../models/Permission.js';
 import { TenantMembership } from '../models/TenantMembership.js';
-import { DEFAULT_PERMISSIONS, AUDIT_ACTIONS } from '../config/constants.js';
+import { DEFAULT_PERMISSIONS, SYSTEM_ROLE_TEMPLATES, AUDIT_ACTIONS } from '../config/constants.js';
 import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
 
+export const ensureSystemRoles = async () => {
+  for (const template of SYSTEM_ROLE_TEMPLATES) {
+    const existing = await Role.findOne({ tenantId: null, slug: template.slug });
+    if (!existing) {
+      await Role.create({
+        tenantId: null,
+        name: template.name,
+        slug: template.slug,
+        description: template.description,
+        permissions: template.permissions,
+        isSystemRole: true,
+      });
+    }
+  }
+};
+
 export const listAllPermissions = async () => {
   let permissions = await Permission.find().sort({ module: 1, key: 1 });
-  // If collection empty, return defaults
+  // If collection empty, populate with defaults
   if (permissions.length === 0) {
-    return DEFAULT_PERMISSIONS;
+    try {
+      for (const p of DEFAULT_PERMISSIONS) {
+        await Permission.findOneAndUpdate(
+          { key: p.key },
+          { ...p },
+          { upsert: true, new: true }
+        );
+      }
+      permissions = await Permission.find().sort({ module: 1, key: 1 });
+    } catch {
+      return DEFAULT_PERMISSIONS;
+    }
   }
   return permissions;
 };
 
 export const listRolesForTenant = async (tenantId) => {
+  await ensureSystemRoles();
   // Returns system templates (tenantId: null) AND custom roles for this tenant
   return Role.find({
     $or: [{ tenantId: null }, { tenantId }],

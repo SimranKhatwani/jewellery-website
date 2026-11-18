@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateAdmin } from '../middleware/auth.js';
 import { resolveLegacyTenant, authorizeLegacyAdminTenant } from '../middleware/tenant.js';
+import { requireTenantPermission } from '../middleware/rbac.js';
 import * as productController from '../controllers/product.controller.js';
 
 const router = Router();
@@ -19,6 +20,7 @@ router.get(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:read'),
   productController.listAdminProducts
 );
 
@@ -27,6 +29,7 @@ router.get(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:read'),
   productController.getStoreCurrencySettings
 );
 
@@ -35,6 +38,7 @@ router.put(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:write'),
   productController.updateStoreCurrencySettings
 );
 
@@ -43,6 +47,7 @@ router.post(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:write'),
   productController.createTenantProduct
 );
 
@@ -51,6 +56,7 @@ router.put(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:write'),
   productController.updateTenantProduct
 );
 
@@ -59,6 +65,7 @@ router.delete(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:write'),
   productController.deleteTenantProduct
 );
 
@@ -67,6 +74,7 @@ router.patch(
   authenticateAdmin,
   resolveLegacyTenant,
   authorizeLegacyAdminTenant,
+  requireTenantPermission('products:write'),
   productController.toggleTenantProductPublish
 );
 

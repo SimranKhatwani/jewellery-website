@@ -1,14 +1,17 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
+import { Admin } from '../models/Admin.js';
 import { Role } from '../models/Role.js';
 import { TenantMembership } from '../models/TenantMembership.js';
 import { Invitation } from '../models/Invitation.js';
-import { TENANT_STATUS, MEMBERSHIP_STATUS, SYSTEM_ROLE_SLUGS, AUDIT_ACTIONS } from '../config/constants.js';
+import { TENANT_STATUS, MEMBERSHIP_STATUS, USER_STATUS, SYSTEM_ROLE_SLUGS, AUDIT_ACTIONS } from '../config/constants.js';
 import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
-import { sendStaffInvitationEmail } from './email.service.js';
+import { sendStaffInvitationEmail, sendStaffWelcomeEmail } from './email.service.js';
+import { ensureSystemRoles } from './role.service.js';
 import { sanitizeContentData } from '../utils/sanitize.js';
 import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
@@ -390,11 +393,173 @@ export const inviteStaffMember = async ({ tenantId, inviterId, email, roleId, re
   };
 };
 
+/**
+ * Direct Staff Account Provisioning
+ * Creates a User account with specified email & password, assigns tenant role,
+ * synchronizes administrative credentials, and sends login information via email.
+ */
+export const createStaffMemberDirectly = async ({
+  tenantId,
+  creatorId,
+  name,
+  email,
+  password,
+  phoneNumber = '',
+  roleId,
+  req = null,
+}) => {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  await ensureSystemRoles();
+
+  // 1. Verify Role exists and is applicable to this tenant
+  const role = await Role.findOne({
+    _id: roleId,
+    $or: [{ tenantId: null }, { tenantId }],
+  });
+
+  if (!role) {
+    throw new NotFoundError('Role not found or not available for this store.');
+  }
+
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    throw new NotFoundError('Store not found.');
+  }
+
+  const creator = await User.findById(creatorId);
+
+  // 2. Validate and clean phone number if provided
+  let cleanPhone = '';
+  if (phoneNumber && String(phoneNumber).trim()) {
+    cleanPhone = normalizePhoneNumber(phoneNumber);
+    if (!isValidPhoneNumber(cleanPhone)) {
+      throw new BadRequestError('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+    }
+  }
+
+  // 3. Hash password
+  const salt = await bcrypt.genSalt(12);
+  const passwordHash = await bcrypt.hash(password, salt);
+
+  // 4. Resolve or create User
+  let user = await User.findOne({ email: normalizedEmail });
+  if (user) {
+    const existingMembership = await TenantMembership.findOne({
+      tenantId,
+      userId: user._id,
+    });
+    if (existingMembership && existingMembership.status === MEMBERSHIP_STATUS.ACTIVE) {
+      throw new ConflictError('This user is already an active member of this store.');
+    }
+
+    user.passwordHash = passwordHash;
+    if (name) user.name = name.trim();
+    if (cleanPhone) user.phoneNumber = cleanPhone;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+  } else {
+    user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      phoneNumber: cleanPhone,
+      status: USER_STATUS.ACTIVE,
+    });
+  }
+
+  // 5. Create or reactivate membership
+  let membership = await TenantMembership.findOne({ tenantId, userId: user._id });
+  if (membership) {
+    membership.roleId = role._id;
+    membership.status = MEMBERSHIP_STATUS.ACTIVE;
+    membership.invitedBy = creatorId;
+    await membership.save();
+  } else {
+    membership = await TenantMembership.create({
+      tenantId,
+      userId: user._id,
+      roleId: role._id,
+      status: MEMBERSHIP_STATUS.ACTIVE,
+      invitedBy: creatorId,
+    });
+  }
+
+  // 6. Sync Admin account record for immediate login at /admin
+  await Admin.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      email: normalizedEmail,
+      name: user.name,
+      passwordHash: user.passwordHash,
+      role: 'admin',
+      tokenVersion: user.tokenVersion || 0,
+      lastLogin: new Date(),
+    },
+    { upsert: true, new: true }
+  );
+
+  // 7. Revoke/complete any pending invitations for this email in this store
+  await Invitation.updateMany(
+    { tenantId, email: normalizedEmail, status: 'pending' },
+    { $set: { status: 'accepted', acceptedAt: new Date(), acceptedBy: user._id } }
+  );
+
+  // 8. Dispatch welcome email with credentials
+  const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].trim();
+  const loginUrl = `${frontendBase}/admin`;
+
+  const emailResult = await sendStaffWelcomeEmail({
+    email: normalizedEmail,
+    storeName: tenant.name,
+    inviterName: creator?.name || 'Store Administrator',
+    roleName: role.name,
+    password,
+    loginUrl,
+  });
+
+  await logAudit({
+    tenantId,
+    userId: creatorId,
+    action: AUDIT_ACTIONS.MEMBERSHIP_CREATE,
+    resource: 'TenantMembership',
+    resourceId: membership._id,
+    details: { email: normalizedEmail, role: role.slug, userId: user._id },
+    req,
+  });
+
+  return {
+    membershipId: membership._id,
+    userId: user._id,
+    name: user.name,
+    email: normalizedEmail,
+    role: {
+      id: role._id,
+      name: role.name,
+      slug: role.slug,
+      permissions: role.permissions,
+    },
+    status: membership.status,
+    emailDispatched: emailResult.dispatched,
+    emailReason: emailResult.reason || null,
+  };
+};
+
 export const listTenantStaffMembers = async (tenantId) => {
-  return TenantMembership.find({ tenantId })
-    .populate('userId', 'name email status lastLoginAt')
-    .populate('roleId', 'name slug permissions isSystemRole')
-    .populate('invitedBy', 'name email');
+  const [memberships, invitations] = await Promise.all([
+    TenantMembership.find({ tenantId })
+      .populate('userId', 'name email status lastLoginAt phoneNumber')
+      .populate('roleId', 'name slug permissions isSystemRole')
+      .populate('invitedBy', 'name email'),
+    Invitation.find({ tenantId, status: 'pending' })
+      .populate('roleId', 'name slug permissions isSystemRole')
+      .populate('invitedBy', 'name email'),
+  ]);
+
+  return {
+    members: memberships,
+    pendingInvitations: invitations,
+  };
 };
 
 export const updateStaffMembership = async ({ tenantId, membershipId, status, roleId, updaterId, req = null }) => {

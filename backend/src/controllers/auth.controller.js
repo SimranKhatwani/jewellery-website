@@ -174,6 +174,14 @@ export const login = async (req, res, next) => {
       { expiresIn }
     );
 
+    // Determine resolved role and permissions for response
+    const primaryMembership = userMemberships.length > 0 ? userMemberships[0] : null;
+    const resolvedRoleSlug = primaryMembership?.roleId?.slug || (user?.isSuperAdmin || admin.role === 'superadmin' ? 'superadmin' : 'store_admin');
+    const resolvedRoleName = primaryMembership?.roleId?.name || (resolvedRoleSlug === 'superadmin' ? 'Platform Super Admin' : 'Store Administrator');
+    const resolvedPermissions = (user?.isSuperAdmin || admin.role === 'superadmin')
+      ? ['*']
+      : (primaryMembership?.roleId?.permissions || (resolvedRoleSlug === 'store_admin' ? ['*'] : []));
+
     res.json({
       success: true,
       message: 'Admin session authenticated successfully.',
@@ -183,7 +191,9 @@ export const login = async (req, res, next) => {
         userId: user?._id || admin._id,
         email: admin.email,
         name: admin.name,
-        role: admin.role,
+        role: resolvedRoleSlug,
+        roleName: resolvedRoleName,
+        permissions: resolvedPermissions,
         isSuperAdmin: Boolean(user?.isSuperAdmin || admin.role === 'superadmin'),
         tenantId: primaryTenant?._id,
         storeSlug: primaryTenant?.slug,
@@ -252,16 +262,32 @@ export const getMe = async (req, res, next) => {
       return;
     }
 
-    // Attach storeSlug and tenant details
+    // Attach storeSlug, tenant details, and RBAC permissions
     let primaryTenant = null;
+    let resolvedRoleSlug = admin.role;
+    let resolvedRoleName = admin.role === 'superadmin' ? 'Platform Super Admin' : 'Store Administrator';
+    let resolvedPermissions = admin.role === 'superadmin' || req.user?.isSuperAdmin ? ['*'] : [];
+
     const userId = req.user?._id || admin.id || admin._id;
     if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
       const membership = await TenantMembership.findOne({
         userId,
         status: MEMBERSHIP_STATUS.ACTIVE,
-      }).populate('tenantId', '_id name slug');
+      })
+        .populate('tenantId', '_id name slug')
+        .populate('roleId', 'name slug permissions');
+
       if (membership?.tenantId) {
         primaryTenant = membership.tenantId;
+      }
+      if (membership?.roleId) {
+        resolvedRoleSlug = membership.roleId.slug || resolvedRoleSlug;
+        resolvedRoleName = membership.roleId.name || resolvedRoleName;
+        resolvedPermissions = membership.roleId.permissions || [];
+      } else if (req.user?.isSuperAdmin || admin.role === 'superadmin') {
+        resolvedPermissions = ['*'];
+      } else {
+        resolvedPermissions = ['*']; // Default fallback for store owner
       }
     }
 
@@ -273,6 +299,9 @@ export const getMe = async (req, res, next) => {
       success: true,
       admin: {
         ...admin,
+        role: resolvedRoleSlug,
+        roleName: resolvedRoleName,
+        permissions: resolvedPermissions,
         tenantId: primaryTenant?._id,
         storeSlug: primaryTenant?.slug,
         storeName: primaryTenant?.name,

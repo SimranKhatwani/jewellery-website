@@ -29,6 +29,60 @@ export const SYSTEM_ROLE_SLUGS = {
   STORE_VIEWER: 'store_viewer',
 };
 
+export const SYSTEM_ROLE_TEMPLATES = [
+  {
+    slug: 'store_admin',
+    name: 'Store Administrator',
+    description: 'Full administrative authority across all modules, products, orders, settings, and team management.',
+    permissions: ['*'],
+    isSystemRole: true,
+  },
+  {
+    slug: 'store_manager',
+    name: 'Store Manager',
+    description: 'Manages products, orders, customers, inventory, coupons, and views analytics and team.',
+    permissions: [
+      'products:read', 'products:write',
+      'categories:read', 'categories:write',
+      'inventory:read', 'inventory:write',
+      'coupons:read', 'coupons:write',
+      'orders:read', 'orders:write',
+      'customers:read',
+      'analytics:view',
+      'staff:read',
+      'tenant:read',
+    ],
+    isSystemRole: true,
+  },
+  {
+    slug: 'store_staff',
+    name: 'Fulfillment & Inventory Staff',
+    description: 'Manages order processing, fulfillment statuses, and stock inventory counts.',
+    permissions: [
+      'orders:read', 'orders:write',
+      'products:read',
+      'inventory:read', 'inventory:write',
+      'customers:read',
+    ],
+    isSystemRole: true,
+  },
+  {
+    slug: 'store_viewer',
+    name: 'Store Auditor & Viewer',
+    description: 'Read-only access across catalog, orders, customers, and analytics without modification rights.',
+    permissions: [
+      'products:read',
+      'categories:read',
+      'inventory:read',
+      'orders:read',
+      'customers:read',
+      'analytics:view',
+      'tenant:read',
+    ],
+    isSystemRole: true,
+  },
+];
+
 export const DEFAULT_PERMISSIONS = [
   // Tenant & Store Settings
   { key: 'tenant:read', name: 'View Store Details', module: 'store', description: 'View store profile and settings' },
@@ -81,10 +135,10 @@ export const DEFAULT_SUBSCRIPTION_PLANS = [
     currency: 'INR',
     billingInterval: 'monthly',
     trialDays: 14,
-    features: ['products:read', 'products:write'],
+    features: ['products:read', 'products:write', 'staff:custom_roles'],
     limits: {
       maxProducts: 50,
-      maxStaff: 2,
+      maxStaff: 10,
       maxStorageMB: 500,
       customDomainAllowed: false,
     },
@@ -148,6 +202,7 @@ export const AUDIT_ACTIONS = {
   TENANT_CREATE: 'TENANT_CREATE',
   TENANT_UPDATE: 'TENANT_UPDATE',
   TENANT_STATUS_CHANGE: 'TENANT_STATUS_CHANGE',
+  MEMBERSHIP_CREATE: 'MEMBERSHIP_CREATE',
   MEMBERSHIP_INVITE: 'MEMBERSHIP_INVITE',
   MEMBERSHIP_UPDATE: 'MEMBERSHIP_UPDATE',
   MEMBERSHIP_REMOVE: 'MEMBERSHIP_REMOVE',

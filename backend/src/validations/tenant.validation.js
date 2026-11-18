@@ -21,6 +21,18 @@ export const validateInviteStaff = validate({
     email: { required: true, type: 'email' },
     roleId: { required: true, type: 'string' },
     name: { required: false, type: 'string' },
+    password: { required: false, type: 'string', minLength: 6, maxLength: 128 },
+    phoneNumber: { required: false, type: 'phone' },
+  },
+});
+
+export const validateCreateStaffDirectly = validate({
+  body: {
+    name: { required: true, type: 'string', minLength: 2, maxLength: 100 },
+    email: { required: true, type: 'email' },
+    password: { required: true, type: 'string', minLength: 6, maxLength: 128 },
+    roleId: { required: true, type: 'string' },
+    phoneNumber: { required: false, type: 'phone' },
   },
 });
 

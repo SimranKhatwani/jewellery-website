@@ -759,6 +759,121 @@ export async function updateTenantStoreSettings(payload) {
   return data.data || data.tenant || data;
 }
 
+// ----------------- Staff & RBAC Role Management -----------------
+export async function getTenantStaff() {
+  const res = await authFetch('/v1/tenants/staff');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch team staff members');
+  }
+  return data.data || data;
+}
+
+export async function createTenantStaffDirectly(payload) {
+  const res = await authFetch('/v1/tenants/staff/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to create team member account');
+  }
+  return data.data || data;
+}
+
+export async function inviteTenantStaff(payload) {
+  const res = await authFetch('/v1/tenants/staff', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to invite team member');
+  }
+  return data.data || data;
+}
+
+export async function updateTenantStaffMember(membershipId, updates = {}) {
+  const res = await authFetch(`/v1/tenants/staff/${membershipId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update staff member');
+  }
+  return data.data || data;
+}
+
+export async function removeTenantStaffMember(membershipId) {
+  const res = await authFetch(`/v1/tenants/staff/${membershipId}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to remove staff member');
+  }
+  return data.data || data;
+}
+
+export async function getTenantRoles() {
+  const res = await authFetch('/v1/roles');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch store roles');
+  }
+  return data.data || data.roles || data;
+}
+
+export async function getSystemPermissions() {
+  const res = await authFetch('/v1/roles/permissions');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch system permissions');
+  }
+  return data.data || data.permissions || data;
+}
+
+export async function createTenantRole(payload) {
+  const res = await authFetch('/v1/roles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to create custom role');
+  }
+  return data.data || data;
+}
+
+export async function updateTenantRole(roleId, payload) {
+  const res = await authFetch(`/v1/roles/${roleId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update role');
+  }
+  return data.data || data;
+}
+
+export async function deleteTenantRole(roleId) {
+  const res = await authFetch(`/v1/roles/${roleId}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to delete role');
+  }
+  return data.data || data;
+}
+
 
 
 

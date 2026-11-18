@@ -6,6 +6,7 @@ const TAB_TITLES = {
   catalogue: 'Catalogue Management',
   orders: 'Orders & Fulfillment',
   customers: 'Customers & Purchases',
+  staff: 'Team Members & Roles (RBAC)',
   notifications: 'Store Notifications & Alerts',
   analytics: 'Analytics & Reports',
   reports: 'Analytics & Reports',
@@ -176,9 +177,14 @@ export const AdminHeader = ({
             )}
           </div>
 
-          {/* User info */}
+          {/* User info & Role Badge */}
           <div className="hidden lg:flex flex-col text-right">
-            <span className="text-xs font-medium text-[#593D30]">{admin?.name || 'Administrator'}</span>
+            <div className="flex items-center gap-1.5 justify-end">
+              <span className="text-xs font-medium text-[#593D30]">{admin?.name || 'Administrator'}</span>
+              <span className="px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded-xs bg-[#FAF7F2] text-[#A85F49] border border-[#D7C5AF]">
+                {admin?.roleName || admin?.role || 'Staff'}
+              </span>
+            </div>
             <span className="text-[10px] text-[#8E8172]">{admin?.email || ''}</span>
           </div>
         </div>

@@ -22,6 +22,7 @@ import { CustomersManager } from './CustomersManager';
 import { AdminNotificationsView } from './AdminNotificationsView';
 import { AnalyticsReportsModule } from './analytics/AnalyticsReportsModule';
 import { StoreSettingsManager } from './StoreSettingsManager';
+import { StaffRolesManager } from './StaffRolesManager';
 import { AdminPlaceholder } from './AdminPlaceholder';
 import { notifyCatalogueChanged } from '../services/productService';
 import { initSocket } from '../services/socketService';
@@ -36,7 +37,7 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = localStorage.getItem('aurelle_admin_active_tab');
-      if (['overview', 'catalogue', 'orders', 'customers', 'notifications', 'analytics', 'reports', 'settings'].includes(saved)) {
+      if (['overview', 'catalogue', 'orders', 'customers', 'staff', 'notifications', 'analytics', 'reports', 'settings'].includes(saved)) {
         return saved;
       }
     } catch {
@@ -44,6 +45,19 @@ export const AdminDashboard = ({
     }
     return 'overview';
   });
+
+  const userPermissions = admin?.permissions || [];
+  const isSuperOrStoreAdmin =
+    admin?.isSuperAdmin ||
+    admin?.role === 'superadmin' ||
+    admin?.role === 'store_admin' ||
+    userPermissions.includes('*');
+
+  const checkPermission = (requiredPerm) => {
+    if (!requiredPerm) return true;
+    if (isSuperOrStoreAdmin) return true;
+    return userPermissions.includes(requiredPerm);
+  };
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -463,6 +477,10 @@ export const AdminDashboard = ({
 
           {activeTab === 'customers' && (
             <CustomersManager admin={admin} />
+          )}
+
+          {activeTab === 'staff' && (
+            <StaffRolesManager admin={admin} />
           )}
 
           {activeTab === 'notifications' && (

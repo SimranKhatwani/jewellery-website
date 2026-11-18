@@ -9,6 +9,7 @@ import {
   validateCreateTenant,
   validateUpdateTenant,
   validateInviteStaff,
+  validateCreateStaffDirectly,
   validateUpdateStaffStatus,
   validateTransferOwnership,
 } from '../validations/tenant.validation.js';
@@ -41,6 +42,13 @@ tenantScoped.post(
   enforcePlanLimit('staff'),
   validateInviteStaff,
   tenantController.inviteStaff
+);
+tenantScoped.post(
+  '/staff/create',
+  requireTenantPermission('staff:invite'),
+  enforcePlanLimit('staff'),
+  validateCreateStaffDirectly,
+  tenantController.createStaff
 );
 tenantScoped.patch(
   '/staff/:membershipId',

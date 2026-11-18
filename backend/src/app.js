@@ -116,7 +116,9 @@ export const createApp = () => {
   // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);
   app.use('/api/v1/tenants', tenantRoutes);
+  app.use('/api/tenants', tenantRoutes);
   app.use('/api/v1/roles', roleRoutes);
+  app.use('/api/roles', roleRoutes);
   app.use('/api/v1/platform/plans', planPlatformRoutes);
   app.use('/api/v1/platform', platformRoutes);
   app.use('/api/v1/subscriptions', subscriptionRoutes);

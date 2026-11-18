@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateUser, authenticateAdmin } from '../middleware/auth.js';
 import { resolveLegacyTenant, authorizeLegacyAdminTenant } from '../middleware/tenant.js';
+import { requireTenantPermission } from '../middleware/rbac.js';
 import * as customerController from '../controllers/customer.controller.js';
 import * as addressController from '../controllers/address.controller.js';
 import * as orderController from '../controllers/order.controller.js';
@@ -72,8 +73,8 @@ router.post('/notifications/mark-all-read', authenticateUser, notificationContro
  * Scoped to Tenant (e.g. aurelle) from `customers` collection
  * -------------------------------------------------------------
  */
-router.get('/', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, customerController.listStoreCustomers);
-router.get('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, customerController.getStoreCustomerById);
-router.patch('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, customerController.updateStoreCustomer);
+router.get('/', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.listStoreCustomers);
+router.get('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.getStoreCustomerById);
+router.patch('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.updateStoreCustomer);
 
 export default router;
