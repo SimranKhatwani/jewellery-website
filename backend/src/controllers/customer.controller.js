@@ -7,6 +7,7 @@ import { Tenant } from '../models/Tenant.js';
 import { TenantMembership } from '../models/TenantMembership.js';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors.js';
 import { generateToken } from '../utils/jwt.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
 /**
  * Auto-sync helper: ensures an existing User is mirrored into the `customers` collection
@@ -129,12 +130,12 @@ export const updateCustomerProfile = async (req, res, next) => {
     }
 
     if (updatedPhone !== undefined) {
-      let cleanPhone = String(updatedPhone).replace(/\D/g, '');
-      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-        cleanPhone = cleanPhone.slice(2);
-      }
-      if (cleanPhone && cleanPhone.length !== 10) {
-        throw new BadRequestError('Phone number must be a valid 10-digit number.');
+      let cleanPhone = '';
+      if (updatedPhone && String(updatedPhone).trim()) {
+        cleanPhone = normalizePhoneNumber(updatedPhone);
+        if (!isValidPhoneNumber(cleanPhone)) {
+          throw new BadRequestError('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+        }
       }
       user.phoneNumber = cleanPhone;
     }

@@ -1,4 +1,5 @@
 import { BadRequestError } from '../utils/errors.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
 /**
  * Lightweight Request Validator Middleware Factory
@@ -50,6 +51,11 @@ export const validate = (schema) => {
           errors[field] = `${field} must be a valid number.`;
         } else if (rule.type === 'boolean' && typeof value !== 'boolean') {
           errors[field] = `${field} must be a boolean.`;
+        } else if (rule.type === 'phone') {
+          const cleanPhone = normalizePhoneNumber(value);
+          if (!isValidPhoneNumber(cleanPhone)) {
+            errors[field] = `${field} must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.`;
+          }
         } else if (rule.type === 'array' && !Array.isArray(value)) {
           errors[field] = `${field} must be an array.`;
         }

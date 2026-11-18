@@ -14,6 +14,7 @@ import { getOrCreateTenantSubscription } from '../services/subscription.service.
 import { sendSuccess, sendPaginated } from '../utils/response.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 import {
   AUDIT_ACTIONS,
   USER_STATUS,
@@ -466,6 +467,14 @@ export const createPlatformTenant = async (req, res, next) => {
       throw new BadRequestError('Owner email is required.');
     }
 
+    let cleanBusinessPhone = '';
+    if (businessPhone && String(businessPhone).trim()) {
+      cleanBusinessPhone = normalizePhoneNumber(businessPhone);
+      if (!isValidPhoneNumber(cleanBusinessPhone)) {
+        throw new BadRequestError('Business phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+      }
+    }
+
     const normalizedSlug = slug.toLowerCase().trim();
     const existingTenant = await Tenant.findOne({ slug: normalizedSlug });
     if (existingTenant) {
@@ -515,7 +524,7 @@ export const createPlatformTenant = async (req, res, next) => {
       currencySymbol: currencySymbol || (currency === 'USD' ? '$' : '₹'),
       description: businessDescription?.trim() || '',
       supportEmail: normalizedEmail,
-      contactPhone: businessPhone?.trim() || '',
+      contactPhone: cleanBusinessPhone,
       businessAddress: {
         addressLine1: businessAddress?.addressLine1?.trim() || '',
         addressLine2: businessAddress?.addressLine2?.trim() || '',
@@ -555,7 +564,7 @@ export const createPlatformTenant = async (req, res, next) => {
           businessDescription?.trim() ||
           `${name.trim()} fine jewellery crafted in solid 925 sterling silver. Timeless elegance and modern craftsmanship.`,
         contactEmail: normalizedEmail,
-        contactPhone: businessPhone?.trim() || '',
+        contactPhone: cleanBusinessPhone,
         address: businessAddress?.addressLine1
           ? `${businessAddress.addressLine1}, ${businessAddress.city || ''} ${businessAddress.state || ''} ${businessAddress.country || ''}`.trim()
           : '',

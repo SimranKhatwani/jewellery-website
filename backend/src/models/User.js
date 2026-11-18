@@ -27,6 +27,7 @@ const UserSchema = new Schema(
       type: String,
       trim: true,
       default: '',
+      match: [/^([6-9]\d{9})?$/, 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
     },
     isSuperAdmin: {
       type: Boolean,

@@ -31,7 +31,7 @@ const CustomerSchema = new Schema(
       type: String,
       trim: true,
       default: '',
-      match: [/^(\d{10})?$/, 'Phone number must be exactly 10 digits'],
+      match: [/^([6-9]\d{9})?$/, 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
     },
     status: {
       type: String,

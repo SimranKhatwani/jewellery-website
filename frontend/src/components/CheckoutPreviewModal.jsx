@@ -24,6 +24,7 @@ import {
   formatPrice,
   placeOrder,
 } from '../services/storefrontService';
+import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
 export const CheckoutPreviewModal = ({
   isOpen,
@@ -159,13 +160,13 @@ export const CheckoutPreviewModal = ({
 
   const handleSaveNewAddress = async (e) => {
     e.preventDefault();
-    const phoneDigits = String(newAddressForm.phone || '').replace(/\D/g, '');
+    const phoneDigits = sanitizePhoneInput(newAddressForm.phone);
     if (!newAddressForm.addressLine1 || !newAddressForm.name || !phoneDigits) {
       alert('Please fill in recipient name, phone, and address line.');
       return;
     }
-    if (phoneDigits.length !== 10) {
-      alert('Please enter a valid 10-digit mobile number.');
+    if (!isValidPhoneNumber(phoneDigits)) {
+      alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       return;
     }
     if (customerUser) {
@@ -195,13 +196,13 @@ export const CheckoutPreviewModal = ({
         const missing = [];
         if (!newAddressForm.name?.trim()) missing.push('name');
         
-        const phoneDigits = String(newAddressForm.phone || '').replace(/\D/g, '');
+        const phoneDigits = sanitizePhoneInput(newAddressForm.phone);
         if (!phoneDigits) {
           missing.push('phone');
-        } else if (phoneDigits.length !== 10) {
+        } else if (!isValidPhoneNumber(phoneDigits)) {
           missing.push('phone');
           setHighlightedFields(['phone']);
-          throw new Error('Please enter a valid 10-digit mobile number.');
+          throw new Error('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
         }
 
         if (!customerUser && !newAddressForm.email?.trim()) missing.push('email');
@@ -525,11 +526,12 @@ export const CheckoutPreviewModal = ({
                             <label className="block text-[#8E8172] mb-1 font-medium">Contact Phone *</label>
                             <input
                               type="tel"
+                              inputMode="numeric"
                               required
                               maxLength={10}
                               value={newAddressForm.phone}
                               onChange={(e) => {
-                                const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                const digitsOnly = sanitizePhoneInput(e.target.value);
                                 setNewAddressForm({ ...newAddressForm, phone: digitsOnly });
                                 setOrderError(null);
                                 setHighlightedFields((prev) => prev.filter((f) => f !== 'phone'));
@@ -545,7 +547,12 @@ export const CheckoutPreviewModal = ({
                               <span className="text-[10px] text-red-600 block mt-0.5">
                                 {!newAddressForm.phone?.trim()
                                   ? 'Phone number required'
-                                  : 'Enter a valid 10-digit mobile number'}
+                                  : 'Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9'}
+                              </span>
+                            )}
+                            {newAddressForm.phone && newAddressForm.phone.length > 0 && newAddressForm.phone.length < 10 && (
+                              <span className="text-[10px] text-amber-700 block mt-0.5">
+                                {10 - newAddressForm.phone.length} more digit{10 - newAddressForm.phone.length > 1 ? 's' : ''} needed
                               </span>
                             )}
                           </div>

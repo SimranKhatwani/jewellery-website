@@ -11,6 +11,7 @@ import { USER_STATUS, TENANT_STATUS, MEMBERSHIP_STATUS, SYSTEM_ROLE_SLUGS, AUDIT
 import { ConflictError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../utils/errors.js';
 import { generateToken } from '../utils/jwt.js';
 import { logAudit } from '../utils/audit.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
 export const registerUser = async ({
   name,
@@ -42,12 +43,9 @@ export const registerUser = async ({
   // Validate and clean phone number if provided
   let cleanPhone = '';
   if (phoneNumber && String(phoneNumber).trim()) {
-    cleanPhone = String(phoneNumber).replace(/\D/g, '');
-    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-      cleanPhone = cleanPhone.slice(2);
-    }
-    if (cleanPhone.length !== 10) {
-      throw new BadRequestError('Phone number must be a valid 10-digit number.');
+    cleanPhone = normalizePhoneNumber(phoneNumber);
+    if (!isValidPhoneNumber(cleanPhone)) {
+      throw new BadRequestError('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
     }
   }
 

@@ -63,7 +63,12 @@ const OrderItemSchema = new Schema(
 const AddressSnapshotSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^[6-9]\d{9}$/, 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+    },
     addressLine1: { type: String, required: true, trim: true },
     addressLine2: { type: String, default: '', trim: true },
     city: { type: String, required: true, trim: true },
@@ -128,7 +133,12 @@ const OrderSchema = new Schema(
     customerInfo: {
       name: { type: String, required: true, trim: true },
       email: { type: String, required: true, trim: true, lowercase: true },
-      phone: { type: String, default: '', trim: true },
+      phone: {
+        type: String,
+        default: '',
+        trim: true,
+        match: [/^([6-9]\d{9})?$/, 'Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+      },
       isGuest: { type: Boolean, default: false },
     },
     orderNumber: {

@@ -14,6 +14,7 @@ import {
 } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 import * as notificationService from './notification.service.js';
 
 /**
@@ -112,12 +113,9 @@ export async function placeStorefrontOrder({
       if (!guestAddress.name || !guestAddress.phone || !guestAddress.addressLine1 || !guestAddress.city || !guestAddress.postalCode) {
         throw new BadRequestError('Incomplete delivery address details provided.');
       }
-      let cleanPhone = String(guestAddress.phone).replace(/\D/g, '');
-      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-        cleanPhone = cleanPhone.slice(2);
-      }
-      if (cleanPhone.length !== 10) {
-        throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+      const cleanPhone = normalizePhoneNumber(guestAddress.phone);
+      if (!isValidPhoneNumber(cleanPhone)) {
+        throw new BadRequestError('Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       }
       shippingAddressSnapshot = {
         name: guestAddress.name.trim(),
@@ -162,12 +160,9 @@ export async function placeStorefrontOrder({
     if (!guestAddress.email) {
       throw new BadRequestError('Customer email address is required for guest order confirmation.');
     }
-    let cleanPhone = String(guestAddress.phone).replace(/\D/g, '');
-    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-      cleanPhone = cleanPhone.slice(2);
-    }
-    if (cleanPhone.length !== 10) {
-      throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+    const cleanPhone = normalizePhoneNumber(guestAddress.phone);
+    if (!isValidPhoneNumber(cleanPhone)) {
+      throw new BadRequestError('Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
     }
     customerName = guestAddress.name.trim();
     customerEmail = guestAddress.email.trim().toLowerCase();

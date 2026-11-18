@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { createPlatformTenant } from './api';
+import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
 export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) => {
   const [name, setName] = useState('');
@@ -96,6 +97,14 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
       return;
     }
 
+    const cleanBusinessPhone = sanitizePhoneInput(businessPhone);
+    if (businessPhone && businessPhone.trim()) {
+      if (!isValidPhoneNumber(cleanBusinessPhone)) {
+        setErrorMsg('Business phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const payload = {
@@ -103,7 +112,7 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
         slug: slug.trim(),
         customDomain: customDomain.trim() || undefined,
         businessDescription: businessDescription.trim() || undefined,
-        businessPhone: businessPhone.trim() || undefined,
+        businessPhone: cleanBusinessPhone || undefined,
         currency,
         currencySymbol: currency === 'USD' ? '$' : (currency === 'EUR' ? '€' : (currency === 'GBP' ? '£' : '₹')),
         businessAddress: {
@@ -202,15 +211,22 @@ export const AddTenantModal = ({ isOpen, onClose, plans = [], onSaveSuccess }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[#8E8172] mb-1 font-medium">
-                  Business Phone
+                  Business Phone (10 digits)
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   value={businessPhone}
-                  onChange={(e) => setBusinessPhone(e.target.value)}
-                  placeholder="e.g. +91 98765 43210"
-                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                  onChange={(e) => setBusinessPhone(sanitizePhoneInput(e.target.value))}
+                  placeholder="10-digit mobile number"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
                 />
+                {businessPhone && businessPhone.length > 0 && businessPhone.length < 10 && (
+                  <span className="text-[10px] text-amber-700 mt-0.5 block">
+                    {10 - businessPhone.length} more digit{10 - businessPhone.length > 1 ? 's' : ''} needed
+                  </span>
+                )}
               </div>
 
               <div>

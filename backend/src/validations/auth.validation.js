@@ -5,7 +5,7 @@ export const validateRegister = validate({
     name: { required: true, type: 'string', minLength: 1, maxLength: 100 },
     email: { required: true, type: 'email' },
     password: { required: true, type: 'string', minLength: 6, maxLength: 128 },
-    phoneNumber: { required: false, type: 'string' },
+    phoneNumber: { required: false, type: 'phone' },
     tenantName: { required: false, type: 'string', minLength: 2, maxLength: 100 },
     tenantSlug: { required: false, type: 'slug' },
   },

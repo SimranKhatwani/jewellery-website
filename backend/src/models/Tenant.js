@@ -86,6 +86,7 @@ const TenantSchema = new Schema(
         type: String,
         trim: true,
         default: '',
+        match: [/^([6-9]\d{9})?$/, 'Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
       },
       businessAddress: {
         addressLine1: { type: String, default: '' },
@@ -180,7 +181,12 @@ const TenantSchema = new Schema(
           refundTimeline: { type: String, default: '' },
           exchangeTerms: { type: String, default: '' },
           nonReturnableItems: { type: String, default: '' },
-          whatsappSupportNumber: { type: String, default: '' },
+          whatsappSupportNumber: {
+            type: String,
+            trim: true,
+            default: '',
+            match: [/^([6-9]\d{9})?$/, 'WhatsApp number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+          },
           whatsappMessage: { type: String, default: '' },
         },
       },
@@ -203,7 +209,12 @@ const TenantSchema = new Schema(
           refundProcess: { type: String, default: '' },
           refundTimeline: { type: String, default: '' },
           exchangeConditions: { type: String, default: '' },
-          supportPhone: { type: String, default: '' },
+          supportPhone: {
+            type: String,
+            trim: true,
+            default: '',
+            match: [/^([6-9]\d{9})?$/, 'Support phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+          },
           supportEmail: { type: String, default: '' },
         },
         shippingPolicy: {
@@ -236,10 +247,20 @@ const TenantSchema = new Schema(
           status: { type: String, enum: ['draft', 'published'], default: 'draft' },
           updatedAt: { type: Date, default: Date.now },
           contactEmail: { type: String, default: '' },
-          contactPhone: { type: String, default: '' },
+          contactPhone: {
+            type: String,
+            trim: true,
+            default: '',
+            match: [/^([6-9]\d{9})?$/, 'Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+          },
           businessHours: { type: String, default: '' },
           address: { type: String, default: '' },
-          whatsappNumber: { type: String, default: '' },
+          whatsappNumber: {
+            type: String,
+            trim: true,
+            default: '',
+            match: [/^([6-9]\d{9})?$/, 'WhatsApp number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9'],
+          },
         },
         faqs: {
           title: { type: String, default: 'Frequently Asked Questions' },

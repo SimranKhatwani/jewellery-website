@@ -10,6 +10,7 @@ import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '.
 import { logAudit } from '../utils/audit.js';
 import { sendStaffInvitationEmail } from './email.service.js';
 import { sanitizeContentData } from '../utils/sanitize.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
 export const createTenant = async ({ userId, name, slug, customDomain = null, req = null }) => {
   const normalizedSlug = slug.toLowerCase().trim();
@@ -139,6 +140,37 @@ export const updateTenantDetails = async (tenantId, updateData, userId, req = nu
 
   if (updateData.settings && typeof updateData.settings === 'object') {
     const sanitizedSettings = sanitizeContentData(updateData.settings);
+
+    // Validate and normalize all phone number entries
+    const checkAndNormalizePhone = (obj, prop, label) => {
+      if (obj && obj[prop] !== undefined) {
+        const raw = String(obj[prop] || '').trim();
+        if (raw) {
+          const clean = normalizePhoneNumber(raw);
+          if (!isValidPhoneNumber(clean)) {
+            throw new BadRequestError(`${label} must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.`);
+          }
+          obj[prop] = clean;
+        } else {
+          obj[prop] = '';
+        }
+      }
+    };
+
+    checkAndNormalizePhone(sanitizedSettings, 'contactPhone', 'Store contact phone');
+    if (sanitizedSettings.footer) {
+      checkAndNormalizePhone(sanitizedSettings.footer, 'contactPhone', 'Footer contact phone');
+    }
+    if (sanitizedSettings.policies?.returnPolicyConfig) {
+      checkAndNormalizePhone(sanitizedSettings.policies.returnPolicyConfig, 'whatsappSupportNumber', 'WhatsApp support number');
+    }
+    if (sanitizedSettings.contentPages?.returnPolicy) {
+      checkAndNormalizePhone(sanitizedSettings.contentPages.returnPolicy, 'supportPhone', 'Return policy support phone');
+    }
+    if (sanitizedSettings.contentPages?.contactUs) {
+      checkAndNormalizePhone(sanitizedSettings.contentPages.contactUs, 'contactPhone', 'Contact Us support phone');
+      checkAndNormalizePhone(sanitizedSettings.contentPages.contactUs, 'whatsappNumber', 'Contact Us WhatsApp number');
+    }
 
     // If contentPages is provided, ensure updatedAt timestamps are updated
     if (sanitizedSettings.contentPages && typeof sanitizedSettings.contentPages === 'object') {

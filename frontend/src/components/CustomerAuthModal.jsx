@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Lock, Mail, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { customerLogin, customerRegister } from '../services/storefrontService';
+import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
 export const CustomerAuthModal = ({
   isOpen,
@@ -50,9 +51,9 @@ export const CustomerAuthModal = ({
     setLoading(true);
     setError(null);
     try {
-      const cleanPhone = registerPhone ? registerPhone.replace(/\D/g, '') : '';
-      if (cleanPhone && cleanPhone.length !== 10) {
-        setError('Phone number must be a valid 10-digit mobile number.');
+      const cleanPhone = sanitizePhoneInput(registerPhone);
+      if (cleanPhone && !isValidPhoneNumber(cleanPhone)) {
+        setError('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
         setLoading(false);
         return;
       }
@@ -250,13 +251,19 @@ export const CustomerAuthModal = ({
                   <Phone className="w-4 h-4 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
+                    inputMode="numeric"
                     maxLength={10}
                     value={registerPhone}
-                    onChange={(e) => setRegisterPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) => setRegisterPhone(sanitizePhoneInput(e.target.value))}
                     placeholder="10-digit mobile number"
                     className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                   />
                 </div>
+                {registerPhone && registerPhone.length > 0 && registerPhone.length < 10 && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    {10 - registerPhone.length} more digit{10 - registerPhone.length > 1 ? 's' : ''} needed
+                  </p>
+                )}
               </div>
 
               <div>

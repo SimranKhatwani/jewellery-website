@@ -1,6 +1,7 @@
 import { Address } from '../models/Address.js';
 import { Order } from '../models/Order.js';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
+import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 
 /**
  * List saved addresses for authenticated customer
@@ -87,12 +88,9 @@ export const createCustomerAddress = async (req, res, next) => {
       throw new BadRequestError('Required address fields missing: name, phone, addressLine1, city, state, postalCode.');
     }
 
-    let cleanPhone = String(phone).replace(/\D/g, '');
-    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-      cleanPhone = cleanPhone.slice(2);
-    }
-    if (cleanPhone.length !== 10) {
-      throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+    const cleanPhone = normalizePhoneNumber(phone);
+    if (!isValidPhoneNumber(cleanPhone)) {
+      throw new BadRequestError('Contact phone must be a valid 10-digit number starting with 6, 7, 8, or 9.');
     }
 
     // Check if this is the customer's first address; if so, make it default automatically
@@ -149,12 +147,9 @@ export const updateCustomerAddress = async (req, res, next) => {
     delete updates.userId; // Prevent transferring address to another user
 
     if (updates.phone !== undefined) {
-      let cleanPhone = String(updates.phone).replace(/\D/g, '');
-      if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-        cleanPhone = cleanPhone.slice(2);
-      }
-      if (cleanPhone.length !== 10) {
-        throw new BadRequestError('Contact phone must be a valid 10-digit number.');
+      const cleanPhone = normalizePhoneNumber(updates.phone);
+      if (!isValidPhoneNumber(cleanPhone)) {
+        throw new BadRequestError('Contact phone must be a valid 10-digit number starting with 6, 7, 8, or 9.');
       }
       updates.phone = cleanPhone;
     }

@@ -29,6 +29,7 @@ import {
   cancelCustomerOrder,
   formatPrice
 } from '../services/storefrontService';
+import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
 export const CustomerProfileModal = ({
   isOpen,
@@ -155,9 +156,9 @@ export const CustomerProfileModal = ({
     setError(null);
     setSuccess(null);
     try {
-      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-      if (cleanPhone && cleanPhone.length !== 10) {
-        throw new Error('Contact phone must be a valid 10-digit mobile number.');
+      const cleanPhone = sanitizePhoneInput(phone);
+      if (cleanPhone && !isValidPhoneNumber(cleanPhone)) {
+        throw new Error('Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       }
       const updated = await updateCustomerProfile({
         firstName,
@@ -197,9 +198,9 @@ export const CustomerProfileModal = ({
     setLoading(true);
     setError(null);
     try {
-      const cleanPhone = String(newAddress.phone || '').replace(/\D/g, '');
-      if (cleanPhone.length !== 10) {
-        throw new Error('Contact phone must be a valid 10-digit mobile number.');
+      const cleanPhone = sanitizePhoneInput(newAddress.phone);
+      if (!isValidPhoneNumber(cleanPhone)) {
+        throw new Error('Contact phone must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       }
       const created = await createAddress({ ...newAddress, phone: cleanPhone });
       setAddresses([created, ...addresses]);
@@ -346,12 +347,18 @@ export const CustomerProfileModal = ({
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
                   placeholder="10-digit mobile number"
                   className="w-full px-3 py-2 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs focus:outline-none focus:border-[#A85F49]"
                 />
+                {phone && phone.length > 0 && phone.length < 10 && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    {10 - phone.length} more digit{10 - phone.length > 1 ? 's' : ''} needed
+                  </p>
+                )}
               </div>
 
               <div>
@@ -517,13 +524,19 @@ export const CustomerProfileModal = ({
                       <label className="block text-[#8E8172] mb-1 font-medium">Contact Phone *</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
                         required
                         maxLength={10}
                         value={newAddress.phone}
-                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                        onChange={(e) => setNewAddress({ ...newAddress, phone: sanitizePhoneInput(e.target.value) })}
                         placeholder="10-digit mobile number"
                         className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs"
                       />
+                      {newAddress.phone && newAddress.phone.length > 0 && newAddress.phone.length < 10 && (
+                        <p className="text-[10px] text-amber-700 mt-1">
+                          {10 - newAddress.phone.length} more digit{10 - newAddress.phone.length > 1 ? 's' : ''} needed
+                        </p>
+                      )}
                     </div>
                   </div>
 

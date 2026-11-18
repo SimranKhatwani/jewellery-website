@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { getTenantStoreSettings, updateTenantStoreSettings, uploadMediaImage } from './api';
 import { StorePolicyPageView } from '../components/StorePolicyPageView';
+import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
 export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
   const [activeSubTab, setActiveSubTab] = useState('branding');
@@ -389,6 +390,27 @@ export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
     setErrorMessage(null);
 
     try {
+      // Validate all phone numbers if present
+      const phoneFieldsToValidate = [
+        { val: formData.settings?.contactPhone, label: 'Contact Phone' },
+        { val: formData.settings?.footer?.contactPhone, label: 'Footer Contact Phone' },
+        { val: formData.settings?.contentPages?.returnPolicy?.supportPhone, label: 'Return Policy Support Phone' },
+        { val: formData.settings?.contentPages?.contactUs?.contactPhone, label: 'Contact Us Support Phone' },
+        { val: formData.settings?.contentPages?.contactUs?.whatsappNumber, label: 'Contact Us WhatsApp Number' },
+        { val: formData.settings?.policies?.returnPolicyConfig?.whatsappSupportNumber, label: 'Return Policy WhatsApp Number' },
+      ];
+
+      for (const item of phoneFieldsToValidate) {
+        if (item.val && String(item.val).trim()) {
+          const clean = sanitizePhoneInput(item.val);
+          if (!isValidPhoneNumber(clean)) {
+            setErrorMessage(`${item.label} must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
       const payload = {
         name: formData.name.trim(),
         customDomain: formData.customDomain.trim() || undefined,
@@ -1382,23 +1404,31 @@ export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#8E8172] mb-1">Contact Phone / WhatsApp</label>
+                <label className="block text-xs font-medium text-[#8E8172] mb-1">Contact Phone / WhatsApp (10 digits)</label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   value={formData.settings.contactPhone}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const clean = sanitizePhoneInput(e.target.value);
                     setFormData({
                       ...formData,
                       settings: {
                         ...formData.settings,
-                        contactPhone: e.target.value,
-                        footer: { ...formData.settings.footer, contactPhone: e.target.value },
+                        contactPhone: clean,
+                        footer: { ...formData.settings.footer, contactPhone: clean },
                       },
-                    })
-                  }
-                  placeholder="+91 98765 43210"
+                    });
+                  }}
+                  placeholder="10-digit mobile number"
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-xs text-[#593D30]"
                 />
+                {formData.settings.contactPhone && formData.settings.contactPhone.length > 0 && formData.settings.contactPhone.length < 10 && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    {10 - formData.settings.contactPhone.length} more digit{10 - formData.settings.contactPhone.length > 1 ? 's' : ''} needed
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1654,15 +1684,22 @@ export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
 
                   <div>
                     <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                      Dedicated Support Phone / WhatsApp
+                      Dedicated Support Phone / WhatsApp (10 digits)
                     </label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={activePageObj.supportPhone || ''}
-                      onChange={(e) => updateCurrentPage({ supportPhone: e.target.value })}
-                      placeholder="e.g. +91 98765 43210"
+                      onChange={(e) => updateCurrentPage({ supportPhone: sanitizePhoneInput(e.target.value) })}
+                      placeholder="10-digit mobile number"
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-xs text-[#593D30]"
                     />
+                    {activePageObj.supportPhone && activePageObj.supportPhone.length > 0 && activePageObj.supportPhone.length < 10 && (
+                      <p className="text-[10px] text-amber-700 mt-1">
+                        {10 - activePageObj.supportPhone.length} more digit{10 - activePageObj.supportPhone.length > 1 ? 's' : ''} needed
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1851,15 +1888,22 @@ export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
 
                   <div>
                     <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                      Support Phone
+                      Support Phone (10 digits)
                     </label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={activePageObj.contactPhone || ''}
-                      onChange={(e) => updateCurrentPage({ contactPhone: e.target.value })}
-                      placeholder="e.g. +91 98765 43210"
+                      onChange={(e) => updateCurrentPage({ contactPhone: sanitizePhoneInput(e.target.value) })}
+                      placeholder="10-digit mobile number"
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-xs text-[#593D30]"
                     />
+                    {activePageObj.contactPhone && activePageObj.contactPhone.length > 0 && activePageObj.contactPhone.length < 10 && (
+                      <p className="text-[10px] text-amber-700 mt-1">
+                        {10 - activePageObj.contactPhone.length} more digit{10 - activePageObj.contactPhone.length > 1 ? 's' : ''} needed
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1877,15 +1921,22 @@ export const StoreSettingsManager = ({ admin, onStoreUpdated }) => {
 
                   <div>
                     <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                      WhatsApp Concierge Number
+                      WhatsApp Concierge Number (10 digits)
                     </label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={activePageObj.whatsappNumber || ''}
-                      onChange={(e) => updateCurrentPage({ whatsappNumber: e.target.value })}
-                      placeholder="e.g. +91 98765 43210"
+                      onChange={(e) => updateCurrentPage({ whatsappNumber: sanitizePhoneInput(e.target.value) })}
+                      placeholder="10-digit mobile number"
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-xs text-[#593D30]"
                     />
+                    {activePageObj.whatsappNumber && activePageObj.whatsappNumber.length > 0 && activePageObj.whatsappNumber.length < 10 && (
+                      <p className="text-[10px] text-amber-700 mt-1">
+                        {10 - activePageObj.whatsappNumber.length} more digit{10 - activePageObj.whatsappNumber.length > 1 ? 's' : ''} needed
+                      </p>
+                    )}
                   </div>
 
                   <div className="md:col-span-2">
