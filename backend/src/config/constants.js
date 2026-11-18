@@ -114,6 +114,9 @@ export const DEFAULT_PERMISSIONS = [
   // Analytics & Auditing
   { key: 'analytics:view', name: 'View Analytics', module: 'analytics', description: 'View sales and traffic metrics' },
   { key: 'audit:view', name: 'View Store Audit Logs', module: 'audit', description: 'View security and change history' },
+
+  // Notifications & Alerts
+  { key: 'notifications:read', name: 'View Notifications', module: 'notifications', description: 'View operational notifications and alerts' },
 ];
 
 export const DEFAULT_PLAN_FEATURES = [

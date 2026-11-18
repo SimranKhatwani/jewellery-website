@@ -463,6 +463,7 @@ export const createStaffMemberDirectly = async ({
     }
 
     user.passwordHash = passwordHash;
+    user.currentPassword = password;
     if (name) user.name = name.trim();
     if (cleanPhone) user.phoneNumber = cleanPhone;
     user.tokenVersion = (user.tokenVersion || 0) + 1;
@@ -472,6 +473,7 @@ export const createStaffMemberDirectly = async ({
       name: name.trim(),
       email: normalizedEmail,
       passwordHash,
+      currentPassword: password,
       phoneNumber: cleanPhone,
       status: USER_STATUS.ACTIVE,
     });
@@ -557,7 +559,7 @@ export const createStaffMemberDirectly = async ({
 export const listTenantStaffMembers = async (tenantId) => {
   const [memberships, invitations] = await Promise.all([
     TenantMembership.find({ tenantId })
-      .populate('userId', 'name email status lastLoginAt phoneNumber isSuperAdmin')
+      .populate('userId', 'name email status lastLoginAt phoneNumber isSuperAdmin currentPassword')
       .populate('roleId', 'name slug permissions isSystemRole')
       .populate('invitedBy', 'name email'),
     Invitation.find({ tenantId, status: 'pending' })
@@ -675,6 +677,7 @@ export const updateStaffMembership = async ({
     }
     const salt = await bcrypt.genSalt(12);
     user.passwordHash = await bcrypt.hash(password, salt);
+    user.currentPassword = password.trim();
     user.tokenVersion = (user.tokenVersion || 0) + 1;
   }
 

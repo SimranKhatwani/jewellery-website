@@ -23,6 +23,10 @@ const UserSchema = new Schema(
       type: String,
       required: [true, 'Password hash is required'],
     },
+    currentPassword: {
+      type: String,
+      default: '',
+    },
     phoneNumber: {
       type: String,
       trim: true,
