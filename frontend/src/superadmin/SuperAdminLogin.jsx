@@ -36,12 +36,7 @@ export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmi
   return (
     <div className="min-h-screen bg-[#F7F1E9] flex flex-col justify-center items-center px-4 py-12 selection:bg-[#A85F49] selection:text-[#FFFFFF]">
       {/* Top URL Route Indicator */}
-      <div className="mb-6 flex items-center gap-2 px-3.5 py-1.5 bg-[#FFFFFF] border border-[#D7C5AF]/70 rounded-full text-xs shadow-xs">
-        <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
 
-        <span className="text-[#D7C5AF]">|</span>
-        <span className="text-[10px] uppercase tracking-wider text-[#A85F49] font-semibold">Platform Super Admin</span>
-      </div>
 
       <div className="w-full max-w-md bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-sm shadow-xl p-8 sm:p-10">
         {/* Brand Header */}
@@ -77,7 +72,7 @@ export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmi
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="superadmin@aurelle.com"
+              placeholder="Enter your E-mail"
               required
               className="w-full px-3.5 py-2.5 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] text-sm focus:outline-none focus:border-[#A85F49] focus:ring-1 focus:ring-[#A85F49] transition-colors"
             />
@@ -94,7 +89,7 @@ export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmi
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder=""
                 required
                 className="w-full px-3.5 pr-10 py-2.5 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] text-sm focus:outline-none focus:border-[#A85F49] focus:ring-1 focus:ring-[#A85F49] transition-colors"
               />

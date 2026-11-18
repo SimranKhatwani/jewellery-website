@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, ShieldAlert } from 'lucide-react';
 import {
   getAdminProducts,
   createProduct,
@@ -33,6 +33,51 @@ export const AdminDashboard = ({
   onViewStorefront,
   onGoToSuperAdmin,
 }) => {
+  const userPermissions = admin?.permissions || [];
+  const isSuperOrStoreAdmin =
+    admin?.isSuperAdmin ||
+    admin?.role === 'superadmin' ||
+    admin?.role === 'store_admin' ||
+    userPermissions.includes('*');
+
+  // Calculate permitted tabs based on user permissions
+  const permittedTabIds = useMemo(() => {
+    if (isSuperOrStoreAdmin) {
+      return ['overview', 'catalogue', 'orders', 'customers', 'staff', 'notifications', 'analytics', 'reports', 'settings'];
+    }
+
+    const allowed = [];
+    if (userPermissions.includes('analytics:view') || userPermissions.includes('audit:view')) {
+      allowed.push('overview', 'analytics', 'reports');
+    }
+    if (
+      userPermissions.includes('products:read') ||
+      userPermissions.includes('products:write') ||
+      userPermissions.includes('categories:read') ||
+      userPermissions.includes('inventory:read') ||
+      userPermissions.includes('coupons:read')
+    ) {
+      allowed.push('catalogue');
+    }
+    if (userPermissions.includes('orders:read') || userPermissions.includes('orders:write')) {
+      allowed.push('orders');
+    }
+    if (userPermissions.includes('customers:read')) {
+      allowed.push('customers');
+    }
+    if (userPermissions.includes('staff:read') || userPermissions.includes('roles:manage')) {
+      allowed.push('staff');
+    }
+    if (userPermissions.includes('notifications:read')) {
+      allowed.push('notifications');
+    }
+    if (userPermissions.includes('tenant:update') || userPermissions.includes('tenant:read')) {
+      allowed.push('settings');
+    }
+
+    return allowed;
+  }, [admin, isSuperOrStoreAdmin, userPermissions]);
+
   // Navigation State with LocalStorage Persistence
   const [activeTab, setActiveTab] = useState(() => {
     try {
@@ -46,12 +91,18 @@ export const AdminDashboard = ({
     return 'overview';
   });
 
-  const userPermissions = admin?.permissions || [];
-  const isSuperOrStoreAdmin =
-    admin?.isSuperAdmin ||
-    admin?.role === 'superadmin' ||
-    admin?.role === 'store_admin' ||
-    userPermissions.includes('*');
+  // Synchronize activeTab: if activeTab is not permitted, switch to first permitted tab
+  useEffect(() => {
+    if (permittedTabIds.length > 0 && !permittedTabIds.includes(activeTab)) {
+      const firstAllowed = permittedTabIds[0];
+      setActiveTab(firstAllowed);
+      try {
+        localStorage.setItem('aurelle_admin_active_tab', firstAllowed);
+      } catch {
+        // ignore
+      }
+    }
+  }, [permittedTabIds, activeTab]);
 
   const checkPermission = (requiredPerm) => {
     if (!requiredPerm) return true;
@@ -431,7 +482,7 @@ export const AdminDashboard = ({
 
         {/* Dynamic Module Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && permittedTabIds.includes('overview') && (
             <AdminOverview
               admin={admin}
               stats={stats}
@@ -442,7 +493,7 @@ export const AdminDashboard = ({
             />
           )}
 
-          {activeTab === 'catalogue' && (
+          {activeTab === 'catalogue' && permittedTabIds.includes('catalogue') && (
             <CatalogueManager
               products={products}
               filteredProducts={filteredProducts}
@@ -471,19 +522,19 @@ export const AdminDashboard = ({
             />
           )}
 
-          {activeTab === 'orders' && (
+          {activeTab === 'orders' && permittedTabIds.includes('orders') && (
             <OrdersManager admin={admin} />
           )}
 
-          {activeTab === 'customers' && (
+          {activeTab === 'customers' && permittedTabIds.includes('customers') && (
             <CustomersManager admin={admin} />
           )}
 
-          {activeTab === 'staff' && (
+          {activeTab === 'staff' && permittedTabIds.includes('staff') && (
             <StaffRolesManager admin={admin} />
           )}
 
-          {activeTab === 'notifications' && (
+          {activeTab === 'notifications' && permittedTabIds.includes('notifications') && (
             <AdminNotificationsView
               notifications={adminNotifications}
               unreadCount={adminUnreadCount}
@@ -494,7 +545,7 @@ export const AdminDashboard = ({
             />
           )}
 
-          {(activeTab === 'analytics' || activeTab === 'reports') && (
+          {(activeTab === 'analytics' || activeTab === 'reports') && permittedTabIds.includes('analytics') && (
             <AnalyticsReportsModule
               admin={admin}
               initialSubTab={activeTab === 'reports' ? 'reports' : 'overview'}
@@ -502,13 +553,29 @@ export const AdminDashboard = ({
             />
           )}
 
-          {activeTab === 'settings' && (
+          {activeTab === 'settings' && permittedTabIds.includes('settings') && (
             <StoreSettingsManager
               admin={admin}
               onStoreUpdated={() => {
                 loadProducts();
               }}
             />
+          )}
+
+          {permittedTabIds.length > 0 && !permittedTabIds.includes(activeTab) && (
+            <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs p-8 text-center max-w-md mx-auto my-12 shadow-xs">
+              <ShieldAlert className="w-10 h-10 text-[#A85F49] mx-auto mb-3" />
+              <h3 className="font-serif text-lg text-[#593D30] mb-1">Module Access Restricted</h3>
+              <p className="text-xs text-[#8E8172] mb-4">
+                Your assigned role ({admin?.roleName || 'Staff'}) does not have permission to view this module.
+              </p>
+              <button
+                onClick={() => handleSelectTab(permittedTabIds[0])}
+                className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] rounded-xs hover:bg-[#4A3227] font-medium"
+              >
+                Go to Accessible Module ({permittedTabIds[0].toUpperCase()})
+              </button>
+            </div>
           )}
         </main>
       </div>

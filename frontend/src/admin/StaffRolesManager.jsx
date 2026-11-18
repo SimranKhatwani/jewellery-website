@@ -95,16 +95,16 @@ export const ADMIN_MODULES = [
     name: 'Store Settings & Policies',
     icon: Settings,
     description: 'Store Branding, Policies, FAQs and Custom Domains',
-    allPermissions: ['tenant:read', 'tenant:update'],
-    readPermissions: ['tenant:read'],
+    allPermissions: ['tenant:update', 'tenant:read'],
+    readPermissions: ['tenant:update', 'tenant:read'],
   },
   {
     id: 'notifications',
     name: 'Notifications & Alerts',
     icon: Bell,
     description: 'Low-Stock Alerts and Operational Broadcasts',
-    allPermissions: ['tenant:read'],
-    readPermissions: ['tenant:read'],
+    allPermissions: ['notifications:read'],
+    readPermissions: ['notifications:read'],
   },
   {
     id: 'staff',
@@ -301,6 +301,34 @@ export const StaffRolesManager = ({ admin }) => {
       loadAllData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to delete role.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Quick Module Toggle directly from Role Cards (RBAC)
+  // -------------------------------------------------------------
+  const [updatingRoleModule, setUpdatingRoleModule] = useState(null);
+
+  const handleQuickToggleRoleModule = async (role, mod, currentlyEnabled) => {
+    if (role.isSystemRole) return;
+    setUpdatingRoleModule(`${role._id}-${mod.id}`);
+    setErrorMsg(null);
+    try {
+      let newPermissions;
+      if (currentlyEnabled) {
+        const toRemove = new Set(mod.allPermissions);
+        newPermissions = (role.permissions || []).filter((p) => !toRemove.has(p));
+      } else {
+        newPermissions = Array.from(new Set([...(role.permissions || []), ...mod.allPermissions]));
+      }
+
+      await updateTenantRole(role._id, { permissions: newPermissions });
+      triggerSuccess(`Updated "${mod.name.replace(' Management', '')}" for ${role.name}`);
+      await loadAllData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update module access.');
+    } finally {
+      setUpdatingRoleModule(null);
     }
   };
 
@@ -542,14 +570,39 @@ export const StaffRolesManager = ({ admin }) => {
                         </td>
 
                         <td className="py-3.5 px-4">
-                          <div>
-                            <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-xs bg-[#FAF7F2] text-[#A85F49] border border-[#D7C5AF]">
-                              {role.name || role.slug || 'Store Staff'}
-                            </span>
-                            <div className="text-[10px] text-[#8E8172] mt-0.5">
-                              {role.permissions?.includes('*')
-                                ? 'Universal Store Access (*)'
-                                : `${role.permissions?.length || 0} permissions granted`}
+                          <div className="space-y-1">
+                            <div>
+                              <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-xs bg-[#FAF7F2] text-[#A85F49] border border-[#D7C5AF]">
+                                {role.name || role.slug || 'Store Staff'}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {role.permissions?.includes('*') ? (
+                                <span className="inline-flex items-center px-1.5 py-0.2 rounded-xs text-[9.5px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  All Store Modules (Full Access)
+                                </span>
+                              ) : (
+                                (() => {
+                                  const activeMods = ADMIN_MODULES.filter((m) =>
+                                    isModuleEnabled(m, role.permissions || [])
+                                  );
+                                  if (activeMods.length === 0) {
+                                    return (
+                                      <span className="text-[10px] text-zinc-400 italic">
+                                        No modules assigned
+                                      </span>
+                                    );
+                                  }
+                                  return activeMods.map((m) => (
+                                    <span
+                                      key={m.id}
+                                      className="inline-flex items-center px-1.5 py-0.2 rounded-xs text-[9.5px] font-medium bg-[#FAF7F2] text-[#593D30] border border-[#D7C5AF]"
+                                    >
+                                      {m.name.replace(' Management', '')}
+                                    </span>
+                                  ));
+                                })()
+                              )}
                             </div>
                           </div>
                         </td>
@@ -711,34 +764,49 @@ export const StaffRolesManager = ({ admin }) => {
 
                       <p className="text-xs text-[#593D30]/80 mb-4">{r.description || 'No description provided.'}</p>
 
-                      {/* Module On/Off Status Grid */}
+                      {/* Module On/Off Interactive Switches Grid */}
                       <div className="mb-4">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#8E8172] block mb-2">
-                          Admin Panel Modules Access
-                        </span>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8E8172]">
+                            Admin Panel Modules Access
+                          </span>
+                          <span className="text-[10px] text-[#A85F49] font-medium">
+                            {ADMIN_MODULES.filter((m) => isModuleEnabled(m, r.permissions || [])).length} of {ADMIN_MODULES.length} active
+                          </span>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-1.5">
                           {ADMIN_MODULES.map((mod) => {
                             const isEnabled = isModuleEnabled(mod, r.permissions || []);
                             const Icon = mod.icon;
+                            const isUpdating = updatingRoleModule === `${r._id}-${mod.id}`;
 
                             return (
                               <div
                                 key={mod.id}
                                 className={`px-2.5 py-1.5 rounded-xs border text-[11px] flex items-center justify-between transition-colors ${isEnabled
-                                  ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-medium'
+                                  ? 'bg-[#FFFFFF] border-emerald-300 text-emerald-950 font-medium shadow-2xs'
                                   : 'bg-zinc-50 border-zinc-200 text-zinc-400'
                                   }`}
                               >
                                 <div className="flex items-center gap-1.5 truncate mr-1">
-                                  <Icon className={`w-3 h-3 shrink-0 ${isEnabled ? 'text-emerald-700' : 'text-zinc-400'}`} />
-                                  <span className="truncate text-[10px]">{mod.name.replace(' Management', '')}</span>
+                                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isEnabled ? 'text-emerald-700' : 'text-zinc-400'}`} />
+                                  <span className="truncate text-[10.5px]">{mod.name.replace(' Management', '')}</span>
                                 </div>
-                                <span
-                                  className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-xs shrink-0 ${isEnabled ? 'bg-emerald-200 text-emerald-800' : 'bg-zinc-200 text-zinc-500'
-                                    }`}
+
+                                <button
+                                  type="button"
+                                  disabled={isUpdating || r.isSystemRole}
+                                  onClick={() => handleQuickToggleRoleModule(r, mod, isEnabled)}
+                                  className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer shrink-0 ${
+                                    isEnabled ? 'bg-emerald-600 justify-end' : 'bg-stone-300 justify-start'
+                                  } ${r.isSystemRole ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title={isEnabled ? `Turn OFF ${mod.name}` : `Turn ON ${mod.name}`}
                                 >
-                                  {isEnabled ? 'ON' : 'OFF'}
-                                </span>
+                                  <div className="bg-[#FFFFFF] w-3.5 h-3.5 rounded-full shadow-xs flex items-center justify-center">
+                                    {isUpdating && <RefreshCw className="w-2 h-2 text-[#593D30] animate-spin" />}
+                                  </div>
+                                </button>
                               </div>
                             );
                           })}
@@ -748,8 +816,8 @@ export const StaffRolesManager = ({ admin }) => {
 
                     {/* Actions for created role */}
                     <div className="pt-3 border-t border-[#D7C5AF]/40 flex items-center justify-between">
-                      <span className="text-[10px] text-[#8E8172]">
-                        {r.permissions?.length || 0} granular permissions
+                      <span className="text-[10px] text-[#8E8172] font-medium">
+                        {ADMIN_MODULES.filter((m) => isModuleEnabled(m, r.permissions || [])).length} of {ADMIN_MODULES.length} modules active
                       </span>
 
                       <div className="flex items-center gap-2">
@@ -942,7 +1010,7 @@ const ManualRoleCreatorSection = ({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8E8172]">
-            Admin Modules Access (On/Off Switches)
+            Admin Modules Access ({ADMIN_MODULES.filter((m) => m.allPermissions.some((p) => manualPermissions.includes(p))).length} of {ADMIN_MODULES.length} active)
           </label>
           <div className="flex items-center gap-2 text-[10px]">
             <button
@@ -1054,9 +1122,7 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
   const [isManualRole, setIsManualRole] = useState(false);
   const [manualRoleName, setManualRoleName] = useState('');
   const [manualRoleDescription, setManualRoleDescription] = useState('');
-  const [manualPermissions, setManualPermissions] = useState(() =>
-    ADMIN_MODULES.flatMap((m) => m.allPermissions)
-  );
+  const [manualPermissions, setManualPermissions] = useState(() => []);
 
   // Password reset section
   const [changePassword, setChangePassword] = useState(false);
@@ -1689,9 +1755,7 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
   const [isManualRole, setIsManualRole] = useState(false);
   const [manualRoleName, setManualRoleName] = useState('');
   const [manualRoleDescription, setManualRoleDescription] = useState('');
-  const [manualPermissions, setManualPermissions] = useState(() =>
-    ADMIN_MODULES.flatMap((m) => m.allPermissions)
-  );
+  const [manualPermissions, setManualPermissions] = useState(() => []);
 
   // Generate strong random password helper
   const handleGeneratePassword = () => {

@@ -41,14 +41,23 @@ export const AdminSidebar = ({
       label: 'Overview',
       icon: LayoutDashboard,
       badge: null,
-      permission: null,
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('analytics:view') ||
+        userPermissions.includes('audit:view'),
     },
     {
       id: 'catalogue',
       label: 'Catalogue Management',
       icon: Package,
       badge: productsCount > 0 ? String(productsCount) : null,
-      permission: 'products:read',
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('products:read') ||
+        userPermissions.includes('products:write') ||
+        userPermissions.includes('categories:read') ||
+        userPermissions.includes('inventory:read') ||
+        userPermissions.includes('coupons:read'),
     },
     {
       id: 'orders',
@@ -56,21 +65,27 @@ export const AdminSidebar = ({
       icon: Receipt,
       badge: pendingOrdersCount > 0 ? `${pendingOrdersCount} new` : null,
       badgeVariant: pendingOrdersCount > 0 ? 'accent' : 'neutral',
-      permission: 'orders:read',
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('orders:read') ||
+        userPermissions.includes('orders:write'),
     },
     {
       id: 'customers',
       label: 'Customers',
       icon: Users,
       badge: null,
-      permission: 'customers:read',
+      isAllowed: () => isSuperOrStoreAdmin || userPermissions.includes('customers:read'),
     },
     {
       id: 'staff',
       label: 'Team & Roles (RBAC)',
       icon: ShieldCheck,
       badge: null,
-      permission: 'staff:read',
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('staff:read') ||
+        userPermissions.includes('roles:manage'),
     },
     {
       id: 'notifications',
@@ -78,29 +93,31 @@ export const AdminSidebar = ({
       icon: Bell,
       badge: unreadNotificationsCount > 0 ? String(unreadNotificationsCount) : null,
       badgeVariant: 'accent',
-      permission: null,
+      isAllowed: () => isSuperOrStoreAdmin || userPermissions.includes('notifications:read'),
     },
     {
       id: 'analytics',
       label: 'Analytics & Reports',
       icon: BarChart3,
       badge: null,
-      permission: 'analytics:view',
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('analytics:view') ||
+        userPermissions.includes('audit:view'),
     },
     {
       id: 'settings',
       label: 'Store Settings',
       icon: Settings,
       badge: null,
-      permission: 'tenant:read',
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('tenant:update') ||
+        userPermissions.includes('tenant:read'),
     },
   ];
 
-  const navItems = allNavItems.filter((item) => {
-    if (!item.permission) return true;
-    if (isSuperOrStoreAdmin) return true;
-    return userPermissions.includes(item.permission);
-  });
+  const navItems = allNavItems.filter((item) => item.isAllowed());
 
   const handleNavClick = (tabId) => {
     onSelectTab(tabId);
