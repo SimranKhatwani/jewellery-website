@@ -25,52 +25,55 @@ const RESERVED_ROUTES = new Set([
   'sitemap.xml',
 ]);
 
+// Purge any legacy stored slug that could override the platform root URL
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('aurelle_store_slug');
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Resolve active storefront slug dynamically.
  * Priority:
  * 1. Query param: ?store=<slug> or ?tenant=<slug>
  * 2. URL path: /store/<slug>
- * 3. Direct route path: /:storeSlug (e.g. /royal-jewellery, /giva-jewels, /aurelle)
- * 4. Saved localStorage: aurelle_store_slug
- * 5. Default: 'aurelle'
+ * 3. Direct route path: /:storeSlug (e.g. /giva, /giva-jewels, /royal-jewellery, /aurelle)
+ * 4. Default: 'aurelle' (Root URL localhost:3000 ALWAYS renders basic Aurelle)
  */
 export function getStoreSlug() {
   if (typeof window === 'undefined') return 'aurelle';
 
   try {
+    // 1. Query parameter
     const params = new URLSearchParams(window.location.search);
     const qSlug = params.get('store') || params.get('tenant');
     if (qSlug && qSlug.trim()) {
       const clean = qSlug.trim().toLowerCase();
-      localStorage.setItem('aurelle_store_slug', clean);
-      return clean;
+      return clean === 'giva' ? 'giva-jewels' : clean;
     }
 
+    // 2. /store/<slug> prefix
     const storePathMatch = window.location.pathname.match(/^\/store\/([a-zA-Z0-9_-]+)/i);
     if (storePathMatch && storePathMatch[1]) {
       const clean = storePathMatch[1].toLowerCase();
-      localStorage.setItem('aurelle_store_slug', clean);
-      return clean;
+      return clean === 'giva' ? 'giva-jewels' : clean;
     }
 
-    // Direct slug route: e.g. /royal-jewellery or /giva-jewels
+    // 3. Direct route path: e.g. /giva, /giva-jewels, /royal-jewellery, /aurelle
     const segments = window.location.pathname.split('/').filter(Boolean);
     if (segments.length > 0) {
       const firstSegment = segments[0].toLowerCase().trim();
       if (!RESERVED_ROUTES.has(firstSegment) && /^[a-z0-9_-]+$/.test(firstSegment)) {
-        localStorage.setItem('aurelle_store_slug', firstSegment);
-        return firstSegment;
+        return firstSegment === 'giva' ? 'giva-jewels' : firstSegment;
       }
-    }
-
-    const saved = localStorage.getItem('aurelle_store_slug');
-    if (saved && saved.trim() && !RESERVED_ROUTES.has(saved.trim().toLowerCase())) {
-      return saved.trim().toLowerCase();
     }
   } catch {
     // ignore browser storage errors
   }
 
+  // Base root URL (localhost:3000 or /) is ALWAYS the default platform store 'aurelle'
   return 'aurelle';
 }
 

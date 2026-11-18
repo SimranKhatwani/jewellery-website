@@ -437,7 +437,7 @@ export default function App() {
     setSelectedProduct(null);
     setActivePolicyPage(null);
     const storeSlug = getStoreSlug();
-    const basePath = storeSlug && storeSlug !== 'aurelle' ? `/${storeSlug}` : '/';
+    const basePath = storeSlug && storeSlug !== 'aurelle' ? (storeSlug === 'giva-jewels' ? '/giva' : `/${storeSlug}`) : '/';
     window.history.pushState(null, '', basePath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -517,19 +517,20 @@ export default function App() {
     setIsSuperAdminView(false);
     window.location.hash = '';
     window.history.pushState(null, '', '/');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   // Exit Admin Panel handler
   const handleExitAdmin = (targetSlug) => {
     setIsAdminView(false);
     window.location.hash = '';
-    const slug = targetSlug || localStorage.getItem('aurelle_store_slug') || 'aurelle';
-    try {
-      localStorage.setItem('aurelle_store_slug', slug);
-    } catch {
-      // ignore
+    const slug = targetSlug || 'aurelle';
+    if (slug === 'aurelle') {
+      window.history.pushState(null, '', '/');
+    } else {
+      const pathSlug = slug === 'giva-jewels' ? 'giva' : slug;
+      window.history.pushState(null, '', `/${pathSlug}`);
     }
-    window.history.pushState(null, '', `/${slug}`);
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 

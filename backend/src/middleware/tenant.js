@@ -38,11 +38,25 @@ export const resolveTenant = (options = { requireMembership: true }) => {
       let tenant = null;
 
       if (rawIdentifier) {
-        const identifier = String(rawIdentifier).trim();
+        const identifier = String(rawIdentifier).trim().toLowerCase();
         if (mongoose.Types.ObjectId.isValid(identifier)) {
           tenant = await Tenant.findById(identifier);
         } else {
-          tenant = await Tenant.findOne({ slug: identifier.toLowerCase() });
+          tenant = await Tenant.findOne({
+            $or: [
+              { slug: identifier },
+              ...(identifier === 'giva' ? [{ slug: 'giva-jewels' }] : []),
+              ...(identifier === 'giva-jewels' ? [{ slug: 'giva' }] : []),
+            ],
+          });
+          if (!tenant) {
+            tenant = await Tenant.findOne({
+              $or: [
+                { slug: `${identifier}-jewels` },
+                { slug: new RegExp(`^${identifier}`, 'i') },
+              ],
+            });
+          }
         }
       } else {
         // F-07: Custom-domain resolution from Host header
@@ -163,11 +177,25 @@ export const resolveLegacyTenant = async (req, _res, next) => {
 
     let tenant = null;
     if (rawIdentifier) {
-      const id = String(rawIdentifier).trim();
+      const id = String(rawIdentifier).trim().toLowerCase();
       if (mongoose.Types.ObjectId.isValid(id)) {
         tenant = await Tenant.findById(id);
       } else {
-        tenant = await Tenant.findOne({ slug: id.toLowerCase() });
+        tenant = await Tenant.findOne({
+          $or: [
+            { slug: id },
+            ...(id === 'giva' ? [{ slug: 'giva-jewels' }] : []),
+            ...(id === 'giva-jewels' ? [{ slug: 'giva' }] : []),
+          ],
+        });
+        if (!tenant) {
+          tenant = await Tenant.findOne({
+            $or: [
+              { slug: `${id}-jewels` },
+              { slug: new RegExp(`^${id}`, 'i') },
+            ],
+          });
+        }
       }
     }
 
@@ -181,20 +209,23 @@ export const resolveLegacyTenant = async (req, _res, next) => {
     }
 
     if (!tenant) {
-      // If user/admin is authenticated and not specifying a tenant header,
-      // resolve to their primary assigned store from TenantMembership
-      const authUserId = req.user?._id || req.admin?.userId || req.admin?.id;
-      if (authUserId && mongoose.Types.ObjectId.isValid(String(authUserId))) {
-        const membership = await TenantMembership.findOne({
-          userId: authUserId,
-          status: 'active',
-        }).populate('tenantId');
-        if (membership?.tenantId && membership.tenantId.status !== 'archived') {
-          tenant = membership.tenantId;
+      // Only resolve from membership if accessing an explicit administrative endpoint
+      const isAdminRoute = req.originalUrl?.includes('/admin') || req.path?.includes('/admin') || req.headers['x-admin-request'];
+      if (isAdminRoute) {
+        const authUserId = req.user?._id || req.admin?.userId || req.admin?.id;
+        if (authUserId && mongoose.Types.ObjectId.isValid(String(authUserId))) {
+          const membership = await TenantMembership.findOne({
+            userId: authUserId,
+            status: 'active',
+          }).populate('tenantId');
+          if (membership?.tenantId && membership.tenantId.status !== 'archived') {
+            tenant = membership.tenantId;
+          }
         }
       }
     }
 
+    // Default platform store is ALWAYS Aurelle
     if (!tenant) {
       tenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
     }
