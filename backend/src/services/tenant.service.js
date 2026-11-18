@@ -562,7 +562,18 @@ export const listTenantStaffMembers = async (tenantId) => {
   };
 };
 
-export const updateStaffMembership = async ({ tenantId, membershipId, status, roleId, updaterId, req = null }) => {
+export const updateStaffMembership = async ({
+  tenantId,
+  membershipId,
+  status,
+  roleId,
+  name,
+  email,
+  password,
+  phoneNumber,
+  updaterId,
+  req = null,
+}) => {
   const membership = await TenantMembership.findOne({ _id: membershipId, tenantId });
   if (!membership) {
     throw new NotFoundError('Membership record not found in this store.');
@@ -579,6 +590,77 @@ export const updateStaffMembership = async ({ tenantId, membershipId, status, ro
     throw new ForbiddenError('Cannot demote, suspend, or modify the store owner membership.');
   }
 
+  // Find user associated with this membership
+  const user = await User.findById(membership.userId);
+  if (!user) {
+    throw new NotFoundError('User account associated with this membership was not found.');
+  }
+
+  let oldEmail = user.email;
+
+  // 1. Update Name
+  if (name && typeof name === 'string' && name.trim()) {
+    user.name = name.trim();
+  }
+
+  // 2. Update Email
+  if (email && typeof email === 'string' && email.trim()) {
+    const normalizedEmail = email.toLowerCase().trim();
+    if (normalizedEmail !== user.email) {
+      const existingUser = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: user._id },
+      });
+      if (existingUser) {
+        throw new ConflictError('A user account with this email address already exists.');
+      }
+      user.email = normalizedEmail;
+    }
+  }
+
+  // 3. Update Phone Number (strict 10 digits validation)
+  if (phoneNumber !== undefined) {
+    const rawPhone = String(phoneNumber || '').trim();
+    if (rawPhone) {
+      const cleanPhone = normalizePhoneNumber(rawPhone);
+      if (!isValidPhoneNumber(cleanPhone)) {
+        throw new BadRequestError('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+      }
+      user.phoneNumber = cleanPhone;
+    } else {
+      user.phoneNumber = '';
+    }
+  }
+
+  // 4. Update Password if provided
+  if (password && typeof password === 'string' && password.trim()) {
+    if (password.length < 6) {
+      throw new BadRequestError('Password must be at least 6 characters long.');
+    }
+    const salt = await bcrypt.genSalt(12);
+    user.passwordHash = await bcrypt.hash(password, salt);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+  }
+
+  await user.save();
+
+  // 5. Sync with Admin credentials
+  if (oldEmail && oldEmail !== user.email) {
+    await Admin.deleteOne({ email: oldEmail });
+  }
+  await Admin.findOneAndUpdate(
+    { email: user.email },
+    {
+      email: user.email,
+      name: user.name,
+      passwordHash: user.passwordHash,
+      role: 'admin',
+      tokenVersion: user.tokenVersion || 0,
+    },
+    { upsert: true, new: true }
+  );
+
+  // 6. Update Role if provided
   if (roleId) {
     const role = await Role.findOne({
       _id: roleId,
@@ -590,6 +672,7 @@ export const updateStaffMembership = async ({ tenantId, membershipId, status, ro
     membership.roleId = role._id;
   }
 
+  // 7. Update Status if provided
   if (status) {
     membership.status = status;
   }
@@ -602,11 +685,22 @@ export const updateStaffMembership = async ({ tenantId, membershipId, status, ro
     action: AUDIT_ACTIONS.MEMBERSHIP_UPDATE,
     resource: 'TenantMembership',
     resourceId: membership._id,
-    details: { targetUserId: membership.userId, status, roleId },
+    details: {
+      targetUserId: membership.userId,
+      status: membership.status,
+      roleId: membership.roleId,
+      emailUpdated: oldEmail !== user.email,
+      passwordReset: Boolean(password && password.trim()),
+    },
     req,
   });
 
-  return membership;
+  const updatedMembership = await TenantMembership.findById(membership._id)
+    .populate('userId', 'name email status lastLoginAt phoneNumber')
+    .populate('roleId', 'name slug permissions isSystemRole')
+    .populate('invitedBy', 'name email');
+
+  return updatedMembership;
 };
 
 export const removeStaffMember = async ({ tenantId, membershipId, removerId, req = null }) => {

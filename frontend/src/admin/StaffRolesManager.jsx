@@ -23,6 +23,12 @@ import {
   UserCheck,
   Sparkles,
   Info,
+  Package,
+  Receipt,
+  BarChart3,
+  Settings,
+  Bell,
+  Sliders,
 } from 'lucide-react';
 import {
   getTenantStaff,
@@ -38,6 +44,120 @@ import {
 } from './api';
 import { sanitizePhoneInput, isValidPhoneNumber } from '../utils/phone';
 
+// =====================================================================
+// ADMIN MODULES SPECIFICATION
+// Represents all operational modules present in the store admin panel
+// =====================================================================
+export const ADMIN_MODULES = [
+  {
+    id: 'catalogue',
+    name: 'Catalogue Management',
+    icon: Package,
+    description: 'Products, Categories, Stock Inventory and Coupons',
+    allPermissions: [
+      'products:read',
+      'products:write',
+      'categories:read',
+      'categories:write',
+      'inventory:read',
+      'inventory:write',
+      'coupons:read',
+      'coupons:write',
+    ],
+    readPermissions: ['products:read', 'categories:read', 'inventory:read', 'coupons:read'],
+  },
+  {
+    id: 'orders',
+    name: 'Orders & Fulfillment',
+    icon: Receipt,
+    description: 'Customer Orders, Fulfillment, Tracking and Returns',
+    allPermissions: ['orders:read', 'orders:write'],
+    readPermissions: ['orders:read'],
+  },
+  {
+    id: 'customers',
+    name: 'Customers & Purchases',
+    icon: Users,
+    description: 'Customer Accounts Directory and Order History',
+    allPermissions: ['customers:read'],
+    readPermissions: ['customers:read'],
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics & Reports',
+    icon: BarChart3,
+    description: 'Store Analytics, Revenue Trends and Audit Logs',
+    allPermissions: ['analytics:view', 'audit:view'],
+    readPermissions: ['analytics:view', 'audit:view'],
+  },
+  {
+    id: 'settings',
+    name: 'Store Settings & Policies',
+    icon: Settings,
+    description: 'Store Branding, Policies, FAQs and Custom Domains',
+    allPermissions: ['tenant:read', 'tenant:update'],
+    readPermissions: ['tenant:read'],
+  },
+  {
+    id: 'notifications',
+    name: 'Notifications & Alerts',
+    icon: Bell,
+    description: 'Low-Stock Alerts and Operational Broadcasts',
+    allPermissions: ['tenant:read'],
+    readPermissions: ['tenant:read'],
+  },
+  {
+    id: 'staff',
+    name: 'Team Members & RBAC',
+    icon: ShieldCheck,
+    description: 'Manage Staff Accounts and Custom Role Permissions',
+    allPermissions: ['staff:read', 'staff:invite', 'staff:update', 'staff:remove', 'roles:manage'],
+    readPermissions: ['staff:read'],
+  },
+];
+
+// Helper to determine module ON/OFF status
+export const isModuleEnabled = (mod, permissions = []) => {
+  if (permissions.includes('*')) return true;
+  return mod.allPermissions.some((p) => permissions.includes(p));
+};
+
+export const isModuleFullAccess = (mod, permissions = []) => {
+  if (permissions.includes('*')) return true;
+  return mod.allPermissions.every((p) => permissions.includes(p));
+};
+
+// =====================================================================
+// SUB-COMPONENT: ON/OFF SLIDE SWITCH (iOS-STYLE)
+// =====================================================================
+export const SlideToggleSwitch = ({ checked, onChange, disabled = false, ariaLabel = 'Toggle' }) => {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-label={ariaLabel}
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && onChange) onChange(!checked);
+      }}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#593D30]/30 ${checked ? 'bg-[#593D30]' : 'bg-[#D7C5AF]/70'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+      />
+    </button>
+  );
+};
+
+// =====================================================================
+// MAIN COMPONENT: StaffRolesManager
+// =====================================================================
 export const StaffRolesManager = ({ admin }) => {
   const [activeTab, setActiveTab] = useState('members'); // 'members' | 'roles'
   const [loading, setLoading] = useState(true);
@@ -59,7 +179,7 @@ export const StaffRolesManager = ({ admin }) => {
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
-  const [roleChangeTarget, setRoleChangeTarget] = useState(null); // membership being changed
+  const [editingMember, setEditingMember] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null); // staff or role to delete
 
   // -------------------------------------------------------------
@@ -100,11 +220,16 @@ export const StaffRolesManager = ({ admin }) => {
     loadAllData();
   }, [loadAllData]);
 
-  // Temporary flash success message
+  // Flash success message
   const triggerSuccess = (msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 4000);
   };
+
+  // Only roles created for this tenant (or non-system templates)
+  const customRoles = useMemo(() => {
+    return roles.filter((r) => !r.isSystemRole || (r.tenantId && r.tenantId !== null));
+  }, [roles]);
 
   // -------------------------------------------------------------
   // Filtered Members
@@ -129,17 +254,6 @@ export const StaffRolesManager = ({ admin }) => {
     });
   }, [staffData.members, searchTerm, roleFilter, statusFilter]);
 
-  // Group permissions by module for the matrix
-  const permissionsByModule = useMemo(() => {
-    const map = {};
-    for (const p of permissions) {
-      const mod = p.module || 'general';
-      if (!map[mod]) map[mod] = [];
-      map[mod].push(p);
-    }
-    return map;
-  }, [permissions]);
-
   // -------------------------------------------------------------
   // Handlers for Staff
   // -------------------------------------------------------------
@@ -151,17 +265,6 @@ export const StaffRolesManager = ({ admin }) => {
       loadAllData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to update member status.');
-    }
-  };
-
-  const handleSaveRoleChange = async (membershipId, newRoleId) => {
-    try {
-      await updateTenantStaffMember(membershipId, { roleId: newRoleId });
-      triggerSuccess('Role updated successfully.');
-      setRoleChangeTarget(null);
-      loadAllData(true);
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to change role.');
     }
   };
 
@@ -195,7 +298,7 @@ export const StaffRolesManager = ({ admin }) => {
   const totalStaffCount = staffData.members.length;
   const activeStaffCount = staffData.members.filter((m) => m.status === 'active').length;
   const pendingInvitesCount = staffData.pendingInvitations.length;
-  const customRolesCount = roles.filter((r) => !r.isSystemRole).length;
+  const customRolesCount = customRoles.length;
 
   return (
     <div className="space-y-6">
@@ -207,11 +310,10 @@ export const StaffRolesManager = ({ admin }) => {
               <span className="p-1.5 bg-[#FAF7F2] text-[#A85F49] rounded-xs border border-[#D7C5AF]/70">
                 <ShieldCheck className="w-5 h-5" />
               </span>
-              <h1 className="font-serif text-2xl text-[#593D30]">Team Members & RBAC Roles</h1>
+              <h1 className="font-serif text-2xl text-[#593D30]">Team Members & Access Roles</h1>
             </div>
-            <p className="text-xs text-[#8E8172] max-w-2xl">
-              Provision team member accounts directly with email and password, invite staff via email, and configure
-              granular Role-Based Access Control (RBAC) permissions for your store atelier.
+            <p className="text-xs text-[#8E8172]">
+              Manage staff accounts, assign login credentials, and configure module permissions with interactive On/Off switches.
             </p>
           </div>
 
@@ -229,7 +331,7 @@ export const StaffRolesManager = ({ admin }) => {
             {activeTab === 'members' ? (
               <button
                 onClick={() => setIsAddStaffModalOpen(true)}
-                className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs flex items-center gap-2 shadow-xs transition-colors"
+                className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs flex items-center gap-2 shadow-xs transition-colors font-medium"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>+ Add Team Member</span>
@@ -240,10 +342,10 @@ export const StaffRolesManager = ({ admin }) => {
                   setEditingRole(null);
                   setIsRoleModalOpen(true);
                 }}
-                className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs flex items-center gap-2 shadow-xs transition-colors"
+                className="px-4 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs flex items-center gap-2 shadow-xs transition-colors font-medium"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Create Custom Role</span>
+                <span>+ Create Role</span>
               </button>
             )}
           </div>
@@ -285,7 +387,7 @@ export const StaffRolesManager = ({ admin }) => {
             <span className="text-xl font-serif text-[#593D30]">{pendingInvitesCount}</span>
           </div>
           <div className="bg-[#FAF7F2] p-3 rounded-xs border border-[#D7C5AF]/50">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#A85F49] block">Custom Roles</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#A85F49] block">Created Roles</span>
             <span className="text-xl font-serif text-[#593D30]">{customRolesCount}</span>
           </div>
         </div>
@@ -294,25 +396,23 @@ export const StaffRolesManager = ({ admin }) => {
         <div className="flex border-b border-[#D7C5AF]/50 mt-6 gap-6">
           <button
             onClick={() => setActiveTab('members')}
-            className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'members'
+            className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${activeTab === 'members'
                 ? 'border-[#A85F49] text-[#A85F49]'
                 : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             <span>Team Members ({totalStaffCount})</span>
           </button>
           <button
             onClick={() => setActiveTab('roles')}
-            className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'roles'
+            className={`pb-3 text-xs font-medium flex items-center gap-2 border-b-2 transition-all ${activeTab === 'roles'
                 ? 'border-[#A85F49] text-[#A85F49]'
                 : 'border-transparent text-[#8E8172] hover:text-[#593D30]'
-            }`}
+              }`}
           >
             <Shield className="w-4 h-4" />
-            <span>Roles & RBAC Permissions ({roles.length})</span>
+            <span>Store Roles & Permissions ({customRolesCount})</span>
           </button>
         </div>
       </div>
@@ -379,7 +479,7 @@ export const StaffRolesManager = ({ admin }) => {
               </p>
               <button
                 onClick={() => setIsAddStaffModalOpen(true)}
-                className="mt-4 px-4 py-1.5 text-xs bg-[#593D30] text-[#FFFFFF] rounded-xs hover:bg-[#4A3227] transition-colors"
+                className="mt-4 px-4 py-1.5 text-xs bg-[#593D30] text-[#FFFFFF] rounded-xs hover:bg-[#4A3227] transition-colors font-medium"
               >
                 + Add First Member
               </button>
@@ -390,7 +490,7 @@ export const StaffRolesManager = ({ admin }) => {
                 <thead className="bg-[#FAF7F2] text-[10px] uppercase font-bold tracking-wider text-[#8E8172] border-b border-[#D7C5AF]/40">
                   <tr>
                     <th className="py-3 px-4">Member Identity</th>
-                    <th className="py-3 px-4">Role & Authority</th>
+                    <th className="py-3 px-4">Assigned Role</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Joined / Added</th>
                     <th className="py-3 px-4 text-right">Actions</th>
@@ -421,7 +521,7 @@ export const StaffRolesManager = ({ admin }) => {
                               <div className="text-[11px] text-[#8E8172]">{user.email}</div>
                               {user.phoneNumber && (
                                 <div className="text-[10px] text-[#8E8172]/80 flex items-center gap-1 mt-0.5">
-                                  <Phone className="w-2.5 h-2.5" />
+                                  <Phone className="w-2.5 h-2.5 text-[#A85F49]" />
                                   <span>{user.phoneNumber}</span>
                                 </div>
                               )}
@@ -444,13 +544,12 @@ export const StaffRolesManager = ({ admin }) => {
 
                         <td className="py-3.5 px-4">
                           <span
-                            className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-xs border ${
-                              m.status === 'active'
+                            className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-xs border ${m.status === 'active'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : m.status === 'suspended'
-                                ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}
+                                  ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}
                           >
                             {m.status}
                           </span>
@@ -464,21 +563,22 @@ export const StaffRolesManager = ({ admin }) => {
                           <div className="inline-flex items-center gap-1.5">
                             {!isCurrentUser && (
                               <>
+                                {/* EDIT MEMBER BUTTON (Name, Email, Password, Role) */}
                                 <button
-                                  onClick={() => setRoleChangeTarget(m)}
-                                  className="px-2 py-1 text-[11px] border border-[#D7C5AF] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs transition-colors"
-                                  title="Change Role"
+                                  onClick={() => setEditingMember(m)}
+                                  className="px-2.5 py-1 text-[11px] border border-[#593D30] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs font-medium flex items-center gap-1 transition-colors"
+                                  title="Edit Name, Email, Password, or Role"
                                 >
-                                  Change Role
+                                  <Edit3 className="w-3 h-3 text-[#A85F49]" />
+                                  <span>Edit</span>
                                 </button>
 
                                 <button
                                   onClick={() => handleToggleMemberStatus(m)}
-                                  className={`px-2 py-1 text-[11px] border rounded-xs transition-colors ${
-                                    m.status === 'active'
+                                  className={`px-2 py-1 text-[11px] border rounded-xs transition-colors ${m.status === 'active'
                                       ? 'border-amber-300 text-amber-800 hover:bg-amber-50'
                                       : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50'
-                                  }`}
+                                    }`}
                                   title={m.status === 'active' ? 'Suspend Member' : 'Activate Member'}
                                 >
                                   {m.status === 'active' ? 'Suspend' : 'Activate'}
@@ -545,91 +645,115 @@ export const StaffRolesManager = ({ admin }) => {
       {/* ------------------------------------------------------------- */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {roles.map((r) => {
-              const assignedCount = staffData.members.filter((m) => m.roleId?._id === r._id || m.roleId?.slug === r.slug).length;
-              const isStoreAdminRole = r.slug === 'store_admin';
+          {customRoles.length === 0 ? (
+            /* Empty State: Only created roles are shown. Since none are created, prompt to create! */
+            <div className="bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs p-12 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-[#FAF7F2] border border-[#D7C5AF] flex items-center justify-center text-[#A85F49] mx-auto mb-3">
+                <Shield className="w-6 h-6" />
+              </div>
+              <h3 className="font-serif text-lg text-[#593D30] mb-1">No Roles Created Yet</h3>
+              <p className="text-xs text-[#8E8172] max-w-md mx-auto mb-5 leading-relaxed">
+                You haven&apos;t defined any custom roles for your store yet. Click &ldquo;+ Create Role&rdquo; to create a new role and use interactive On/Off slide switches to decide which admin modules (Catalogue, Orders, Customers, Analytics, Settings, etc.) members can access.
+              </p>
+              <button
+                onClick={() => {
+                  setEditingRole(null);
+                  setIsRoleModalOpen(true);
+                }}
+                className="px-5 py-2.5 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs inline-flex items-center gap-2 shadow-xs transition-colors font-medium mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create First Role</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customRoles.map((r) => {
+                const assignedCount = staffData.members.filter(
+                  (m) => m.roleId?._id === r._id || m.roleId?.slug === r.slug
+                ).length;
 
-              return (
-                <div
-                  key={r._id || r.slug}
-                  className="bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs p-5 shadow-xs flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-serif text-base text-[#593D30] font-medium">{r.name}</h3>
-                          <span
-                            className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs border ${
-                              r.isSystemRole
-                                ? 'bg-[#FAF7F2] text-[#8E8172] border-[#D7C5AF]'
-                                : 'bg-[#FAF7F2] text-[#A85F49] border-[#A85F49]/40'
-                            }`}
-                          >
-                            {r.isSystemRole ? 'System Template' : 'Custom Store Role'}
-                          </span>
+                return (
+                  <div
+                    key={r._id || r.slug}
+                    className="bg-[#FFFFFF] border border-[#D7C5AF]/60 rounded-xs p-5 shadow-xs flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Role Header */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-serif text-base text-[#593D30] font-medium">{r.name}</h3>
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs bg-[#FAF7F2] text-[#A85F49] border border-[#A85F49]/40">
+                              Custom Store Role
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#8E8172] mt-0.5 font-mono">slug: {r.slug}</p>
                         </div>
-                        <p className="text-[11px] text-[#8E8172] mt-0.5 font-mono">slug: {r.slug}</p>
+
+                        <div className="text-right">
+                          <span className="text-xs font-serif font-bold text-[#593D30]">{assignedCount}</span>
+                          <span className="text-[10px] text-[#8E8172] block">assigned</span>
+                        </div>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-xs font-serif font-bold text-[#593D30]">{assignedCount}</span>
-                        <span className="text-[10px] text-[#8E8172] block">assigned</span>
-                      </div>
-                    </div>
+                      <p className="text-xs text-[#593D30]/80 mb-4">{r.description || 'No description provided.'}</p>
 
-                    <p className="text-xs text-[#593D30]/80 mb-4">{r.description || 'No description provided.'}</p>
+                      {/* Module On/Off Status Grid */}
+                      <div className="mb-4">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#8E8172] block mb-2">
+                          Admin Panel Modules Access
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {ADMIN_MODULES.map((mod) => {
+                            const isEnabled = isModuleEnabled(mod, r.permissions || []);
+                            const Icon = mod.icon;
 
-                    {/* Permissions list */}
-                    <div className="mb-4">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-[#8E8172] block mb-1.5">
-                        Granted Permissions
-                      </span>
-                      {r.permissions?.includes('*') ? (
-                        <div className="p-2 bg-emerald-50/50 border border-emerald-200 text-emerald-800 text-[11px] rounded-xs flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>Universal store access across all modules and APIs (Wildcard '*')</span>
-                        </div>
-                      ) : r.permissions?.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-[#FAF7F2]/40 rounded-xs border border-[#D7C5AF]/30">
-                          {r.permissions.map((pKey) => {
-                            const pDef = permissions.find((p) => p.key === pKey);
                             return (
-                              <span
-                                key={pKey}
-                                className="px-2 py-0.5 bg-[#FFFFFF] border border-[#D7C5AF] text-[#593D30] text-[10px] rounded-xs"
-                                title={pDef?.description || pKey}
+                              <div
+                                key={mod.id}
+                                className={`px-2.5 py-1.5 rounded-xs border text-[11px] flex items-center justify-between transition-colors ${isEnabled
+                                    ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-medium'
+                                    : 'bg-zinc-50 border-zinc-200 text-zinc-400'
+                                  }`}
                               >
-                                {pDef?.name || pKey}
-                              </span>
+                                <div className="flex items-center gap-1.5 truncate mr-1">
+                                  <Icon className={`w-3 h-3 shrink-0 ${isEnabled ? 'text-emerald-700' : 'text-zinc-400'}`} />
+                                  <span className="truncate text-[10px]">{mod.name.replace(' Management', '')}</span>
+                                </div>
+                                <span
+                                  className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-xs shrink-0 ${isEnabled ? 'bg-emerald-200 text-emerald-800' : 'bg-zinc-200 text-zinc-500'
+                                    }`}
+                                >
+                                  {isEnabled ? 'ON' : 'OFF'}
+                                </span>
+                              </div>
                             );
                           })}
                         </div>
-                      ) : (
-                        <span className="text-xs text-[#8E8172] italic">No permissions granted</span>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Actions for custom roles */}
-                  <div className="pt-3 border-t border-[#D7C5AF]/40 flex items-center justify-between">
-                    <span className="text-[10px] text-[#8E8172]">
-                      {r.isSystemRole ? 'Template protected' : 'Customizable by Store Admin'}
-                    </span>
+                    {/* Actions for created role */}
+                    <div className="pt-3 border-t border-[#D7C5AF]/40 flex items-center justify-between">
+                      <span className="text-[10px] text-[#8E8172]">
+                        {r.permissions?.length || 0} granular permissions
+                      </span>
 
-                    {!r.isSystemRole && (
                       <div className="flex items-center gap-2">
+                        {/* EDIT ROLE BUTTON */}
                         <button
                           onClick={() => {
                             setEditingRole(r);
                             setIsRoleModalOpen(true);
                           }}
-                          className="px-2.5 py-1 text-xs border border-[#D7C5AF] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 text-xs border border-[#593D30] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs flex items-center gap-1 transition-colors font-medium"
+                          title="Edit Role Name, Description & Module Toggles"
                         >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Edit</span>
+                          <Edit3 className="w-3 h-3 text-[#A85F49]" />
+                          <span>Edit Role</span>
                         </button>
+
                         <button
                           onClick={() =>
                             setDeleteTarget({
@@ -647,17 +771,17 @@ export const StaffRolesManager = ({ admin }) => {
                           <span>Delete</span>
                         </button>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL 1: ADD TEAM MEMBER (DIRECT OR INVITATION) */}
+      {/* MODAL 1: ADD TEAM MEMBER */}
       {/* ------------------------------------------------------------- */}
       {isAddStaffModalOpen && (
         <AddStaffModal
@@ -676,13 +800,27 @@ export const StaffRolesManager = ({ admin }) => {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL 2: CREATE / EDIT ROLE MODAL */}
+      {/* MODAL 2: EDIT TEAM MEMBER (NAME, EMAIL, PASSWORD, ROLE, PHONE) */}
+      {/* ------------------------------------------------------------- */}
+      {editingMember && (
+        <EditStaffMemberModal
+          membership={editingMember}
+          roles={roles}
+          onClose={() => setEditingMember(null)}
+          onSuccess={() => {
+            setEditingMember(null);
+            triggerSuccess('Staff member details and credentials updated successfully.');
+            loadAllData(true);
+          }}
+        />
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 3: CREATE / EDIT ROLE MODAL (WITH ON/OFF SLIDE TOGGLES) */}
       {/* ------------------------------------------------------------- */}
       {isRoleModalOpen && (
         <RoleFormModal
           editingRole={editingRole}
-          permissionsByModule={permissionsByModule}
-          allPermissions={permissions}
           onClose={() => {
             setIsRoleModalOpen(false);
             setEditingRole(null);
@@ -693,18 +831,6 @@ export const StaffRolesManager = ({ admin }) => {
             triggerSuccess(editingRole ? 'Role updated successfully.' : 'New custom role created.');
             loadAllData(true);
           }}
-        />
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL 3: CHANGE MEMBER ROLE QUICK MODAL */}
-      {/* ------------------------------------------------------------- */}
-      {roleChangeTarget && (
-        <ChangeMemberRoleModal
-          membership={roleChangeTarget}
-          roles={roles}
-          onClose={() => setRoleChangeTarget(null)}
-          onSave={(newRoleId) => handleSaveRoleChange(roleChangeTarget._id, newRoleId)}
         />
       )}
 
@@ -738,6 +864,567 @@ export const StaffRolesManager = ({ admin }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// =====================================================================
+// SUB-COMPONENT: EDIT TEAM MEMBER MODAL
+// Allows store admin to edit Member Name, Email, Password, Phone & Role
+// =====================================================================
+const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
+  const user = membership.userId || {};
+  const currentRole = membership.roleId || {};
+
+  const [name, setName] = useState(user.name || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
+  const [roleId, setRoleId] = useState(currentRole._id || roles[0]?._id || '');
+  const [status, setStatus] = useState(membership.status || 'active');
+
+  // Password reset section
+  const [changePassword, setChangePassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let generated = '';
+    for (let i = 0; i < 10; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(generated);
+    setChangePassword(true);
+  };
+
+  const handleCopyPassword = () => {
+    if (!password) return;
+    navigator.clipboard.writeText(password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      if (!name.trim()) throw new Error('Please enter the staff member name.');
+      if (!email.trim() || !email.includes('@')) throw new Error('Please enter a valid email address.');
+      if (!roleId) throw new Error('Please select an assigned role.');
+
+      let cleanPhone = undefined;
+      if (phoneNumber && String(phoneNumber).trim()) {
+        cleanPhone = sanitizePhoneInput(phoneNumber);
+        if (!isValidPhoneNumber(cleanPhone)) {
+          throw new Error('Phone number must be a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+        }
+      }
+
+      if (changePassword) {
+        if (!password || password.length < 6) {
+          throw new Error('New password must be at least 6 characters long.');
+        }
+      }
+
+      const payload = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phoneNumber: cleanPhone,
+        roleId,
+        status,
+        ...(changePassword && password ? { password } : {}),
+      };
+
+      await updateTenantStaffMember(membership._id, payload);
+      onSuccess();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update staff member.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#1A1816]/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-lg w-full p-6 shadow-xl max-h-[90vh] flex flex-col animate-in fade-in duration-200">
+        <div className="flex items-center justify-between pb-3 border-b border-[#D7C5AF]/40 mb-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-[#FAF7F2] text-[#A85F49] rounded-xs border border-[#D7C5AF]">
+              <Edit3 className="w-4 h-4" />
+            </span>
+            <h2 className="font-serif text-lg text-[#593D30]">Edit Team Member</h2>
+          </div>
+          <button onClick={onClose} className="text-[#8E8172] hover:text-[#593D30]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xs flex items-start gap-2 shrink-0">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1">{errorMsg}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="overflow-y-auto pr-1 space-y-4 flex-1">
+            {/* Full Name */}
+            <div>
+              <label className="block text-xs font-medium text-[#8E8172] mb-1">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+            </div>
+
+            {/* Email (Login ID) */}
+            <div>
+              <label className="block text-xs font-medium text-[#8E8172] mb-1">Email Address (Login ID) *</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="rahul@store.com"
+                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+              <p className="text-[10px] text-[#8E8172] mt-0.5">Used by this member to sign in to the store admin dashboard.</p>
+            </div>
+
+            {/* Phone Number (10 Digits) */}
+            <div>
+              <label className="block text-xs font-medium text-[#8E8172] mb-1">Mobile Phone (10 Digits)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#8E8172] font-mono">+91</span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="9876543210"
+                  className="w-full pl-12 pr-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+            </div>
+
+            {/* Role & Status Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-[#8E8172] mb-1">Assigned Role *</label>
+                <select
+                  value={roleId}
+                  onChange={(e) => setRoleId(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                >
+                  {roles.map((r) => (
+                    <option key={r._id || r.slug} value={r._id}>
+                      {r.name} {r.isSystemRole ? '(Universal Admin)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#8E8172] mb-1">Account Status *</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                >
+                  <option value="active">Active (Access Allowed)</option>
+                  <option value="suspended">Suspended (Access Blocked)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Password Change / Reset Section */}
+            <div className="p-3.5 bg-[#FAF7F2]/50 border border-[#D7C5AF]/60 rounded-xs space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={changePassword}
+                  onChange={(e) => setChangePassword(e.target.checked)}
+                  className="accent-[#593D30] rounded-xs"
+                />
+                <span className="text-xs font-bold text-[#593D30] flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-[#A85F49]" />
+                  <span>Reset / Change Login Password</span>
+                </span>
+              </label>
+
+              {changePassword && (
+                <div className="space-y-2 pt-2 border-t border-[#D7C5AF]/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[#8E8172]">New Admin Password:</span>
+                    <button
+                      type="button"
+                      onClick={handleGeneratePassword}
+                      className="text-[10px] text-[#A85F49] hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Generate Random</span>
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter new secure password (min 6 chars)"
+                      className="w-full pl-3 pr-16 py-2 text-xs bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[#8E8172]">
+                      {password && (
+                        <button
+                          type="button"
+                          onClick={handleCopyPassword}
+                          className="p-1 hover:text-[#593D30]"
+                          title="Copy Password"
+                        >
+                          {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-1 hover:text-[#593D30]"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[#8E8172]">
+                    Updating the password will immediately update this member&apos;s credentials for logging into the store admin dashboard.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#D7C5AF]/40 mt-4 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs border border-[#D7C5AF] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+            >
+              {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>Save Changes</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================================
+// SUB-COMPONENT: ROLE FORM MODAL (CREATE / EDIT)
+// Features On/Off slide switches for every admin module in the store
+// =====================================================================
+const RoleFormModal = ({ editingRole, onClose, onSuccess }) => {
+  const [name, setName] = useState(editingRole?.name || '');
+  const [slug, setSlug] = useState(editingRole?.slug || '');
+  const [description, setDescription] = useState(editingRole?.description || '');
+  const [selectedPermissions, setSelectedPermissions] = useState(editingRole?.permissions || []);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  // Auto-generate slug when name changes (if creating new)
+  const handleNameChange = (val) => {
+    setName(val);
+    if (!editingRole) {
+      const generated = val
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      setSlug(generated);
+    }
+  };
+
+  // Toggle whole module ON or OFF
+  const handleModuleToggle = (mod, turnOn) => {
+    if (turnOn) {
+      // Add all permissions of this module
+      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...mod.allPermissions])));
+    } else {
+      // Remove all permissions belonging to this module
+      const toRemove = new Set(mod.allPermissions);
+      setSelectedPermissions((prev) => prev.filter((k) => !toRemove.has(k)));
+    }
+  };
+
+  // Toggle between Full Access (Read & Write) vs View Only (Read Only)
+  const handleSetModuleScope = (mod, scope) => {
+    const toRemove = new Set(mod.allPermissions);
+    const cleaned = selectedPermissions.filter((k) => !toRemove.has(k));
+    if (scope === 'full') {
+      setSelectedPermissions(Array.from(new Set([...cleaned, ...mod.allPermissions])));
+    } else {
+      setSelectedPermissions(Array.from(new Set([...cleaned, ...mod.readPermissions])));
+    }
+  };
+
+  // Quick Preset Actions
+  const handlePresetAll = (turnOn) => {
+    if (turnOn) {
+      const allPerms = ADMIN_MODULES.flatMap((m) => m.allPermissions);
+      setSelectedPermissions(Array.from(new Set(allPerms)));
+    } else {
+      setSelectedPermissions([]);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      if (!name.trim()) throw new Error('Role name is required.');
+      if (!slug.trim()) throw new Error('Role slug is required.');
+      if (selectedPermissions.length === 0) {
+        throw new Error('Please turn ON at least one module switch for this role.');
+      }
+
+      const payload = {
+        name: name.trim(),
+        slug: slug.trim().toLowerCase(),
+        description: description.trim(),
+        permissions: selectedPermissions,
+      };
+
+      if (editingRole) {
+        await updateTenantRole(editingRole._id, payload);
+      } else {
+        await createTenantRole(payload);
+      }
+      onSuccess();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to save custom role.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#1A1816]/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-2xl w-full p-6 shadow-xl max-h-[90vh] flex flex-col animate-in fade-in duration-200">
+        <div className="flex items-center justify-between pb-3 border-b border-[#D7C5AF]/40 mb-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-[#FAF7F2] text-[#A85F49] rounded-xs border border-[#D7C5AF]">
+              <Sliders className="w-4 h-4" />
+            </span>
+            <h2 className="font-serif text-lg text-[#593D30]">
+              {editingRole ? `Edit Role: ${editingRole.name}` : 'Create Custom Store Role'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="text-[#8E8172] hover:text-[#593D30]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xs flex items-start gap-1.5 shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="overflow-y-auto pr-1 space-y-4 flex-1">
+            {/* Role Name & Slug */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-[#8E8172] mb-1">Role Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g. Catalogue Manager"
+                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#8E8172] mb-1">Role Slug *</label>
+                <input
+                  type="text"
+                  required
+                  disabled={Boolean(editingRole)}
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ''))}
+                  placeholder="e.g. catalogue-manager"
+                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49] disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-[#8E8172] mb-1">Role Description</label>
+              <textarea
+                rows="2"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Explain the duties and scope for this role..."
+                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+              />
+            </div>
+
+            {/* Modules Header & Presets */}
+            <div className="pt-2 border-t border-[#D7C5AF]/40">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-xs font-bold text-[#593D30] uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-[#A85F49]" />
+                    <span>Admin Panel Modules Access</span>
+                  </h3>
+                  <p className="text-[11px] text-[#8E8172]">
+                    Use the On/Off slide switches below to decide which modules this role can access.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <span className="text-[#8E8172]">Quick:</span>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetAll(true)}
+                    className="px-2 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#F3ECE2]"
+                  >
+                    All ON
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetAll(false)}
+                    className="px-2 py-0.5 text-red-600 hover:underline"
+                  >
+                    All OFF
+                  </button>
+                </div>
+              </div>
+
+              {/* Module On/Off Switch Cards */}
+              <div className="space-y-2.5">
+                {ADMIN_MODULES.map((mod) => {
+                  const isOn = isModuleEnabled(mod, selectedPermissions);
+                  const isFull = isModuleFullAccess(mod, selectedPermissions);
+                  const Icon = mod.icon;
+
+                  return (
+                    <div
+                      key={mod.id}
+                      className={`p-3.5 rounded-xs border transition-all ${isOn
+                          ? 'bg-[#FFFFFF] border-[#A85F49]/70 shadow-xs ring-1 ring-[#A85F49]/15'
+                          : 'bg-[#FAF7F2]/40 border-[#D7C5AF]/50 hover:bg-[#FFFFFF]'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`p-2 rounded-xs border shrink-0 mt-0.5 ${isOn
+                                ? 'bg-[#FAF7F2] text-[#A85F49] border-[#D7C5AF]'
+                                : 'bg-zinc-100 text-zinc-400 border-zinc-200'
+                              }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-bold text-[#593D30]">{mod.name}</h4>
+                              <span
+                                className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-xs ${isOn ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-100 text-zinc-500'
+                                  }`}
+                              >
+                                {isOn ? 'ON' : 'OFF'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#8E8172] mt-0.5 leading-snug">{mod.description}</p>
+                          </div>
+                        </div>
+
+                        {/* Interactive iOS-style slide switch */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <SlideToggleSwitch
+                            checked={isOn}
+                            onChange={(val) => handleModuleToggle(mod, val)}
+                            ariaLabel={`Toggle ${mod.name}`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Access Scope Options (if ON and module has separate view permissions) */}
+                      {isOn && mod.readPermissions && mod.readPermissions.length < mod.allPermissions.length && (
+                        <div className="mt-2.5 pt-2 border-t border-[#D7C5AF]/30 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <span className="text-[#8E8172] text-[10px] uppercase font-bold tracking-wider">Access Scope:</span>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-[#593D30]">
+                              <input
+                                type="radio"
+                                name={`scope-${mod.id}`}
+                                checked={isFull}
+                                onChange={() => handleSetModuleScope(mod, 'full')}
+                                className="accent-[#593D30]"
+                              />
+                              <span>Full Access (Read & Write)</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer text-[#593D30]">
+                              <input
+                                type="radio"
+                                name={`scope-${mod.id}`}
+                                checked={!isFull}
+                                onChange={() => handleSetModuleScope(mod, 'read')}
+                                className="accent-[#593D30]"
+                              />
+                              <span>View Only (Read Only)</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#D7C5AF]/40 mt-4 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs border border-[#D7C5AF] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+            >
+              {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{editingRole ? 'Save Changes' : 'Create Role'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
@@ -802,7 +1489,7 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
           roleId,
         };
 
-        const result = await createTenantStaffDirectly(payload);
+        await createTenantStaffDirectly(payload);
         setCreatedSummary({
           name: payload.name,
           email: payload.email,
@@ -858,52 +1545,44 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
                 <span>Account Provisioned Successfully!</span>
               </div>
               <p>
-                The team member account has been created and synced with the admin login registry. You can copy the
-                credentials below to share with them directly:
+                An account for <strong>{createdSummary.name}</strong> has been created with assigned role{' '}
+                <strong>{createdSummary.roleName}</strong>. A welcome email with login details has been dispatched.
               </p>
             </div>
 
             <div className="p-4 bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-[#8E8172]">Name:</span>
-                <span className="font-medium text-[#593D30]">{createdSummary.name}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8E8172]">Login Credentials</span>
+                <button
+                  onClick={handleCopyCredentials}
+                  className="text-xs text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? 'Copied' : 'Copy Credentials'}</span>
+                </button>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-3 gap-1 py-1 border-t border-[#D7C5AF]/30">
                 <span className="text-[#8E8172]">Login ID / Email:</span>
-                <code className="bg-[#FFFFFF] px-2 py-0.5 border border-[#D7C5AF] rounded-xs font-mono font-bold text-[#593D30]">
-                  {createdSummary.email}
-                </code>
+                <span className="col-span-2 font-mono text-[#593D30] font-medium">{createdSummary.email}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#8E8172]">Initial Password:</span>
-                <code className="bg-[#FFFFFF] px-2 py-0.5 border border-[#D7C5AF] rounded-xs font-mono font-bold text-[#A85F49]">
-                  {createdSummary.password}
-                </code>
+              <div className="grid grid-cols-3 gap-1 py-1 border-t border-[#D7C5AF]/30">
+                <span className="text-[#8E8172]">Password:</span>
+                <span className="col-span-2 font-mono text-[#593D30] font-medium">{createdSummary.password}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-3 gap-1 py-1 border-t border-[#D7C5AF]/30">
                 <span className="text-[#8E8172]">Assigned Role:</span>
-                <span className="font-bold text-[#593D30]">{createdSummary.roleName}</span>
+                <span className="col-span-2 text-[#593D30] font-medium">{createdSummary.roleName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#8E8172]">Login Portal:</span>
-                <span className="text-[#A85F49] font-medium">{window.location.origin}/admin</span>
+              <div className="grid grid-cols-3 gap-1 py-1 border-t border-[#D7C5AF]/30">
+                <span className="text-[#8E8172]">Login URL:</span>
+                <span className="col-span-2 font-mono text-[11px] text-[#A85F49]">/admin</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex justify-end pt-2">
               <button
-                type="button"
-                onClick={handleCopyCredentials}
-                className="px-4 py-2 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] hover:bg-[#F3ECE2] text-xs font-medium rounded-xs flex items-center gap-1.5 transition-colors"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Credentials Copied!' : 'Copy Credentials'}</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => onSuccess(createdSummary)}
-                className="px-5 py-2 bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] text-xs font-medium rounded-xs transition-colors"
+                className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] rounded-xs hover:bg-[#4A3227] font-medium transition-colors"
               >
                 Done
               </button>
@@ -911,29 +1590,25 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Mode Toggle */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF7F2] rounded-xs border border-[#D7C5AF]/60">
+            {/* Mode Selector Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF7F2] rounded-xs border border-[#D7C5AF]/50">
               <button
                 type="button"
                 onClick={() => setMode('direct')}
-                className={`py-1.5 text-xs font-medium rounded-xs transition-all ${
-                  mode === 'direct'
-                    ? 'bg-[#FFFFFF] text-[#593D30] shadow-xs border border-[#D7C5AF]'
-                    : 'text-[#8E8172] hover:text-[#593D30]'
-                }`}
+                className={`py-1.5 text-xs font-medium rounded-xs transition-colors flex items-center justify-center gap-1.5 ${mode === 'direct' ? 'bg-[#FFFFFF] text-[#593D30] shadow-xs' : 'text-[#8E8172] hover:text-[#593D30]'
+                  }`}
               >
-                Direct ID & Password Setup
+                <Key className="w-3.5 h-3.5" />
+                <span>Create ID & Password</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMode('invite')}
-                className={`py-1.5 text-xs font-medium rounded-xs transition-all ${
-                  mode === 'invite'
-                    ? 'bg-[#FFFFFF] text-[#593D30] shadow-xs border border-[#D7C5AF]'
-                    : 'text-[#8E8172] hover:text-[#593D30]'
-                }`}
+                className={`py-1.5 text-xs font-medium rounded-xs transition-colors flex items-center justify-center gap-1.5 ${mode === 'invite' ? 'bg-[#FFFFFF] text-[#593D30] shadow-xs' : 'text-[#8E8172] hover:text-[#593D30]'
+                  }`}
               >
-                Send Invitation Link
+                <Mail className="w-3.5 h-3.5" />
+                <span>Send Email Invite</span>
               </button>
             </div>
 
@@ -944,65 +1619,58 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                Full Name {mode === 'direct' && '*'}
-              </label>
-              <input
-                type="text"
-                required={mode === 'direct'}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Rohini Sen"
-                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                Login ID / Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. staff@jewels.com"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-                />
-              </div>
-            </div>
-
-            {mode === 'direct' && (
+            {/* Direct Provisioning Inputs */}
+            {mode === 'direct' ? (
               <>
                 <div>
+                  <label className="block text-xs font-medium text-[#8E8172] mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Priya Sharma"
+                    className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#8E8172] mb-1">Email Address (Login ID) *</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="priya@store.com"
+                    className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                  />
+                </div>
+
+                <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-[#8E8172]">Password *</label>
+                    <label className="text-xs font-medium text-[#8E8172]">Create Login Password *</label>
                     <button
                       type="button"
                       onClick={handleGeneratePassword}
-                      className="text-[10px] text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
+                      className="text-[10px] text-[#A85F49] hover:underline flex items-center gap-1"
                     >
                       <Sparkles className="w-3 h-3" />
-                      <span>Generate Strong Password</span>
+                      <span>Generate Strong</span>
                     </button>
                   </div>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-[#8E8172] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="w-full pl-9 pr-9 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                      placeholder="Enter minimum 6 characters password"
+                      className="w-full pl-3 pr-10 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#8E8172] hover:text-[#593D30] absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8172] hover:text-[#593D30]"
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -1010,45 +1678,70 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#8E8172] mb-1">
-                    Contact Phone (Optional - 10 digits)
-                  </label>
+                  <label className="block text-xs font-medium text-[#8E8172] mb-1">Mobile Phone (10 Digits)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#8E8172] font-mono">+91</span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder="9876543210"
+                      className="w-full pl-12 pr-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Email Invitation Mode */
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-[#8E8172] mb-1">Staff Member Name (Optional)</label>
                   <input
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(sanitizePhoneInput(e.target.value))}
-                    placeholder="10-digit mobile number"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Priya Sharma"
                     className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                   />
-                  {phoneNumber && phoneNumber.length > 0 && phoneNumber.length < 10 && (
-                    <p className="text-[10px] text-amber-700 mt-1">
-                      {10 - phoneNumber.length} more digit{10 - phoneNumber.length > 1 ? 's' : ''} needed
-                    </p>
-                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#8E8172] mb-1">Staff Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="colleague@store.com"
+                    className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
+                  />
+                  <p className="text-[10px] text-[#8E8172] mt-0.5">
+                    An email with an invitation link (valid for 48 hours) will be sent to accept membership.
+                  </p>
                 </div>
               </>
             )}
 
+            {/* Role Dropdown */}
             <div>
-              <label className="block text-xs font-medium text-[#8E8172] mb-1">Assign Role (RBAC) *</label>
+              <label className="block text-xs font-medium text-[#8E8172] mb-1">Assign Role & Permissions *</label>
               <select
                 required
                 value={roleId}
                 onChange={(e) => setRoleId(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
               >
-                {roles.map((r) => (
-                  <option key={r._id || r.slug} value={r._id}>
-                    {r.name} {r.isSystemRole ? '(Template)' : '(Custom)'} —{' '}
-                    {r.permissions?.includes('*') ? 'Universal Access' : `${r.permissions?.length || 0} permissions`}
-                  </option>
-                ))}
+                {roles.length === 0 ? (
+                  <option value="">No roles available (Create a role in Roles tab)</option>
+                ) : (
+                  roles.map((r) => (
+                    <option key={r._id || r.slug} value={r._id}>
+                      {r.name} {r.isSystemRole ? '(Universal Store Admin)' : ''}
+                    </option>
+                  ))
+                )}
               </select>
-              <p className="text-[10px] text-[#8E8172] mt-1">
-                The assigned role dictates which modules, tabs, and API endpoints this user will have access to.
-              </p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#D7C5AF]/40">
@@ -1062,7 +1755,7 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
               >
                 {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{mode === 'direct' ? 'Create Account & ID' : 'Send Invitation Link'}</span>
@@ -1070,351 +1763,6 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
             </div>
           </form>
         )}
-      </div>
-    </div>
-  );
-};
-
-// =====================================================================
-// SUB-COMPONENT: ROLE FORM MODAL (CREATE / EDIT)
-// Allows selecting granular permissions from the matrix
-// =====================================================================
-const RoleFormModal = ({ editingRole, permissionsByModule, allPermissions, onClose, onSuccess }) => {
-  const [name, setName] = useState(editingRole?.name || '');
-  const [slug, setSlug] = useState(editingRole?.slug || '');
-  const [description, setDescription] = useState(editingRole?.description || '');
-  const [selectedPermissions, setSelectedPermissions] = useState(editingRole?.permissions || []);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
-
-  // Auto-generate slug when name changes (if creating new)
-  const handleNameChange = (val) => {
-    setName(val);
-    if (!editingRole) {
-      const generated = val
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      setSlug(generated);
-    }
-  };
-
-  const handleTogglePermission = (pKey) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(pKey) ? prev.filter((k) => k !== pKey) : [...prev, pKey]
-    );
-  };
-
-  const handleSelectModuleAll = (pList) => {
-    const keys = pList.map((p) => p.key);
-    const allSelected = keys.every((k) => selectedPermissions.includes(k));
-    if (allSelected) {
-      setSelectedPermissions((prev) => prev.filter((k) => !keys.includes(k)));
-    } else {
-      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...keys])));
-    }
-  };
-
-  // Quick Presets
-  const applyPreset = (presetName) => {
-    if (presetName === 'all') {
-      setSelectedPermissions(allPermissions.map((p) => p.key));
-    } else if (presetName === 'clear') {
-      setSelectedPermissions([]);
-    } else if (presetName === 'catalog') {
-      setSelectedPermissions(
-        allPermissions
-          .filter((p) => ['catalog', 'marketing'].includes(p.module))
-          .map((p) => p.key)
-      );
-    } else if (presetName === 'orders') {
-      setSelectedPermissions(
-        allPermissions
-          .filter((p) => ['sales', 'customers'].includes(p.module))
-          .map((p) => p.key)
-      );
-    } else if (presetName === 'viewer') {
-      setSelectedPermissions(
-        allPermissions
-          .filter((p) => p.key.endsWith(':read') || p.key.endsWith(':view'))
-          .map((p) => p.key)
-      );
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg(null);
-
-    try {
-      if (!name.trim()) throw new Error('Role name is required.');
-      if (!slug.trim()) throw new Error('Role slug is required.');
-      if (selectedPermissions.length === 0) {
-        throw new Error('Please select at least one permission for this role.');
-      }
-
-      const payload = {
-        name: name.trim(),
-        slug: slug.trim().toLowerCase(),
-        description: description.trim(),
-        permissions: selectedPermissions,
-      };
-
-      if (editingRole) {
-        await updateTenantRole(editingRole._id, payload);
-      } else {
-        await createTenantRole(payload);
-      }
-      onSuccess();
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to save custom role.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-[#1A1816]/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-2xl w-full p-6 shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-[#D7C5AF]/40 mb-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-[#FAF7F2] text-[#A85F49] rounded-xs border border-[#D7C5AF]">
-              <Shield className="w-4 h-4" />
-            </span>
-            <h2 className="font-serif text-lg text-[#593D30]">
-              {editingRole ? `Edit Role: ${editingRole.name}` : 'Create Custom Store Role'}
-            </h2>
-          </div>
-          <button onClick={onClose} className="text-[#8E8172] hover:text-[#593D30]">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {errorMsg && (
-          <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xs flex items-start gap-1.5 shrink-0">
-            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-          <div className="overflow-y-auto pr-1 space-y-4 flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[#8E8172] mb-1">Role Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g. Inventory Associate"
-                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#8E8172] mb-1">Role Slug *</label>
-                <input
-                  type="text"
-                  required
-                  disabled={Boolean(editingRole)}
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ''))}
-                  placeholder="e.g. inventory-associate"
-                  className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49] disabled:opacity-60"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#8E8172] mb-1">Description</label>
-              <textarea
-                rows="2"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Explain the responsibilities and scope of this role..."
-                className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
-              />
-            </div>
-
-            {/* Quick Presets Bar */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-[#593D30]">
-                  Permissions Selection ({selectedPermissions.length} selected)
-                </label>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <span className="text-[#8E8172]">Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('all')}
-                    className="px-1.5 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#F3ECE2]"
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('catalog')}
-                    className="px-1.5 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#F3ECE2]"
-                  >
-                    Catalogue
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('orders')}
-                    className="px-1.5 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#F3ECE2]"
-                  >
-                    Orders
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('viewer')}
-                    className="px-1.5 py-0.5 bg-[#FAF7F2] border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#F3ECE2]"
-                  >
-                    Auditor (Read)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset('clear')}
-                    className="px-1.5 py-0.5 text-red-600 hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {/* Permissions Accordions / Modules */}
-              <div className="space-y-3">
-                {Object.entries(permissionsByModule).map(([moduleKey, pList]) => {
-                  const allInModuleSelected = pList.every((p) => selectedPermissions.includes(p.key));
-
-                  return (
-                    <div
-                      key={moduleKey}
-                      className="border border-[#D7C5AF]/60 rounded-xs bg-[#FAF7F2]/30 p-3"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#A85F49]">
-                          {moduleKey} Module
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectModuleAll(pList)}
-                          className="text-[10px] text-[#8E8172] hover:text-[#593D30] underline"
-                        >
-                          {allInModuleSelected ? 'Deselect Module' : 'Select All Module'}
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {pList.map((p) => {
-                          const isChecked = selectedPermissions.includes(p.key);
-                          return (
-                            <label
-                              key={p.key}
-                              className={`p-2 rounded-xs border flex items-start gap-2 cursor-pointer transition-colors ${
-                                isChecked
-                                  ? 'bg-[#FFFFFF] border-[#A85F49] text-[#593D30]'
-                                  : 'bg-[#FAF7F2]/50 border-[#D7C5AF]/40 text-[#8E8172] hover:bg-[#FFFFFF]'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => handleTogglePermission(p.key)}
-                                className="mt-0.5 accent-[#A85F49] rounded-xs"
-                              />
-                              <div className="text-left">
-                                <span className="block font-medium text-xs leading-tight text-[#593D30]">
-                                  {p.name}
-                                </span>
-                                <span className="block text-[10px] text-[#8E8172] font-mono mt-0.5">
-                                  {p.key}
-                                </span>
-                                {p.description && (
-                                  <span className="block text-[10px] text-[#8E8172]/80 mt-0.5">
-                                    {p.description}
-                                  </span>
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#D7C5AF]/40 mt-4 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs border border-[#D7C5AF] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 text-xs bg-[#593D30] text-[#FFFFFF] hover:bg-[#4A3227] rounded-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-              <span>{editingRole ? 'Save Changes' : 'Create Custom Role'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// =====================================================================
-// SUB-COMPONENT: CHANGE MEMBER ROLE MODAL
-// Quick dialog to change staff member's assigned role
-// =====================================================================
-const ChangeMemberRoleModal = ({ membership, roles, onClose, onSave }) => {
-  const [selectedRoleId, setSelectedRoleId] = useState(membership.roleId?._id || roles[0]?._id);
-  const user = membership.userId || {};
-
-  return (
-    <div className="fixed inset-0 z-50 bg-[#1A1816]/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FFFFFF] border border-[#D7C5AF] rounded-xs max-w-sm w-full p-5 shadow-lg">
-        <h3 className="font-serif text-base text-[#593D30] mb-1">Update Member Role</h3>
-        <p className="text-xs text-[#8E8172] mb-3">
-          Select the new role and permissions for <strong>{user.name || user.email}</strong>:
-        </p>
-
-        <select
-          value={selectedRoleId}
-          onChange={(e) => setSelectedRoleId(e.target.value)}
-          className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] mb-4 focus:outline-none focus:border-[#A85F49]"
-        >
-          {roles.map((r) => (
-            <option key={r._id || r.slug} value={r._id}>
-              {r.name} {r.isSystemRole ? '(Template)' : '(Custom)'} —{' '}
-              {r.permissions?.includes('*') ? 'Universal Access' : `${r.permissions?.length || 0} perms`}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 text-xs border border-[#D7C5AF] text-[#593D30] rounded-xs hover:bg-[#FAF7F2]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave(selectedRoleId)}
-            className="px-4 py-1.5 text-xs bg-[#593D30] text-white rounded-xs hover:bg-[#4A3227] font-medium"
-          >
-            Apply Role
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -6,15 +6,17 @@ import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '.
 import { logAudit } from '../utils/audit.js';
 
 export const ensureSystemRoles = async () => {
-  for (const template of SYSTEM_ROLE_TEMPLATES) {
-    const existing = await Role.findOne({ tenantId: null, slug: template.slug });
+  // Only maintain the master store_admin system template if needed
+  const adminTemplate = SYSTEM_ROLE_TEMPLATES.find((t) => t.slug === 'store_admin');
+  if (adminTemplate) {
+    const existing = await Role.findOne({ tenantId: null, slug: adminTemplate.slug });
     if (!existing) {
       await Role.create({
         tenantId: null,
-        name: template.name,
-        slug: template.slug,
-        description: template.description,
-        permissions: template.permissions,
+        name: adminTemplate.name,
+        slug: adminTemplate.slug,
+        description: adminTemplate.description,
+        permissions: adminTemplate.permissions,
         isSystemRole: true,
       });
     }
@@ -22,31 +24,25 @@ export const ensureSystemRoles = async () => {
 };
 
 export const listAllPermissions = async () => {
-  let permissions = await Permission.find().sort({ module: 1, key: 1 });
-  // If collection empty, populate with defaults
-  if (permissions.length === 0) {
-    try {
-      for (const p of DEFAULT_PERMISSIONS) {
-        await Permission.findOneAndUpdate(
-          { key: p.key },
-          { ...p },
-          { upsert: true, new: true }
-        );
-      }
-      permissions = await Permission.find().sort({ module: 1, key: 1 });
-    } catch {
-      return DEFAULT_PERMISSIONS;
-    }
+  // Ensure all default permissions are registered in database
+  for (const p of DEFAULT_PERMISSIONS) {
+    await Permission.updateOne(
+      { key: p.key },
+      { $setOnInsert: { name: p.name, module: p.module, description: p.description } },
+      { upsert: true }
+    );
   }
-  return permissions;
+  return Permission.find().sort({ module: 1, key: 1 });
 };
 
 export const listRolesForTenant = async (tenantId) => {
   await ensureSystemRoles();
-  // Returns system templates (tenantId: null) AND custom roles for this tenant
-  return Role.find({
-    $or: [{ tenantId: null }, { tenantId }],
-  }).sort({ isSystemRole: -1, name: 1 });
+  // Return custom roles created for this tenant, plus master store_admin for assignment
+  const [customRoles, storeAdmin] = await Promise.all([
+    Role.find({ tenantId }).sort({ createdAt: -1 }),
+    Role.findOne({ tenantId: null, slug: 'store_admin' }),
+  ]);
+  return storeAdmin ? [storeAdmin, ...customRoles] : customRoles;
 };
 
 export const createCustomTenantRole = async ({

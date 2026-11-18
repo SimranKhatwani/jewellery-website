@@ -40,6 +40,10 @@ export const validateUpdateStaffStatus = validate({
   body: {
     status: { required: false, type: 'string', enum: Object.values(MEMBERSHIP_STATUS) },
     roleId: { required: false, type: 'string' },
+    name: { required: false, type: 'string', minLength: 2, maxLength: 100 },
+    email: { required: false, type: 'email' },
+    password: { required: false, type: 'string', minLength: 6, maxLength: 128 },
+    phoneNumber: { required: false, type: 'phone' },
   },
 });
 

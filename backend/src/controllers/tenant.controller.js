@@ -107,6 +107,10 @@ export const updateStaff = async (req, res, next) => {
       membershipId: req.params.membershipId,
       status: req.body.status,
       roleId: req.body.roleId,
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
+      phoneNumber: req.body.phoneNumber,
       updaterId: req.user._id,
       req,
     });
