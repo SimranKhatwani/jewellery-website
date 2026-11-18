@@ -137,6 +137,54 @@ assert.strictEqual(mockGetStoreSlug('/sa'), 'aurelle'); // Reserved route does n
 assert.strictEqual(mockGetStoreSlug('/'), 'aurelle'); // Root defaults to platform tenant
 console.log('   ✓ URL routing rules correctly resolve tenant storefront slugs.\n');
 
+// ==========================================
+// Test 5: Dynamic Return & Exchange Policy Isolation
+// ==========================================
+console.log('5. Testing Dynamic Return & Exchange Policy (White-Label & Zero Regression)...');
+
+// 5a. Aurelle Default Return Policy
+assert.strictEqual(aurelleConfig.policies.returnPolicyConfig.returnWindowDays, 2);
+assert.ok(aurelleConfig.policies.returnPolicyConfig.policyOverview.includes('At AURELLE, shop with confidence'));
+assert.ok(aurelleConfig.policies.returnPolicyConfig.windowDetails.includes('within 2 days'));
+assert.ok(aurelleConfig.policies.returnPolicyConfig.exchangeTerms.includes('LGD products can only be exchanged for other LGD items'));
+assert.ok(aurelleConfig.policies.returnPolicyConfig.whatsappMessage.includes('Hello AURELLE Support'));
+console.log('   ✓ Aurelle 2-day Demifine/Gold/LGD return policy preserved with 0 regression.');
+
+// 5b. GIVA Jewels Default Dynamic Return Policy
+assert.strictEqual(givaConfig.policies.returnPolicyConfig.returnWindowDays, 7);
+assert.ok(!givaConfig.policies.returnPolicyConfig.policyOverview.includes('AURELLE'));
+assert.ok(!givaConfig.policies.returnPolicyConfig.whatsappMessage.includes('AURELLE'));
+assert.ok(givaConfig.policies.returnPolicyConfig.whatsappMessage.includes('Hello GIVA Jewels Support'));
+console.log('   ✓ GIVA Jewels generated isolated return policy with zero AURELLE leakage.');
+
+// 5c. GIVA Jewels with Custom Admin Settings
+const customGivaTenant = {
+  _id: '707f191e810c19729de860ec',
+  name: 'GIVA Jewels',
+  slug: 'giva-jewels',
+  status: 'active',
+  settings: {
+    contactPhone: '+91 9988776655',
+    policies: {
+      returnPolicyConfig: {
+        returnWindowDays: 15,
+        policyOverview: 'Enjoy a seamless 15-day return & doorstep exchange at GIVA.',
+        windowDetails: 'Initiate your return or exchange within 15 calendar days from delivery date.',
+        whatsappSupportNumber: '+91 9988776655',
+        whatsappMessage: 'Hi GIVA Team, I want to initiate a 15-day return request.',
+      },
+    },
+  },
+};
+
+const customGivaConfig = getResolvedStorefrontConfig(customGivaTenant);
+assert.strictEqual(customGivaConfig.policies.returnPolicyConfig.returnWindowDays, 15);
+assert.strictEqual(customGivaConfig.policies.returnPolicyConfig.policyOverview, 'Enjoy a seamless 15-day return & doorstep exchange at GIVA.');
+assert.strictEqual(customGivaConfig.policies.returnPolicyConfig.windowDetails, 'Initiate your return or exchange within 15 calendar days from delivery date.');
+assert.strictEqual(customGivaConfig.policies.returnPolicyConfig.whatsappSupportNumber, '+91 9988776655');
+assert.strictEqual(customGivaConfig.policies.returnPolicyConfig.whatsappMessage, 'Hi GIVA Team, I want to initiate a 15-day return request.');
+console.log('   ✓ Custom tenant policy settings successfully override defaults.\n');
+
 console.log('----------------------------------------------------');
 console.log('ALL WHITE-LABEL MULTI-TENANT VERIFICATION TESTS PASSED!');
 console.log('----------------------------------------------------');

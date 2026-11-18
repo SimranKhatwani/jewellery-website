@@ -9,6 +9,7 @@ import { TENANT_STATUS, MEMBERSHIP_STATUS, SYSTEM_ROLE_SLUGS, AUDIT_ACTIONS } fr
 import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
 import { sendStaffInvitationEmail } from './email.service.js';
+import { sanitizeContentData } from '../utils/sanitize.js';
 
 export const createTenant = async ({ userId, name, slug, customDomain = null, req = null }) => {
   const normalizedSlug = slug.toLowerCase().trim();
@@ -137,6 +138,17 @@ export const updateTenantDetails = async (tenantId, updateData, userId, req = nu
   }
 
   if (updateData.settings && typeof updateData.settings === 'object') {
+    const sanitizedSettings = sanitizeContentData(updateData.settings);
+
+    // If contentPages is provided, ensure updatedAt timestamps are updated
+    if (sanitizedSettings.contentPages && typeof sanitizedSettings.contentPages === 'object') {
+      for (const pageKey of Object.keys(sanitizedSettings.contentPages)) {
+        if (sanitizedSettings.contentPages[pageKey] && typeof sanitizedSettings.contentPages[pageKey] === 'object') {
+          sanitizedSettings.contentPages[pageKey].updatedAt = new Date();
+        }
+      }
+    }
+
     const existing = tenant.settings ? (tenant.settings.toObject ? tenant.settings.toObject() : tenant.settings) : {};
 
     const deepMerge = (target, source) => {
@@ -146,9 +158,11 @@ export const updateTenantDetails = async (tenantId, updateData, userId, req = nu
           source[key] &&
           typeof source[key] === 'object' &&
           !Array.isArray(source[key]) &&
+          !(source[key] instanceof Date) &&
           target[key] &&
           typeof target[key] === 'object' &&
-          !Array.isArray(target[key])
+          !Array.isArray(target[key]) &&
+          !(target[key] instanceof Date)
         ) {
           output[key] = deepMerge(target[key], source[key]);
         } else {
@@ -158,7 +172,7 @@ export const updateTenantDetails = async (tenantId, updateData, userId, req = nu
       return output;
     };
 
-    tenant.settings = deepMerge(existing, updateData.settings);
+    tenant.settings = deepMerge(existing, sanitizedSettings);
     tenant.markModified('settings');
   }
 

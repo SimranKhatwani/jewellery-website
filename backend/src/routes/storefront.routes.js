@@ -23,6 +23,12 @@ router.get('/:storeSlug/products/:productSlug', storefrontController.getStorefro
 router.get('/:storeSlug/categories', storefrontController.getStorefrontCategories);
 
 /**
+ * 1b. Public Storefront Content & Policy Pages APIs
+ */
+router.get('/:storeSlug/pages', storefrontController.getStorefrontPages);
+router.get('/:storeSlug/pages/:pageSlug', storefrontController.getStorefrontPageDetail);
+
+/**
  * 2. Tenant-Scoped Cart APIs (Guest + Authenticated Customer)
  */
 router.get('/:storeSlug/cart', optionalAuthenticateUser, cartController.getCart);

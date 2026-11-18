@@ -14,6 +14,7 @@ import { BrandStorySection } from './components/BrandStorySection';
 import { ContactSection } from './components/ContactSection';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { ReturnPolicyPage } from './components/ReturnPolicyPage';
+import { StorePolicyPageView } from './components/StorePolicyPageView';
 import { SearchModal } from './components/SearchModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SizeGuideModal } from './components/SizeGuideModal';
@@ -83,6 +84,52 @@ const checkIsAdminRoute = () => {
   );
 };
 
+const KNOWN_POLICY_PAGES = new Set([
+  'return-policy',
+  'return-and-refund-policy',
+  'returns',
+  'shipping-policy',
+  'shipping',
+  'privacy-policy',
+  'privacy',
+  'terms-and-conditions',
+  'terms',
+  'about-us',
+  'about',
+  'contact-us',
+  'contact',
+  'faqs',
+  'faq',
+]);
+
+const resolvePolicyPageFromUrl = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('page');
+    if (q && KNOWN_POLICY_PAGES.has(q.toLowerCase().trim())) {
+      return q.toLowerCase().trim();
+    }
+  } catch {}
+
+  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+  if (hash && KNOWN_POLICY_PAGES.has(hash)) {
+    return hash;
+  }
+
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  if (segments.length >= 2) {
+    const sub = segments[1].toLowerCase().trim();
+    if (KNOWN_POLICY_PAGES.has(sub)) return sub;
+  } else if (segments.length === 1) {
+    const single = segments[0].toLowerCase().trim();
+    if (KNOWN_POLICY_PAGES.has(single)) return single;
+  }
+
+  return null;
+};
+
 export default function App() {
   // Determine if user is accessing Super Admin Console via /sa or #sa
   const [isSuperAdminView, setIsSuperAdminView] = useState(checkIsSuperAdminRoute);
@@ -90,11 +137,9 @@ export default function App() {
   // Determine if user is accessing Store Admin Panel via /admin or #admin
   const [isAdminView, setIsAdminView] = useState(checkIsAdminRoute);
 
-  // State for Return Policy separate page view
-  const [isReturnPolicyView, setIsReturnPolicyView] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.location.hash === '#return-policy';
-  });
+  // State for active informational/policy page (e.g. 'return-policy', 'shipping-policy')
+  const [activePolicyPage, setActivePolicyPage] = useState(resolvePolicyPageFromUrl);
+  const isReturnPolicyView = Boolean(activePolicyPage);
 
   // Dynamic store configuration & tenant identity state
   const [storeInfo, setStoreInfo] = useState(null);
@@ -347,16 +392,20 @@ export default function App() {
     }
   }, [wishlistIds]);
 
-  // Handle URL hash changes for deep linking (e.g. #product/sculpted-molten-band or #return-policy)
+  // Handle URL route and hash changes for deep linking (e.g. #product/slug or #return-policy or /shipping-policy)
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash === '#return-policy') {
-        setIsReturnPolicyView(true);
+    const handleRouteChange = () => {
+      const page = resolvePolicyPageFromUrl();
+      if (page) {
+        setActivePolicyPage(page);
         setSelectedProduct(null);
         window.scrollTo({ top: 0, behavior: 'instant' });
-      } else if (hash.startsWith('#product/')) {
-        setIsReturnPolicyView(false);
+        return;
+      }
+
+      setActivePolicyPage(null);
+      const hash = window.location.hash;
+      if (hash.startsWith('#product/')) {
         const slug = hash.replace('#product/', '');
         const found = products.find((p) => p.slug === slug || p.id === slug);
         if (found) {
@@ -364,18 +413,21 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       } else if (!hash || hash === '#') {
-        setIsReturnPolicyView(false);
         setSelectedProduct(null);
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    handleRouteChange();
+    window.addEventListener('hashchange', handleRouteChange);
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('hashchange', handleRouteChange);
+      window.removeEventListener('popstate', handleRouteChange);
+    };
   }, [products]);
 
   const handleSelectProduct = useCallback((product) => {
-    setIsReturnPolicyView(false);
+    setActivePolicyPage(null);
     setSelectedProduct(product);
     window.location.hash = `product/${product.slug}`;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -383,17 +435,23 @@ export default function App() {
 
   const handleBackToCatalogue = useCallback(() => {
     setSelectedProduct(null);
-    setIsReturnPolicyView(false);
-    window.history.pushState(null, '', window.location.pathname);
+    setActivePolicyPage(null);
+    const storeSlug = getStoreSlug();
+    const basePath = storeSlug && storeSlug !== 'aurelle' ? `/${storeSlug}` : '/';
+    window.history.pushState(null, '', basePath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleOpenReturnPolicy = useCallback(() => {
+  const handleOpenPolicyPage = useCallback((slug = 'return-policy') => {
     setSelectedProduct(null);
-    setIsReturnPolicyView(true);
-    window.location.hash = 'return-policy';
+    setActivePolicyPage(slug);
+    window.location.hash = slug;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
+
+  const handleOpenReturnPolicy = useCallback(() => {
+    handleOpenPolicyPage('return-policy');
+  }, [handleOpenPolicyPage]);
 
   const handleToggleWishlist = useCallback((productId, e) => {
     e.stopPropagation();
@@ -623,8 +681,13 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1">
-        {isReturnPolicyView ? (
-          <ReturnPolicyPage onBack={handleBackToCatalogue} />
+        {activePolicyPage ? (
+          <StorePolicyPageView
+            pageSlug={activePolicyPage}
+            storeInfo={storeInfo}
+            onBack={handleBackToCatalogue}
+            onNavigatePage={handleOpenPolicyPage}
+          />
         ) : selectedProduct ? (
           <ProductDetailPage
             product={selectedProduct}
@@ -741,7 +804,7 @@ export default function App() {
       <Footer
         storeInfo={storeInfo}
         onNavigateCategory={(cat) => {
-          if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
+          if (selectedProduct || activePolicyPage) handleBackToCatalogue();
           setTimeout(() => {
             document.getElementById(cat)?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
@@ -749,6 +812,7 @@ export default function App() {
         onOpenSizeGuide={(cat) => setSizeGuideCategory(cat)}
         onNavigateSection={handleNavigateSection}
         onOpenReturnPolicy={handleOpenReturnPolicy}
+        onOpenPolicyPage={handleOpenPolicyPage}
       />
 
       {/* Search Modal */}

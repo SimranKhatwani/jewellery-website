@@ -7,6 +7,7 @@ export const Footer = ({
   onOpenSizeGuide,
   onNavigateSection,
   onOpenReturnPolicy,
+  onOpenPolicyPage,
 }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -16,6 +17,14 @@ export const Footer = ({
   const s = storeInfo?.settings || storeInfo?.config || {};
   const footerConfig = s.footer || {};
   const logoUrl = s.branding?.logoUrl || storeInfo?.logoUrl || '';
+
+  const handleOpenPage = (slug) => {
+    if (onOpenPolicyPage) {
+      onOpenPolicyPage(slug);
+    } else if (onOpenReturnPolicy) {
+      onOpenReturnPolicy();
+    }
+  };
 
   const brandDescription =
     footerConfig.description ||
@@ -145,15 +154,15 @@ export const Footer = ({
               </li>
               <li>
                 <button
-                  onClick={() => onNavigateSection('brand-story')}
+                  onClick={() => handleOpenPage('about-us')}
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >
-                  Our Metallurgical Story
+                  About {brandName}
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigateSection('contact')}
+                  onClick={() => handleOpenPage('contact-us')}
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >
                   {isAurelle ? 'Contact RKB Enterprises' : `Contact ${brandName}`}
@@ -161,10 +170,26 @@ export const Footer = ({
               </li>
               <li>
                 <button
-                  onClick={onOpenReturnPolicy}
+                  onClick={() => handleOpenPage('return-policy')}
                   className="hover:text-[#A85F49] hover:underline transition-colors text-left"
                 >
-                  Return & Exchange Policy
+                  Return &amp; Refund Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleOpenPage('shipping-policy')}
+                  className="hover:text-[#A85F49] hover:underline transition-colors text-left"
+                >
+                  Shipping Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleOpenPage('faqs')}
+                  className="hover:text-[#A85F49] hover:underline transition-colors text-left"
+                >
+                  FAQs
                 </button>
               </li>
             </ul>
@@ -212,10 +237,28 @@ export const Footer = ({
           <p>{copyrightText}</p>
           <div className="flex flex-wrap items-center gap-6">
             <button
-              onClick={onOpenReturnPolicy}
+              onClick={() => handleOpenPage('return-policy')}
               className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
             >
               Return Policy
+            </button>
+            <button
+              onClick={() => handleOpenPage('shipping-policy')}
+              className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
+            >
+              Shipping
+            </button>
+            <button
+              onClick={() => handleOpenPage('privacy-policy')}
+              className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => handleOpenPage('terms-and-conditions')}
+              className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
+            >
+              Terms &amp; Conditions
             </button>
             <span>Solid 925 Sterling Silver</span>
             <span>Hallmarked Quality</span>
