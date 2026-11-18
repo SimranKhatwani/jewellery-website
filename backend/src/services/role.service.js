@@ -54,7 +54,7 @@ export const createCustomTenantRole = async ({
   userId,
   req = null,
 }) => {
-  const normalizedSlug = slug.toLowerCase().trim();
+  let normalizedSlug = slug.toLowerCase().trim();
 
   // 1. Check if role slug already exists in this tenant or as a system role
   const existingRole = await Role.findOne({
@@ -63,7 +63,7 @@ export const createCustomTenantRole = async ({
   });
 
   if (existingRole) {
-    throw new ConflictError(`A role with slug '${normalizedSlug}' already exists.`);
+    normalizedSlug = `${normalizedSlug}-${Date.now().toString(36).slice(-4)}`;
   }
 
   // 2. F-06: Forbid wildcard '*' in custom tenant roles

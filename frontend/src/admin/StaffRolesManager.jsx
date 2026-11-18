@@ -233,10 +233,41 @@ export const StaffRolesManager = ({ admin }) => {
     setTimeout(() => setSuccessMsg(null), 4000);
   };
 
-  // Only roles created for this tenant (or non-system templates)
-  const customRoles = useMemo(() => {
-    return roles.filter((r) => !r.isSystemRole || (r.tenantId && r.tenantId !== null));
+  // Revealed passwords state in member table
+  const [revealedPasswords, setRevealedPasswords] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
+
+  const toggleRevealPassword = (id) => {
+    setRevealedPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleCopyText = (text, id) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Roles to display in Store Roles & Permissions (Store Admin first with all modules ON, then custom roles)
+  const rolesToDisplay = useMemo(() => {
+    const storeAdminRole = roles.find((r) => r.isSystemRole || r.slug === 'store_admin');
+    const customList = roles.filter((r) => !r.isSystemRole && r.slug !== 'store_admin');
+
+    if (storeAdminRole) {
+      return [
+        {
+          ...storeAdminRole,
+          name: storeAdminRole.name || 'Store Admin',
+          permissions: ['*'],
+          description: storeAdminRole.description || 'Complete administrative control over all store modules, permissions, and settings.',
+        },
+        ...customList,
+      ];
+    }
+    return customList;
   }, [roles]);
+
+  const customRoles = rolesToDisplay;
 
   // -------------------------------------------------------------
   // Filtered Members
@@ -565,6 +596,45 @@ export const StaffRolesManager = ({ admin }) => {
                                   <span>{user.phoneNumber}</span>
                                 </div>
                               )}
+                              {user.currentPassword && (
+                                <div className="text-[10px] text-[#593D30] flex items-center gap-1.5 mt-1 bg-[#FAF7F2] px-2 py-0.5 rounded-xs border border-[#D7C5AF]/70 w-fit">
+                                  <Key className="w-2.5 h-2.5 text-[#A85F49] shrink-0" />
+                                  <span className="text-[#8E8172]">Password:</span>
+                                  <span className="font-mono font-medium">
+                                    {revealedPasswords[user._id] ? user.currentPassword : '••••••••'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleRevealPassword(user._id);
+                                    }}
+                                    className="text-[#8E8172] hover:text-[#593D30] ml-0.5"
+                                    title={revealedPasswords[user._id] ? 'Hide password' : 'Show password'}
+                                  >
+                                    {revealedPasswords[user._id] ? (
+                                      <EyeOff className="w-2.5 h-2.5" />
+                                    ) : (
+                                      <Eye className="w-2.5 h-2.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyText(user.currentPassword, `pwd-${user._id}`);
+                                    }}
+                                    className="text-[#8E8172] hover:text-[#A85F49]"
+                                    title="Copy password"
+                                  >
+                                    {copiedId === `pwd-${user._id}` ? (
+                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-2.5 h-2.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -749,8 +819,14 @@ export const StaffRolesManager = ({ admin }) => {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-serif text-base text-[#593D30] font-medium">{r.name}</h3>
-                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs bg-[#FAF7F2] text-[#A85F49] border border-[#A85F49]/40">
-                              Custom Store Role
+                            <span
+                              className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs ${
+                                r.isSystemRole
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                                  : 'bg-[#FAF7F2] text-[#A85F49] border border-[#A85F49]/40'
+                              }`}
+                            >
+                              {r.isSystemRole ? 'Store Administrator' : 'Custom Store Role'}
                             </span>
                           </div>
                           <p className="text-[11px] text-[#8E8172] mt-0.5 font-mono">slug: {r.slug}</p>
@@ -821,35 +897,44 @@ export const StaffRolesManager = ({ admin }) => {
                       </span>
 
                       <div className="flex items-center gap-2">
-                        {/* EDIT ROLE BUTTON */}
-                        <button
-                          onClick={() => {
-                            setEditingRole(r);
-                            setIsRoleModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 text-xs border border-[#593D30] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs flex items-center gap-1 transition-colors font-medium"
-                          title="Edit Role Name, Description & Module Toggles"
-                        >
-                          <Edit3 className="w-3 h-3 text-[#A85F49]" />
-                          <span>Edit Role</span>
-                        </button>
+                        {r.isSystemRole ? (
+                          <span className="px-2.5 py-1 text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xs font-medium flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Universal Access</span>
+                          </span>
+                        ) : (
+                          <>
+                            {/* EDIT ROLE BUTTON */}
+                            <button
+                              onClick={() => {
+                                setEditingRole(r);
+                                setIsRoleModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 text-xs border border-[#593D30] text-[#593D30] hover:bg-[#FAF7F2] rounded-xs flex items-center gap-1 transition-colors font-medium"
+                              title="Edit Role Name, Description & Module Toggles"
+                            >
+                              <Edit3 className="w-3 h-3 text-[#A85F49]" />
+                              <span>Edit Role</span>
+                            </button>
 
-                        <button
-                          onClick={() =>
-                            setDeleteTarget({
-                              type: 'role',
-                              id: r._id,
-                              name: r.name,
-                              assignedCount,
-                            })
-                          }
-                          disabled={assignedCount > 0}
-                          className="px-2.5 py-1 text-xs border border-red-200 text-red-600 hover:bg-red-50 rounded-xs flex items-center gap-1 transition-colors disabled:opacity-40"
-                          title={assignedCount > 0 ? 'Cannot delete role while members are assigned' : 'Delete Role'}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Delete</span>
-                        </button>
+                            <button
+                              onClick={() =>
+                                setDeleteTarget({
+                                  type: 'role',
+                                  id: r._id,
+                                  name: r.name,
+                                  assignedCount,
+                                })
+                              }
+                              disabled={assignedCount > 0}
+                              className="px-2.5 py-1 text-xs border border-red-200 text-red-600 hover:bg-red-50 rounded-xs flex items-center gap-1 transition-colors disabled:opacity-40"
+                              title={assignedCount > 0 ? 'Cannot delete role while members are assigned' : 'Delete Role'}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1129,6 +1214,15 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [copiedCurrent, setCopiedCurrent] = useState(false);
+
+  const handleCopyCurrentPassword = () => {
+    if (!user.currentPassword) return;
+    navigator.clipboard.writeText(user.currentPassword);
+    setCopiedCurrent(true);
+    setTimeout(() => setCopiedCurrent(false), 2000);
+  };
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -1351,6 +1445,41 @@ const EditStaffMemberModal = ({ membership, roles, onClose, onSuccess }) => {
                 }}
               />
             )}
+
+            {/* Current Login Password Display */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-[#8E8172]">
+                  Current Login Password
+                </label>
+                {user.currentPassword && (
+                  <button
+                    type="button"
+                    onClick={handleCopyCurrentPassword}
+                    className="text-[10px] text-[#A85F49] hover:underline flex items-center gap-1 font-medium"
+                  >
+                    {copiedCurrent ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedCurrent ? 'Copied' : 'Copy Password'}</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  readOnly
+                  value={user.currentPassword || '••••••••'}
+                  className="w-full pl-3 pr-10 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono select-all focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8172] hover:text-[#593D30]"
+                  title={showCurrentPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
 
             {/* Password Change / Reset Section */}
             <div className="p-3.5 bg-[#FAF7F2]/50 border border-[#D7C5AF]/60 rounded-xs space-y-3">
@@ -1751,6 +1880,16 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
   const [createdSummary, setCreatedSummary] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Aggressively prevent browser autofill from inserting superadmin credentials
+  useEffect(() => {
+    if (email && email.toLowerCase().includes('superadmin')) {
+      setEmail('');
+    }
+    if (password && (password.toLowerCase().includes('superadmin') || password === 'SuperAdminAurelle2026!')) {
+      setPassword('');
+    }
+  }, [email, password]);
+
   // Manual role creation states
   const [isManualRole, setIsManualRole] = useState(false);
   const [manualRoleName, setManualRoleName] = useState('');
@@ -1930,7 +2069,11 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <form onSubmit={handleSubmit} autoComplete="off" className="flex-1 flex flex-col overflow-hidden">
+            {/* Decoy fields to intercept aggressive browser credential autofill */}
+            <input type="text" name="decoy_username_field" style={{ display: 'none' }} tabIndex="-1" aria-hidden="true" autoComplete="off" />
+            <input type="password" name="decoy_password_field" style={{ display: 'none' }} tabIndex="-1" aria-hidden="true" autoComplete="off" />
+
             <div className="overflow-y-auto pr-1 space-y-4 flex-1">
               {/* Mode Selector Tabs */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF7F2] rounded-xs border border-[#D7C5AF]/50">
@@ -1969,6 +2112,8 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
                   <input
                     type="text"
                     required
+                    name="new_member_fullname"
+                    autoComplete="off"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Priya Sharma"
@@ -1981,8 +2126,15 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
                   <input
                     type="email"
                     required
+                    name="staff_creation_email_unique"
+                    autoComplete="new-password"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val.toLowerCase().includes('superadmin')) {
+                        setEmail(val);
+                      }
+                    }}
                     placeholder="priya@store.com"
                     className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] focus:outline-none focus:border-[#A85F49]"
                   />
@@ -2004,8 +2156,15 @@ const AddStaffModal = ({ roles, onClose, onSuccess }) => {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
+                      name="staff_creation_password_unique"
+                      autoComplete="new-password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val.toLowerCase().includes('superadmin') && val !== 'SuperAdminAurelle2026!') {
+                          setPassword(val);
+                        }
+                      }}
                       placeholder="Enter minimum 6 characters password"
                       className="w-full pl-3 pr-10 py-2 text-xs bg-[#FAF7F2] border border-[#D7C5AF] rounded-xs text-[#593D30] font-mono focus:outline-none focus:border-[#A85F49]"
                     />
