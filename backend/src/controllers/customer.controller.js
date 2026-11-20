@@ -16,7 +16,7 @@ import { escapeRegex } from '../utils/regex.js';
 async function ensureCustomerRecord(user, tenantId = null) {
   let resolvedTenantId = tenantId;
   if (!resolvedTenantId) {
-    const defaultTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+    const defaultTenant = await Tenant.findOne({ slug: 'aurelle', status: 'active' });
     resolvedTenantId = defaultTenant?._id || null;
   }
 
@@ -384,6 +384,29 @@ export const syncExistingCustomersToCollection = async () => {
 };
 
 /**
+ * POST /api/v1/customers/sync
+ * POST /api/customers/sync
+ * Explicit, on-demand synchronization of customer purchase history strictly for the authenticated tenant.
+ */
+export const syncTenantCustomersController = async (req, res, next) => {
+  try {
+    const tenantId = req.tenant?._id;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant store context required.' });
+    }
+
+    await syncTenantCustomers(tenantId);
+
+    res.json({
+      success: true,
+      message: `Customers synchronized successfully for store '${req.tenant.name}'.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/customers
  * GET /api/customers
  * Store Admin endpoint to list all customers strictly belonging to the active tenant
@@ -405,11 +428,7 @@ export const listStoreCustomers = async (req, res, next) => {
       sortOrder = 'desc',
     } = req.query;
 
-    // Run repair check and sync this tenant's orders
-    await repairAndSyncCustomers();
-    await syncTenantCustomers(tenantId);
-
-    // Strictly enforce tenant boundary
+    // Strictly enforce tenant boundary without triggering unneeded write synchronizations
     const query = { tenantId };
 
     if (status && status !== 'all') {

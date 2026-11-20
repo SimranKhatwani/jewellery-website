@@ -158,7 +158,9 @@ export const resolveTenant = (options = { requireMembership: true }) => {
 
 /**
  * Resolve Legacy Tenant Middleware
- * Resolves tenant context from headers or query for legacy routes, falling back to aurelle.
+ * Resolves tenant context from headers, tokens, or query for legacy routes with strict validation.
+ * Rejects invalid or unresolvable tenant identifiers with 404 Not Found.
+ * Enforces explicit tenant context on administrative, mutating, and tenant-scoped routes without silent fallbacks.
  */
 export const resolveLegacyTenant = async (req, _res, next) => {
   try {
@@ -171,6 +173,7 @@ export const resolveLegacyTenant = async (req, _res, next) => {
       req.query.storeSlug;
 
     let tenant = null;
+
     if (rawIdentifier) {
       const id = String(rawIdentifier).trim().toLowerCase();
       if (mongoose.Types.ObjectId.isValid(id)) {
@@ -186,42 +189,98 @@ export const resolveLegacyTenant = async (req, _res, next) => {
           ],
         });
       }
+
+      // If an explicit tenant identifier was provided but does not match any store, FAIL immediately.
+      // Never fall back to another store or default store!
+      if (!tenant) {
+        throw new NotFoundError(`Store '${rawIdentifier}' was not found.`);
+      }
     }
 
+    // If no explicit identifier in headers/query, check authenticated admin context from JWT
     if (!tenant) {
-      // Check if JWT payload carries tenantId or storeSlug
       if (req.admin?.tenantId && mongoose.Types.ObjectId.isValid(String(req.admin.tenantId))) {
         tenant = await Tenant.findById(req.admin.tenantId);
-      } else if (req.admin?.storeSlug) {
+      } else if (req.admin?.storeSlug && isValidTenantSlug(String(req.admin.storeSlug))) {
         tenant = await Tenant.findOne({ slug: String(req.admin.storeSlug).toLowerCase().trim() });
       }
     }
 
+    // If still not resolved, check membership if administrative request
     if (!tenant) {
-      // Only resolve from membership if accessing an explicit administrative endpoint
-      const isAdminRoute = req.originalUrl?.includes('/admin') || req.path?.includes('/admin') || req.headers['x-admin-request'];
+      const isAdminRoute =
+        req.originalUrl?.includes('/admin') ||
+        req.path?.includes('/admin') ||
+        req.headers['x-admin-request'] ||
+        Boolean(req.admin);
+
       if (isAdminRoute) {
         const authUserId = req.user?._id || req.admin?.userId || req.admin?.id;
         if (authUserId && mongoose.Types.ObjectId.isValid(String(authUserId))) {
           const membership = await TenantMembership.findOne({
             userId: authUserId,
-            status: 'active',
+            status: MEMBERSHIP_STATUS.ACTIVE,
           }).populate('tenantId');
-          if (membership?.tenantId && membership.tenantId.status !== 'archived') {
+          if (membership?.tenantId && membership.tenantId.status !== TENANT_STATUS.ARCHIVED) {
             tenant = membership.tenantId;
           }
         }
       }
     }
 
-    // Default platform store is ALWAYS Aurelle
+    // Determine if the route is an administrative, mutating, or tenant-scoped route requiring explicit context
+    const isMutatingMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+    const isTenantScopedResource =
+      req.baseUrl?.includes('/customers') ||
+      req.baseUrl?.includes('/orders') ||
+      req.baseUrl?.includes('/analytics') ||
+      req.baseUrl?.includes('/reports') ||
+      req.baseUrl?.includes('/notifications') ||
+      req.baseUrl?.includes('/media') ||
+      req.path?.includes('/customers') ||
+      req.path?.includes('/orders') ||
+      req.originalUrl?.includes('/customers') ||
+      req.originalUrl?.includes('/orders');
+
+    const requiresStrictContext = isMutatingMethod || isTenantScopedResource || Boolean(req.admin);
+
     if (!tenant) {
-      tenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+      if (requiresStrictContext) {
+        throw new BadRequestError(
+          'Tenant store context required. Please provide X-Tenant-ID or X-Store-Slug header.'
+        );
+      }
+
+      // Safe legacy public catalog fallback:
+      // Only for public read-only catalog browsing (GET /api/products, GET /api/categories)
+      // Resolve exclusively to active flagship 'aurelle', NEVER to a random active store.
+      const isPublicCatalogRead = req.method === 'GET' && (
+        req.baseUrl?.includes('/products') ||
+        req.baseUrl?.includes('/categories') ||
+        req.path?.includes('/products') ||
+        req.path?.includes('/categories') ||
+        req.originalUrl?.includes('/products') ||
+        req.originalUrl?.includes('/categories')
+      );
+
+      if (isPublicCatalogRead) {
+        tenant = await Tenant.findOne({ slug: 'aurelle', status: TENANT_STATUS.ACTIVE });
+      }
+
+      if (!tenant) {
+        throw new NotFoundError('Store context could not be resolved. Please specify a valid store.');
+      }
     }
 
-    if (tenant) {
-      req.tenant = tenant;
+    // Operational status check on resolved tenant
+    if (tenant.status === TENANT_STATUS.SUSPENDED) {
+      throw new ForbiddenError('This store account is currently suspended. Please contact platform support.');
     }
+    if (tenant.status === TENANT_STATUS.ARCHIVED) {
+      throw new ForbiddenError('This store account has been closed or archived.');
+    }
+
+    req.tenant = tenant;
     next();
   } catch (err) {
     next(err);

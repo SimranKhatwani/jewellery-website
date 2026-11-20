@@ -140,7 +140,7 @@ export const login = async (req, res, next) => {
       primaryTenant = await Tenant.findOne({ ownerId: user?._id || admin._id, status: { $ne: 'archived' } });
       if (!primaryTenant) {
         // Fallback for platform superadmin or default admin
-        primaryTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+        primaryTenant = await Tenant.findOne({ slug: 'aurelle', status: 'active' });
       }
     }
 
@@ -300,7 +300,7 @@ export const getMe = async (req, res, next) => {
     }
 
     if (!primaryTenant) {
-      primaryTenant = (await Tenant.findOne({ slug: 'aurelle' })) || (await Tenant.findOne({ status: 'active' }));
+      primaryTenant = await Tenant.findOne({ slug: 'aurelle', status: 'active' });
     }
 
     res.json({
