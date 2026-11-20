@@ -432,7 +432,7 @@ export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
         powerPreference: 'high-performance',
       });
     } catch (e) {
-      console.warn('[Aurelle 3D] WebGL not supported, using high-res poster fallback:', e);
+      console.warn('[Aurelle 3D] WebGL not supported, using high-res poster fallback:', e?.message || e);
       setHasWebGLError(true);
       return;
     }

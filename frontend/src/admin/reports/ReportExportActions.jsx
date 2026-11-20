@@ -30,7 +30,7 @@ export const ReportExportActions = ({
       setErrorMsg(null);
       await downloadReportCSV(category.id, filters);
     } catch (err) {
-      console.error('CSV Export Error:', err);
+      console.error('CSV Export Error:', err?.message || err);
       setErrorMsg('Failed to export CSV: ' + err.message);
     } finally {
       setIsExportingCSV(false);
@@ -43,7 +43,7 @@ export const ReportExportActions = ({
       setErrorMsg(null);
       await openReportPrintView(category.id, filters);
     } catch (err) {
-      console.error('PDF Export Error:', err);
+      console.error('PDF Export Error:', err?.message || err);
       setErrorMsg('Failed to open PDF view: ' + err.message);
     } finally {
       setIsExportingPDF(false);

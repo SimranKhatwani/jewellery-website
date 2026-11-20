@@ -97,7 +97,7 @@ export const CustomerProfileModal = ({
             if (onUserUpdated) onUserUpdated(fresh);
           }
         })
-        .catch((err) => console.warn('Could not refresh customer profile:', err));
+        .catch((err) => console.warn('Could not refresh customer profile:', err?.message || err));
     }
   }, [isOpen]);
 
@@ -115,7 +115,7 @@ export const CustomerProfileModal = ({
       const addrs = await fetchAddresses();
       setAddresses(addrs || []);
     } catch (err) {
-      console.warn('Failed to load addresses:', err);
+      console.warn('Failed to load addresses:', err?.message || err);
     } finally {
       setAddressesLoading(false);
     }
@@ -127,7 +127,7 @@ export const CustomerProfileModal = ({
       const res = await fetchCustomerOrders();
       setOrders(res.orders || []);
     } catch (err) {
-      console.warn('Failed to load orders:', err);
+      console.warn('Failed to load orders:', err?.message || err);
     } finally {
       setOrdersLoading(false);
     }

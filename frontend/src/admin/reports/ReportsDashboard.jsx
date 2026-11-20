@@ -55,7 +55,7 @@ export const ReportsDashboard = ({ admin }) => {
         setCurrencySymbol(res.currencySymbol);
       }
     } catch (err) {
-      console.error('Report fetch error:', err);
+      console.error('Report fetch error:', err?.message || err);
       setErrorMsg(err.message || 'Failed to load report data.');
     } finally {
       setIsLoading(false);

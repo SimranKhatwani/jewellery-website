@@ -93,7 +93,7 @@ export const Header = ({
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
-      console.warn('Failed to fetch customer notifications:', err);
+      console.warn('Failed to fetch customer notifications:', err?.message || err);
     }
   }, [customerUser]);
 
@@ -134,7 +134,7 @@ export const Header = ({
       );
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch (err) {
-      console.warn('Failed to mark notification read:', err);
+      console.warn('Failed to mark notification read:', err?.message || err);
     }
   };
 
@@ -144,7 +144,7 @@ export const Header = ({
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.warn('Failed to mark all read:', err);
+      console.warn('Failed to mark all read:', err?.message || err);
     }
   };
 

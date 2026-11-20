@@ -48,8 +48,16 @@ export const AdminApp = ({ onExitAdmin }) => {
 
     verifyAuth();
 
+    const handleSessionExpired = () => {
+      if (isMounted) {
+        setAdminUser(null);
+      }
+    };
+    window.addEventListener('aurelle:admin:session-expired', handleSessionExpired);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('aurelle:admin:session-expired', handleSessionExpired);
     };
   }, []);
 

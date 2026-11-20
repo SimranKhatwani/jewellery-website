@@ -193,7 +193,7 @@ export default function App() {
         setCart(c);
       }
     } catch (err) {
-      console.warn('[Cart] Failed to load cart:', err);
+      console.warn('[Cart] Failed to load cart:', err?.message || err);
     }
   }, []);
 
@@ -216,7 +216,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.warn('[Storefront] Could not load store info:', err);
+      console.warn('[Storefront] Could not load store info:', err?.message || err);
     }
   }, []);
 
@@ -230,7 +230,7 @@ export default function App() {
         setProducts(res.products);
       }
     } catch (err) {
-      console.warn('[Storefront] Failed to load backend products:', err);
+      console.warn('[Storefront] Failed to load backend products:', err?.message || err);
     }
   }, []);
 
@@ -277,7 +277,7 @@ export default function App() {
       if (updatedCart) setCart(updatedCart);
       else await refreshCart();
     } catch (err) {
-      console.warn('Update quantity failed:', err);
+      console.warn('Update quantity failed:', err?.message || err);
     }
   }, [refreshCart]);
 
@@ -287,7 +287,7 @@ export default function App() {
       if (updatedCart) setCart(updatedCart);
       else await refreshCart();
     } catch (err) {
-      console.warn('Remove item failed:', err);
+      console.warn('Remove item failed:', err?.message || err);
     }
   }, [refreshCart]);
 
@@ -297,7 +297,7 @@ export default function App() {
       setCart({ items: [], subtotal: 0, totalItems: 0 });
       setAppliedCoupon(null);
     } catch (err) {
-      console.warn('Clear cart failed:', err);
+      console.warn('Clear cart failed:', err?.message || err);
     }
   }, []);
 
@@ -337,6 +337,17 @@ export default function App() {
     setCustomerUser(null);
     await refreshCart();
   }, [refreshCart]);
+
+  // Synchronize state immediately if customer session expires or is invalidated (401)
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setCustomerUser(null);
+    };
+    window.addEventListener('aurelle:customer:session-expired', handleSessionExpired);
+    return () => {
+      window.removeEventListener('aurelle:customer:session-expired', handleSessionExpired);
+    };
+  }, []);
 
   // Synchronize route changes for /admin, #admin, /sa, #sa, and direct store slug paths
   useEffect(() => {

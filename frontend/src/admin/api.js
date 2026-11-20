@@ -1,5 +1,6 @@
 function getApiBaseUrl() {
-  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined;
+  const raw = (envUrl || '/api').trim().replace(/\/+$/, '');
   if (!raw || raw === '/') return '/api';
   if (raw.endsWith('/api')) return raw;
   return `${raw}/api`;
@@ -55,7 +56,7 @@ export function getStoredAdminUser() {
   }
 }
 
-async function authFetch(endpoint, options = {}) {
+export async function authFetch(endpoint, options = {}) {
   const token = getAdminToken();
   const headers = new Headers(options.headers || {});
 
@@ -78,6 +79,14 @@ async function authFetch(endpoint, options = {}) {
     ...options,
     headers,
   });
+
+  // Handle expired or revoked administrative session immediately
+  if (res.status === 401 && !endpoint.includes('/auth/login')) {
+    clearAdminAuth();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aurelle:admin:session-expired', { detail: { endpoint } }));
+    }
+  }
 
   const contentType = res.headers.get('content-type') || '';
   if (!res.ok && !contentType.includes('application/json')) {

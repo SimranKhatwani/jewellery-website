@@ -1,5 +1,6 @@
 function getApiBaseUrl() {
-  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined;
+  const raw = (envUrl || '/api').trim().replace(/\/+$/, '');
   if (!raw || raw === '/') return '/api';
   if (raw.endsWith('/api')) return raw;
   return `${raw}/api`;
@@ -44,7 +45,7 @@ export function getStoredSuperAdminUser() {
   }
 }
 
-async function superAdminFetch(endpoint, options = {}) {
+export async function superAdminFetch(endpoint, options = {}) {
   const token = getSuperAdminToken();
   const headers = new Headers(options.headers || {});
 
@@ -56,6 +57,14 @@ async function superAdminFetch(endpoint, options = {}) {
     ...options,
     headers,
   });
+
+  // Handle expired or revoked superadmin session immediately
+  if (res.status === 401 && !endpoint.includes('/v1/auth/login')) {
+    clearSuperAdminAuth();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aurelle:superadmin:session-expired', { detail: { endpoint } }));
+    }
+  }
 
   const contentType = res.headers.get('content-type') || '';
   if (!res.ok && !contentType.includes('application/json')) {

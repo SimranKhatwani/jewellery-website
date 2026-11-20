@@ -5,7 +5,8 @@
  */
 
 function getApiBaseUrl() {
-  const raw = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '');
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined;
+  const raw = (envUrl || '/api').trim().replace(/\/+$/, '');
   if (!raw || raw === '/') return '/api';
   if (raw.endsWith('/api')) return raw;
   return `${raw}/api`;
@@ -449,7 +450,10 @@ export async function fetchCustomerOrders({ page = 1, limit = 20 } = {}) {
     headers: getStorefrontHeaders(),
   });
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    if (res.status === 401) customerLogout();
+    return [];
+  }
   const data = await res.json();
   return data.orders || data.data?.orders || [];
 }
@@ -496,7 +500,10 @@ export async function fetchCustomerNotifications({ page = 1, limit = 20, unreadO
     }
   );
 
-  if (!res.ok) return { notifications: [], unreadCount: 0 };
+  if (!res.ok) {
+    if (res.status === 401) customerLogout();
+    return { notifications: [], unreadCount: 0 };
+  }
   const data = await res.json();
   return {
     notifications: data.notifications || [],
@@ -636,6 +643,9 @@ export async function customerRegister({ email, password, firstName, lastName, p
 export function customerLogout() {
   setCustomerToken(null);
   setCustomerUser(null);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aurelle:customer:session-expired'));
+  }
 }
 
 export async function fetchCustomerProfile() {
@@ -707,6 +717,7 @@ export async function fetchAddresses() {
       headers: getStorefrontHeaders(),
     });
     if (!res.ok) {
+      if (res.status === 401) customerLogout();
       console.warn(`[StorefrontService] fetchAddresses returned HTTP ${res.status}`);
       return [];
     }
@@ -715,7 +726,7 @@ export async function fetchAddresses() {
     const addrs = payload.addresses || (Array.isArray(payload) ? payload : []);
     return Array.isArray(addrs) ? addrs : [];
   } catch (err) {
-    console.warn('[StorefrontService] fetchAddresses network error:', err);
+    console.warn('[StorefrontService] fetchAddresses network error:', err?.message || 'Network error');
     return [];
   }
 }

@@ -210,7 +210,7 @@ export const ProductFormModal = ({
     try {
       await createAdminCategory({ name: trimmed, slug });
     } catch (err) {
-      console.warn('Category persist error:', err);
+      console.warn('Category persist error:', err?.message || err);
     } finally {
       setCategorySyncLoading(false);
     }

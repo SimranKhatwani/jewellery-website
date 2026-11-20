@@ -125,7 +125,7 @@ export const AnalyticsDashboard = ({ admin, onNavigateCatalogue }) => {
       });
       setInventoryInsights(inventoryRes.data || null);
     } catch (err) {
-      console.error('Analytics load error:', err);
+      console.error('Analytics load error:', err?.message || err);
       setErrorMsg(err.message || 'Failed to load store analytics.');
     } finally {
       setIsLoading(false);

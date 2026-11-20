@@ -41,8 +41,16 @@ export const SuperAdminApp = ({ onExitSuperAdmin }) => {
 
     verifyAuth();
 
+    const handleSessionExpired = () => {
+      if (isMounted) {
+        setSuperAdminUser(null);
+      }
+    };
+    window.addEventListener('aurelle:superadmin:session-expired', handleSessionExpired);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('aurelle:superadmin:session-expired', handleSessionExpired);
     };
   }, []);
 
