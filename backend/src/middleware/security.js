@@ -14,6 +14,7 @@ export const securityHeaders = (_req, res, next) => {
 
 /**
  * Backwards-compatible rate limiter exports
+ * @deprecated Prefer importing directly from '../config/rateLimit.js'
  */
 export const apiLimiter = globalApiLimiter;
 export const authLimiter = strictAuthLimiter;

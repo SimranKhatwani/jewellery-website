@@ -10,17 +10,24 @@ const router = Router();
 // Payment Webhook endpoint (Public, verified via signature/payload)
 router.post('/webhook', subscriptionController.handleWebhook);
 
-// Tenant-scoped subscription operations (Requires Store Admin role)
-const tenantScoped = Router();
-tenantScoped.use(authenticateUser, resolveTenant({ requireMembership: true }), requireTenantRole('store_admin'));
+/**
+ * Tenant-scoped subscription router
+ * Canonical endpoints for subscription retrieval, plan changes, checkout, and cancellation.
+ */
+export const tenantSubscriptionRouter = Router();
+tenantSubscriptionRouter.use(authenticateUser, resolveTenant({ requireMembership: true }));
 
-tenantScoped.get('/', subscriptionController.getSubscription);
-tenantScoped.get('/plans', subscriptionController.listAvailablePlans);
-tenantScoped.post('/checkout', validateCheckout, subscriptionController.checkout);
-tenantScoped.post('/change-plan', validateChangePlan, subscriptionController.changePlan);
-tenantScoped.post('/cancel', subscriptionController.cancelSubscription);
+// Plan browsing (Open to all authenticated members of the active store)
+tenantSubscriptionRouter.get('/plans', subscriptionController.listAvailablePlans);
 
-router.use('/', tenantScoped);
+// Billing status and subscription mutations (Guarded by store_admin role)
+tenantSubscriptionRouter.get('/', requireTenantRole('store_admin'), subscriptionController.getSubscription);
+tenantSubscriptionRouter.post('/checkout', requireTenantRole('store_admin'), validateCheckout, subscriptionController.checkout);
+tenantSubscriptionRouter.post('/change-plan', requireTenantRole('store_admin'), validateChangePlan, subscriptionController.changePlan);
+tenantSubscriptionRouter.post('/cancel', requireTenantRole('store_admin'), subscriptionController.cancelSubscription);
+
+// Mount tenant subscription router on canonical root
+router.use('/', tenantSubscriptionRouter);
 
 export default router;
 

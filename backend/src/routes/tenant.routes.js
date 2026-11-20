@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as tenantController from '../controllers/tenant.controller.js';
-import * as subscriptionController from '../controllers/subscription.controller.js';
+import { tenantSubscriptionRouter } from './subscription.routes.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { resolveTenant } from '../middleware/tenant.js';
 import { requireTenantPermission, requireTenantRole } from '../middleware/rbac.js';
@@ -13,7 +13,6 @@ import {
   validateUpdateStaffStatus,
   validateTransferOwnership,
 } from '../validations/tenant.validation.js';
-import { validateCheckout, validateChangePlan } from '../validations/subscription.validation.js';
 
 const router = Router();
 
@@ -58,33 +57,8 @@ tenantScoped.patch(
 );
 tenantScoped.delete('/staff/:membershipId', requireTenantPermission('staff:remove'), tenantController.removeStaff);
 
-// Tenant Subscription APIs
-tenantScoped.get(
-  '/current/subscription',
-  requireTenantRole('store_admin'),
-  subscriptionController.getSubscription
-);
-tenantScoped.get(
-  '/current/subscription/plans',
-  subscriptionController.listAvailablePlans
-);
-tenantScoped.post(
-  '/current/subscription/checkout',
-  requireTenantRole('store_admin'),
-  validateCheckout,
-  subscriptionController.checkout
-);
-tenantScoped.post(
-  '/current/subscription/change-plan',
-  requireTenantRole('store_admin'),
-  validateChangePlan,
-  subscriptionController.changePlan
-);
-tenantScoped.post(
-  '/current/subscription/cancel',
-  requireTenantRole('store_admin'),
-  subscriptionController.cancelSubscription
-);
+// Backwards-compatible subscription alias: delegates to canonical /api/v1/subscriptions router
+tenantScoped.use('/current/subscription', tenantSubscriptionRouter);
 
 router.use('/', tenantScoped);
 

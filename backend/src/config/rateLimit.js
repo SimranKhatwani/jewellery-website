@@ -30,8 +30,27 @@ export const globalApiLimiter = rateLimit({
     'RATE_LIMIT_EXCEEDED'
   ),
   skip: (req) => {
-    // Never throttle monitoring and health endpoints
-    return req.path === '/health' || req.path === '/api/health';
+    const fullPath = (req.originalUrl || req.path || '').toLowerCase();
+
+    // 1. Never throttle monitoring and health endpoints
+    if (fullPath === '/health' || fullPath === '/api/health' || req.path === '/health' || req.path === '/api/health') {
+      return true;
+    }
+
+    // 2. Prevent double-limiting on endpoints with dedicated specialized rate limiters
+    if (
+      fullPath.includes('/auth/login') ||
+      fullPath.includes('/auth/register') ||
+      fullPath.includes('/accept-invitation') ||
+      fullPath.includes('/invitation/') ||
+      fullPath.includes('/change-password') ||
+      fullPath.includes('/coupons/validate') ||
+      fullPath.includes('/coupon/validate')
+    ) {
+      return true;
+    }
+
+    return false;
   },
 });
 
