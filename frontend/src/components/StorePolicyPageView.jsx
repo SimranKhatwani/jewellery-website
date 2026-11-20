@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { sanitizeHtml } from '../utils/sanitize';
 import {
   ArrowLeft,
   ShieldCheck,
@@ -456,7 +457,7 @@ export const StorePolicyPageView = ({
           {pageData.content && pageData.content.trim().length > 0 && (
             <div
               className="prose prose-sm max-w-none text-[#57534E] leading-relaxed pt-4 border-t border-[#E5E0D8] space-y-4"
-              dangerouslySetInnerHTML={{ __html: pageData.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(pageData.content) }}
             />
           )}
 

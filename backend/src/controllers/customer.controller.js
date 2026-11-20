@@ -8,6 +8,7 @@ import { TenantMembership } from '../models/TenantMembership.js';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors.js';
 import { generateToken } from '../utils/jwt.js';
 import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
+import { escapeRegex } from '../utils/regex.js';
 
 /**
  * Auto-sync helper: ensures an existing User is mirrored into the `customers` collection
@@ -422,7 +423,7 @@ export const listStoreCustomers = async (req, res, next) => {
     }
 
     if (search && search.trim()) {
-      const rx = new RegExp(search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i');
+      const rx = new RegExp(escapeRegex(search, 100), 'i');
       query.$and = [
         ...(query.$and || []),
         {

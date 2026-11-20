@@ -47,7 +47,7 @@ export const SYSTEM_ROLE_TEMPLATES = [
       'inventory:read', 'inventory:write',
       'coupons:read', 'coupons:write',
       'orders:read', 'orders:write',
-      'customers:read',
+      'customers:read', 'customers:write',
       'analytics:view',
       'staff:read',
       'tenant:read',
@@ -110,6 +110,7 @@ export const DEFAULT_PERMISSIONS = [
   { key: 'orders:read', name: 'View Orders', module: 'sales', description: 'View store orders' },
   { key: 'orders:write', name: 'Manage Orders', module: 'sales', description: 'Update order statuses and fulfillment' },
   { key: 'customers:read', name: 'View Customers', module: 'customers', description: 'View customer accounts and activity' },
+  { key: 'customers:write', name: 'Manage Customers', module: 'customers', description: 'Update customer status, tags, and profile metadata' },
 
   // Analytics & Auditing
   { key: 'analytics:view', name: 'View Analytics', module: 'analytics', description: 'View sales and traffic metrics' },

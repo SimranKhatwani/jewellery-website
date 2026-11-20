@@ -13,6 +13,7 @@ import {
   AUDIT_ACTIONS,
 } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
+import { buildSafeRegexQuery } from '../utils/regex.js';
 import { logAudit } from '../utils/audit.js';
 import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 import * as notificationService from './notification.service.js';
@@ -550,15 +551,17 @@ export async function listTenantOrders(tenantId, query = {}) {
   }
 
   if (search && String(search).trim() !== '') {
-    const q = String(search).trim();
-    filter.$or = [
-      { orderNumber: { $regex: q, $options: 'i' } },
-      { 'customerInfo.name': { $regex: q, $options: 'i' } },
-      { 'customerInfo.email': { $regex: q, $options: 'i' } },
-      { 'customerInfo.phone': { $regex: q, $options: 'i' } },
-      { 'items.sku': { $regex: q, $options: 'i' } },
-      { 'items.name': { $regex: q, $options: 'i' } },
-    ];
+    const regexQuery = buildSafeRegexQuery(search, 'i', 100);
+    if (regexQuery) {
+      filter.$or = [
+        { orderNumber: regexQuery },
+        { 'customerInfo.name': regexQuery },
+        { 'customerInfo.email': regexQuery },
+        { 'customerInfo.phone': regexQuery },
+        { 'items.sku': regexQuery },
+        { 'items.name': regexQuery },
+      ];
+    }
   }
 
   const pageNum = Math.max(1, parseInt(page, 10));

@@ -4,6 +4,7 @@ import { TenantMembership } from '../models/TenantMembership.js';
 import { User } from '../models/User.js';
 import { TENANT_STATUS, MEMBERSHIP_STATUS, USER_STATUS } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError } from '../utils/errors.js';
+import { escapeRegex, isValidTenantSlug, buildSafeExactRegex } from '../utils/regex.js';
 
 /**
  * Standard platform hostnames that should not be treated as tenant custom domains
@@ -41,22 +42,16 @@ export const resolveTenant = (options = { requireMembership: true }) => {
         const identifier = String(rawIdentifier).trim().toLowerCase();
         if (mongoose.Types.ObjectId.isValid(identifier)) {
           tenant = await Tenant.findById(identifier);
-        } else {
+        } else if (isValidTenantSlug(identifier)) {
           tenant = await Tenant.findOne({
             $or: [
               { slug: identifier },
               ...(identifier === 'giva' ? [{ slug: 'giva-jewels' }] : []),
               ...(identifier === 'giva-jewels' ? [{ slug: 'giva' }] : []),
+              { slug: `${identifier}-jewels` },
+              { slug: buildSafeExactRegex(identifier) },
             ],
           });
-          if (!tenant) {
-            tenant = await Tenant.findOne({
-              $or: [
-                { slug: `${identifier}-jewels` },
-                { slug: new RegExp(`^${identifier}`, 'i') },
-              ],
-            });
-          }
         }
       } else {
         // F-07: Custom-domain resolution from Host header
@@ -180,22 +175,16 @@ export const resolveLegacyTenant = async (req, _res, next) => {
       const id = String(rawIdentifier).trim().toLowerCase();
       if (mongoose.Types.ObjectId.isValid(id)) {
         tenant = await Tenant.findById(id);
-      } else {
+      } else if (isValidTenantSlug(id)) {
         tenant = await Tenant.findOne({
           $or: [
             { slug: id },
             ...(id === 'giva' ? [{ slug: 'giva-jewels' }] : []),
             ...(id === 'giva-jewels' ? [{ slug: 'giva' }] : []),
+            { slug: `${id}-jewels` },
+            { slug: buildSafeExactRegex(id) },
           ],
         });
-        if (!tenant) {
-          tenant = await Tenant.findOne({
-            $or: [
-              { slug: `${id}-jewels` },
-              { slug: new RegExp(`^${id}`, 'i') },
-            ],
-          });
-        }
       }
     }
 

@@ -5,6 +5,7 @@ import { enforceProductLimit } from '../services/subscription.service.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/errors.js';
 import { logAudit } from '../utils/audit.js';
 import { AUDIT_ACTIONS } from '../config/constants.js';
+import { buildSafeRegexQuery } from '../utils/regex.js';
 
 const slugify = (text) => {
   return text
@@ -81,13 +82,15 @@ export const listTenantProducts = async (req, res, next) => {
     }
 
     if (search && String(search).trim() !== '') {
-      const q = String(search).trim();
-      filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { subtitle: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { sku: { $regex: q, $options: 'i' } },
-      ];
+      const regexQuery = buildSafeRegexQuery(search, 'i', 100);
+      if (regexQuery) {
+        filter.$or = [
+          { name: regexQuery },
+          { subtitle: regexQuery },
+          { description: regexQuery },
+          { sku: regexQuery },
+        ];
+      }
     }
 
     const pageNum = Math.max(1, parseInt(page, 10));

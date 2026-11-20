@@ -1,6 +1,7 @@
 import { Product } from '../models/Product.js';
 import { Category } from '../models/Category.js';
 import { NotFoundError } from '../utils/errors.js';
+import { buildSafeRegexQuery } from '../utils/regex.js';
 
 /**
  * Build fully resolved white-label storefront configuration with sensible defaults.
@@ -374,13 +375,15 @@ export const getStorefrontProducts = async (req, res, next) => {
     }
 
     if (search && String(search).trim() !== '') {
-      const q = String(search).trim();
-      filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { subtitle: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { sku: { $regex: q, $options: 'i' } },
-      ];
+      const regexQuery = buildSafeRegexQuery(search, 'i', 100);
+      if (regexQuery) {
+        filter.$or = [
+          { name: regexQuery },
+          { subtitle: regexQuery },
+          { description: regexQuery },
+          { sku: regexQuery },
+        ];
+      }
     }
 
     const pageNum = Math.max(1, parseInt(page, 10));

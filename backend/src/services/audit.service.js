@@ -5,6 +5,7 @@
  */
 
 import { AuditLog } from '../models/AuditLog.js';
+import { buildSafeRegexQuery } from '../utils/regex.js';
 
 /**
  * Retrieves paginated audit logs scoped strictly to an individual tenant.
@@ -66,13 +67,15 @@ export const getPlatformAuditLogs = async ({
   }
 
   if (search && search.trim()) {
-    const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    query.$or = [
-      { action: { $regex: escaped, $options: 'i' } },
-      { resource: { $regex: escaped, $options: 'i' } },
-      { ipAddress: { $regex: escaped, $options: 'i' } },
-      { 'details.email': { $regex: escaped, $options: 'i' } },
-    ];
+    const regexQuery = buildSafeRegexQuery(search, 'i', 100);
+    if (regexQuery) {
+      query.$or = [
+        { action: regexQuery },
+        { resource: regexQuery },
+        { ipAddress: regexQuery },
+        { 'details.email': regexQuery },
+      ];
+    }
   }
 
   const skip = (page - 1) * limit;

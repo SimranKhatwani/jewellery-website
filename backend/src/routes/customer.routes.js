@@ -75,6 +75,6 @@ router.post('/notifications/mark-all-read', authenticateUser, notificationContro
  */
 router.get('/', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.listStoreCustomers);
 router.get('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.getStoreCustomerById);
-router.patch('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:read'), customerController.updateStoreCustomer);
+router.patch('/:id', authenticateAdmin, resolveLegacyTenant, authorizeLegacyAdminTenant, requireTenantPermission('customers:write'), customerController.updateStoreCustomer);
 
 export default router;
