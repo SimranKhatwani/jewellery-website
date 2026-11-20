@@ -15,9 +15,20 @@ import { AdminDashboard } from './AdminDashboard';
  * @param {Object} props
  * @param {Function} props.onExitAdmin - Handler to return to the public customer storefront
  */
-export const AdminApp = ({ onExitAdmin }) => {
+export const AdminApp = ({ onExitAdmin, onGoToPlatform }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Navigate to Platform Landing Page
+  const handleGoToPlatform = () => {
+    if (onGoToPlatform) {
+      onGoToPlatform();
+      return;
+    }
+    window.location.hash = '';
+    window.history.pushState(null, '', '/');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
 
   // Navigate to Platform SuperAdmin portal
   const handleGoToSuperAdmin = () => {
@@ -83,6 +94,7 @@ export const AdminApp = ({ onExitAdmin }) => {
       <AdminLogin
         onLoginSuccess={(user) => setAdminUser(user)}
         onBackToStore={onExitAdmin}
+        onGoToPlatform={handleGoToPlatform}
         onGoToSuperAdmin={handleGoToSuperAdmin}
       />
     );

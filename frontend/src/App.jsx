@@ -23,6 +23,7 @@ import { CheckoutPreviewModal } from './components/CheckoutPreviewModal';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { CustomerProfileModal } from './components/CustomerProfileModal';
 import { Footer } from './components/Footer';
+import { LandingPage } from './components/LandingPage';
 
 // Code-splitting: Lazily load Admin and Super Admin suites to minimize initial storefront bundle
 const AdminApp = React.lazy(() => import('./admin/AdminApp').then((m) => ({ default: m.AdminApp })));
@@ -84,6 +85,56 @@ const checkIsAdminRoute = () => {
   );
 };
 
+const checkIsLandingRoute = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+
+  // If currently on admin or superadmin, it is not landing
+  if (checkIsAdminRoute() || checkIsSuperAdminRoute()) return false;
+
+  // Explicit landing routes (/platform, /welcome, #platform, #landing)
+  if (
+    path === '/platform' ||
+    path.startsWith('/platform/') ||
+    hash === '#platform' ||
+    hash.startsWith('#platform/') ||
+    path === '/welcome' ||
+    path.startsWith('/welcome/') ||
+    hash === '#welcome' ||
+    hash === '#landing'
+  ) {
+    return true;
+  }
+
+  // Check path segments
+  const segments = path.split('/').filter(Boolean);
+
+  // If root path '/' (0 segments)
+  if (segments.length === 0) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      // If store/tenant parameter explicitly provided, render that storefront
+      if (params.get('store') || params.get('tenant')) {
+        return false;
+      }
+      // If hash points to policy page or product detail, let storefront handle it
+      if (
+        hash &&
+        (hash.startsWith('#product/') ||
+          KNOWN_POLICY_PAGES.has(hash.replace(/^#\/?/, '').toLowerCase().trim()))
+      ) {
+        return false;
+      }
+    } catch {}
+
+    // Root URL / is the Public SaaS Landing Page
+    return true;
+  }
+
+  return false;
+};
+
 const KNOWN_POLICY_PAGES = new Set([
   'return-policy',
   'return-and-refund-policy',
@@ -136,6 +187,9 @@ export default function App() {
 
   // Determine if user is accessing Store Admin Panel via /admin or #admin
   const [isAdminView, setIsAdminView] = useState(checkIsAdminRoute);
+
+  // Determine if user is accessing Public Platform Landing Page
+  const [isLandingView, setIsLandingView] = useState(checkIsLandingRoute);
 
   // State for active informational/policy page (e.g. 'return-policy', 'shipping-policy')
   const [activePolicyPage, setActivePolicyPage] = useState(resolvePolicyPageFromUrl);
@@ -356,6 +410,7 @@ export default function App() {
     const handleRouteCheck = () => {
       setIsSuperAdminView(checkIsSuperAdminRoute());
       setIsAdminView(checkIsAdminRoute());
+      setIsLandingView(checkIsLandingRoute());
 
       const currentSlug = getStoreSlug();
       if (currentSlug !== lastSlug) {
@@ -448,7 +503,7 @@ export default function App() {
     setSelectedProduct(null);
     setActivePolicyPage(null);
     const storeSlug = getStoreSlug();
-    const basePath = storeSlug && storeSlug !== 'aurelle' ? (storeSlug === 'giva-jewels' ? '/giva' : `/${storeSlug}`) : '/';
+    const basePath = storeSlug && storeSlug !== 'aurelle' ? (storeSlug === 'giva-jewels' ? '/giva' : `/${storeSlug}`) : '/aurelle';
     window.history.pushState(null, '', basePath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -523,6 +578,32 @@ export default function App() {
     }, 100);
   };
 
+  // Navigation helpers for platform, storefront, and workspaces
+  const handleGoToAdmin = () => {
+    window.location.hash = '';
+    window.history.pushState(null, '', '/admin');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
+  const handleGoToSuperAdmin = () => {
+    window.location.hash = '';
+    window.history.pushState(null, '', '/sa');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
+  const handleGoToStorefront = (slug = 'aurelle') => {
+    window.location.hash = '';
+    const targetPath = slug === 'giva-jewels' ? '/giva' : `/${slug}`;
+    window.history.pushState(null, '', targetPath);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
+  const handleGoToPlatform = () => {
+    window.location.hash = '';
+    window.history.pushState(null, '', '/');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   // Exit Super Admin Console handler
   const handleExitSuperAdmin = () => {
     setIsSuperAdminView(false);
@@ -536,12 +617,8 @@ export default function App() {
     setIsAdminView(false);
     window.location.hash = '';
     const slug = targetSlug || 'aurelle';
-    if (slug === 'aurelle') {
-      window.history.pushState(null, '', '/');
-    } else {
-      const pathSlug = slug === 'giva-jewels' ? 'giva' : slug;
-      window.history.pushState(null, '', `/${pathSlug}`);
-    }
+    const pathSlug = slug === 'giva-jewels' ? 'giva' : slug;
+    window.history.pushState(null, '', `/${pathSlug}`);
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
@@ -558,8 +635,20 @@ export default function App() {
   if (isAdminView) {
     return (
       <React.Suspense fallback={<AdminLoadingFallback label="Loading Store Admin Workspace..." />}>
-        <AdminApp onExitAdmin={handleExitAdmin} />
+        <AdminApp onExitAdmin={handleExitAdmin} onGoToPlatform={handleGoToPlatform} />
       </React.Suspense>
+    );
+  }
+
+  // Render Public SaaS Landing Page if on / or /platform route
+  if (isLandingView) {
+    return (
+      <LandingPage
+        onLaunchWorkspace={handleGoToAdmin}
+        onSignIn={handleGoToAdmin}
+        onExploreStorefront={handleGoToStorefront}
+        onGoToSuperAdmin={handleGoToSuperAdmin}
+      />
     );
   }
 
