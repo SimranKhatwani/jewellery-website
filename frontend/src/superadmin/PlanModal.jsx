@@ -1,3 +1,9 @@
+/**
+ * @file PlanModal.jsx
+ * @description SuperAdmin modal dialog for provisioning and modifying SaaS subscription plans,
+ * configuring pricing, billing frequencies, trial day allowances, resource limits, and feature toggles.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { createPlatformPlan, updatePlatformPlan } from './api';
 
@@ -11,6 +17,14 @@ const AVAILABLE_FEATURES = [
   { key: 'domain:custom', name: 'Verified Custom Domain', category: 'Domain' },
 ];
 
+/**
+ * PlanModal Component
+ * @param {Object} props
+ * @param {Object|null} props.plan - Existing plan record to edit, or null if creating new
+ * @param {boolean} props.isOpen - Modal visibility toggle
+ * @param {Function} props.onClose - Modal dismissal handler
+ * @param {Function} props.onSaveSuccess - Action callback upon successful persistence
+ */
 export const PlanModal = ({ plan, isOpen, onClose, onSaveSuccess }) => {
   const isEditing = Boolean(plan?._id);
 

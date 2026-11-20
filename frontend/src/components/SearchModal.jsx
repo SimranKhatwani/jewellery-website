@@ -1,7 +1,21 @@
+/**
+ * @file SearchModal.jsx
+ * @description Storefront global search modal overlay offering instant keyword search,
+ * product filtering across name, subtitle, category, and metal finish, with keyboard shortcuts.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowUpRight } from 'lucide-react';
 import { formatPrice } from '../services/storefrontService';
 
+/**
+ * SearchModal Component
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Search modal visibility toggle
+ * @param {Function} props.onClose - Modal close handler
+ * @param {Array} props.products - Storefront product collection
+ * @param {Function} props.onSelectProduct - Selection callback when piece is clicked
+ */
 export const SearchModal = ({
   isOpen,
   onClose,

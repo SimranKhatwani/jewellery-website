@@ -1,13 +1,27 @@
+/**
+ * @file BestsellersSection.jsx
+ * @description Storefront homepage section rendering featured bestseller jewellery pieces in a responsive grid.
+ */
+
 import React from 'react';
 import { ProductCard } from './ProductCard';
 import { isProductWishlisted } from '../services/productService';
 
+/**
+ * BestsellersSection Component
+ * @param {Object} props
+ * @param {Array} props.products - Full collection of products to filter
+ * @param {Function} props.onSelectProduct - Handler when a product is clicked to open detail view
+ * @param {Array<string>} props.wishlistIds - IDs of products currently in customer's wishlist
+ * @param {Function} props.onToggleWishlist - Handler to toggle wishlist status
+ */
 export const BestsellersSection = ({
   products,
   onSelectProduct,
   wishlistIds,
   onToggleWishlist,
 }) => {
+  // Filter for catalogue items flagged as bestsellers
   const bestsellers = products.filter((p) => p.isBestseller);
 
   return (

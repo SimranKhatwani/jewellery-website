@@ -1,5 +1,23 @@
+/**
+ * @file SuperAdminSidebar.jsx
+ * @description Fixed side navigation bar for the SaaS Platform SuperAdmin dashboard,
+ * grouping controls into Platform Management, Tenant Oversight, Plans, Billing, and Security Audits.
+ */
+
 import React from 'react';
 
+/**
+ * SuperAdminSidebar Component
+ * @param {Object} props
+ * @param {string} props.activeSection - Currently active platform section ID
+ * @param {Function} props.onSelectSection - Navigation callback when a section is clicked
+ * @param {Object} props.user - Authenticated superadmin user object
+ * @param {Function} props.onLogout - Logout action
+ * @param {Function} props.onViewStorefront - Shortcut to customer storefront
+ * @param {Function} props.onGoToStoreAdmin - Shortcut to store admin portal
+ * @param {boolean} props.isOpenMobile - Mobile sidebar open state
+ * @param {Function} props.onCloseMobile - Mobile sidebar dismissal handler
+ */
 export const SuperAdminSidebar = ({
   activeSection,
   onSelectSection,

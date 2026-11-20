@@ -1,6 +1,19 @@
+/**
+ * @file SizeGuideModal.jsx
+ * @description Storefront modal dialog displaying ring and anklet measurement charts,
+ * diameter/circumference conversion tables, and sizing guidelines for shoppers.
+ */
+
 import React from 'react';
 import { X, Ruler, Check } from 'lucide-react';
 
+/**
+ * SizeGuideModal Component
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal dialog is visible
+ * @param {Function} props.onClose - Modal dismissal handler
+ * @param {string} props.category - Current product category ('rings' | 'anklets')
+ */
 export const SizeGuideModal = ({
   isOpen,
   onClose,

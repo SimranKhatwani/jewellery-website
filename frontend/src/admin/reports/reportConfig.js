@@ -1,3 +1,9 @@
+/**
+ * @file reportConfig.js
+ * @description Configuration registry defining available administrative business reports,
+ * categories, descriptions, lucide icons, and applicable date-filter capabilities.
+ */
+
 import {
   DollarSign,
   ShoppingBag,
@@ -7,6 +13,9 @@ import {
   CreditCard,
 } from 'lucide-react';
 
+/**
+ * Registry of downloadable and previewable administrative business reports.
+ */
 export const REPORT_CATEGORIES = [
   {
     id: 'sales',

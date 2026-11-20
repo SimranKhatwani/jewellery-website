@@ -1,6 +1,21 @@
+/**
+ * @file ReportFilters.jsx
+ * @description Administrative report filter bar providing date presets (Today, 7D, 30D, Month),
+ * custom calendar pickers, text search, order/payment status dropdowns, and inventory flags.
+ */
+
 import React from 'react';
 import { Search, Filter, Calendar } from 'lucide-react';
 
+/**
+ * ReportFilters Component
+ * @param {Object} props
+ * @param {Object} props.category - Active report category configuration
+ * @param {Object} props.filters - Active filter values
+ * @param {Function} props.onChangeFilter - Property filter update handler
+ * @param {Function} props.onApply - Filter execution callback
+ * @param {boolean} props.isLoading - Whether a query is in-flight
+ */
 export const ReportFilters = ({
   category,
   filters,

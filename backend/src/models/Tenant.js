@@ -1,14 +1,27 @@
+/**
+ * @file Tenant.js
+ * @description Mongoose model defining the Tenant schema for multi-tenant SaaS.
+ * Encapsulates tenant isolation, white-label branding, customized storefront configurations,
+ * legal/policy documents, SEO metadata, and store owner references.
+ */
+
 import mongoose, { Schema } from 'mongoose';
 import { TENANT_STATUS } from '../config/constants.js';
 
+/**
+ * Tenant Schema definition.
+ * Each tenant represents an independent jewellery atelier or brand store on the platform.
+ */
 const TenantSchema = new Schema(
   {
+    // Display name of the jewellery store or tenant
     name: {
       type: String,
       required: [true, 'Store name is required'],
       trim: true,
       maxlength: [100, 'Store name cannot exceed 100 characters'],
     },
+    // Unique URL slug used for tenant identification and subdomain routing
     slug: {
       type: String,
       required: [true, 'Store slug is required'],
@@ -18,6 +31,7 @@ const TenantSchema = new Schema(
       index: true,
       match: [/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens'],
     },
+    // Optional custom domain (e.g., jewels.brand.com)
     customDomain: {
       type: String,
       lowercase: true,
@@ -25,28 +39,33 @@ const TenantSchema = new Schema(
       sparse: true,
       unique: true,
     },
+    // Indicates if the custom domain has completed DNS verification
     customDomainVerified: {
       type: Boolean,
       default: false,
       index: true,
     },
+    // Operational status of tenant (active, suspended, pending)
     status: {
       type: String,
       enum: Object.values(TENANT_STATUS),
       default: TENANT_STATUS.ACTIVE,
       index: true,
     },
+    // Current SaaS subscription tier
     plan: {
       type: String,
       default: 'starter',
       enum: ['starter', 'growth', 'enterprise'],
     },
+    // Admin user who created and manages this tenant
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Owner ID is required'],
       index: true,
     },
+    // Granular storefront configurations, branding, and legal policy content
     settings: {
       currency: {
         type: String,
@@ -96,6 +115,7 @@ const TenantSchema = new Schema(
         postalCode: { type: String, default: '' },
         country: { type: String, default: 'India' },
       },
+      // Theme visual customization: colors, typography, logos
       branding: {
         logoUrl: { type: String, default: '' },
         faviconUrl: { type: String, default: '' },
@@ -104,6 +124,7 @@ const TenantSchema = new Schema(
         accentColor: { type: String, default: '#A85F49' },
         tagline: { type: String, default: 'Fine Jewellery Atelier' },
       },
+      // Promotional or notice banner shown at the very top of storefront
       announcement: {
         enabled: { type: Boolean, default: true },
         text: { type: String, default: '' },
@@ -111,6 +132,7 @@ const TenantSchema = new Schema(
         bgColor: { type: String, default: '#A85F49' },
         textColor: { type: String, default: '#FFFFFF' },
       },
+      // Above-the-fold Hero banner settings and assets
       hero: {
         heading: { type: String, default: '' },
         subheading: { type: String, default: '' },
@@ -120,6 +142,7 @@ const TenantSchema = new Schema(
         ctaText: { type: String, default: 'Explore Collection' },
         ctaLink: { type: String, default: '#categories' },
       },
+      // Toggles and custom display titles for landing page components
       sections: {
         categories: {
           enabled: { type: Boolean, default: true },
@@ -169,6 +192,7 @@ const TenantSchema = new Schema(
       },
       policies: {
         aboutUs: { type: String, default: '' },
+        // Legacy policy strings and detailed return policy rules
         returnPolicy: { type: String, default: '' },
         privacyPolicy: { type: String, default: '' },
         termsConditions: { type: String, default: '' },
@@ -190,6 +214,7 @@ const TenantSchema = new Schema(
           whatsappMessage: { type: String, default: '' },
         },
       },
+      // Managed CMS content pages (About Us, Policies, FAQs, Contact)
       contentPages: {
         aboutUs: {
           title: { type: String, default: 'About Us' },
@@ -277,6 +302,7 @@ const TenantSchema = new Schema(
           ],
         },
       },
+      // Search Engine Optimization & Social Graph meta tags
       seo: {
         title: { type: String, default: '' },
         description: { type: String, default: '' },
@@ -285,7 +311,7 @@ const TenantSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: true, // Automatically manages createdAt and updatedAt timestamps
     toJSON: {
       virtuals: true,
       transform: (_doc, ret) => {
@@ -296,5 +322,8 @@ const TenantSchema = new Schema(
   }
 );
 
+/**
+ * Compiled Tenant Mongoose model
+ */
 export const Tenant = mongoose.model('Tenant', TenantSchema);
 

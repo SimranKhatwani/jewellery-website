@@ -1,7 +1,31 @@
+/**
+ * @file CartDrawer.jsx
+ * @description Storefront side slide-out shopping cart drawer providing item quantity increments,
+ * item removal, coupon promo code applications, subtotal calculations, and checkout triggers.
+ */
+
 import React, { useState } from 'react';
 import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight, Tag, Check, AlertCircle } from 'lucide-react';
 import { formatPrice } from '../services/storefrontService';
 
+/**
+ * CartDrawer Component
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether cart drawer is visible
+ * @param {Function} props.onClose - Drawer dismissal callback
+ * @param {Object} props.cart - Active customer shopping cart state
+ * @param {Function} props.onUpdateQuantity - Item quantity update handler
+ * @param {Function} props.onRemoveItem - Item removal callback
+ * @param {Function} props.onClearCart - Cart clearing callback
+ * @param {Function} props.onProceedToCheckout - Checkout progression callback
+ * @param {Object|null} props.appliedCoupon - Active discount coupon object
+ * @param {Function} props.onApplyCoupon - Coupon submission handler
+ * @param {Function} props.onRemoveCoupon - Coupon revocation handler
+ * @param {string|null} props.couponError - Error message from coupon validation
+ * @param {boolean} props.couponLoading - In-flight coupon verification indicator
+ * @param {Function} props.onSelectProduct - Handler when cart item is clicked to view detail
+ * @param {Array} [props.allProducts=[]] - Catalogue products for recommendation cross-sells
+ */
 export const CartDrawer = ({
   isOpen,
   onClose,

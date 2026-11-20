@@ -1,5 +1,13 @@
+/**
+ * @file role.validation.js
+ * @description Request schema validators for creating and updating custom store RBAC roles.
+ */
+
 import { validate } from './validate.js';
 
+/**
+ * Validates custom role creation payload
+ */
 export const validateCreateRole = validate({
   body: {
     name: { required: true, type: 'string', minLength: 2, maxLength: 50 },
@@ -9,6 +17,9 @@ export const validateCreateRole = validate({
   },
 });
 
+/**
+ * Validates custom role update payload
+ */
 export const validateUpdateRole = validate({
   body: {
     name: { required: false, type: 'string', minLength: 2, maxLength: 50 },

@@ -1,6 +1,22 @@
+/**
+ * @file AdminNotificationsView.jsx
+ * @description Dedicated store administrative notifications console displaying real-time
+ * order alerts, guest purchases, customer profile creations, and inventory warnings with mark-read actions.
+ */
+
 import React, { useState } from 'react';
 import { Bell, CheckCheck, Sparkles, Filter, Check, Clock, ArrowRight } from 'lucide-react';
 
+/**
+ * AdminNotificationsView Component
+ * @param {Object} props
+ * @param {Array} [props.notifications=[]] - Collection of store notification objects
+ * @param {number} [props.unreadCount=0] - Number of unread alerts
+ * @param {Function} props.onMarkRead - Handler to mark single notification as read
+ * @param {Function} props.onMarkAllRead - Handler to mark entire list as read
+ * @param {Function} props.onNavigateOrders - Shortcut handler to navigate to orders view
+ * @param {Function} props.onRefresh - Manual reload handler
+ */
 export const AdminNotificationsView = ({
   notifications = [],
   unreadCount = 0,

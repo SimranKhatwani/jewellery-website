@@ -1,6 +1,17 @@
+/**
+ * @file BrandStorySection.jsx
+ * @description Storefront editorial brand story section presenting the atelier's
+ * craftsmanship philosophy, hallmarked 925 sterling silver dedication, and metallurgical imagery.
+ */
+
 import React from 'react';
 import { ShieldCheck, Compass, Sparkles } from 'lucide-react';
 
+/**
+ * BrandStorySection Component
+ * @param {Object} props
+ * @param {Object|null} props.storeInfo - Active tenant store branding and narrative settings
+ */
 export const BrandStorySection = ({ storeInfo = null }) => {
   const isAurelle = !storeInfo?.slug || storeInfo?.slug === 'aurelle';
   const brandName = storeInfo?.name || 'AURELLE';

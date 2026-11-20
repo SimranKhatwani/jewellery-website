@@ -1,3 +1,9 @@
+/**
+ * @file AdminSidebar.jsx
+ * @description Store administrative sidebar navigation component enforcing granular RBAC permissions,
+ * badge counters (product count, pending orders, unread notifications), and portal navigation.
+ */
+
 import React from 'react';
 import {
   LayoutDashboard,
@@ -15,6 +21,21 @@ import {
   Settings,
 } from 'lucide-react';
 
+/**
+ * AdminSidebar Component
+ * @param {Object} props
+ * @param {string} [props.activeTab='catalogue'] - Active administrative tab
+ * @param {Function} props.onSelectTab - Tab selection callback
+ * @param {Object} props.admin - Authenticated administrator profile
+ * @param {number} [props.productsCount=0] - Active products count for badge
+ * @param {number} [props.pendingOrdersCount=0] - Pending order alerts badge
+ * @param {number} [props.unreadNotificationsCount=0] - Unread alerts badge
+ * @param {Function} props.onLogout - Logout action handler
+ * @param {Function} props.onViewStorefront - Shortcut to customer storefront
+ * @param {Function} props.onGoToSuperAdmin - Shortcut to platform SuperAdmin portal
+ * @param {boolean} [props.isOpenMobile=false] - Mobile drawer toggle
+ * @param {Function} props.onCloseMobile - Mobile drawer close handler
+ */
 export const AdminSidebar = ({
   activeTab = 'catalogue',
   onSelectTab,

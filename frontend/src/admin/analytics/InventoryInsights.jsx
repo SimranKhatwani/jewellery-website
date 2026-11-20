@@ -1,7 +1,19 @@
+/**
+ * @file InventoryInsights.jsx
+ * @description Store administrative inventory monitoring dashboard widget displaying
+ * stock health counters, low-stock warnings, and out-of-stock reconciliation lists.
+ */
+
 import React from 'react';
 import { Archive, AlertTriangle, AlertCircle, HelpCircle } from 'lucide-react';
 import { resolveMediaUrl } from '../../services/productService';
 
+/**
+ * InventoryInsights Component
+ * @param {Object} props
+ * @param {Object} props.inventory - Stock telemetry data
+ * @param {Function} props.onNavigateCatalogue - Navigation handler to switch to catalogue manager
+ */
 export const InventoryInsights = ({
   inventory,
   onNavigateCatalogue,

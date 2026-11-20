@@ -1,7 +1,20 @@
+/**
+ * @file ReportExportActions.jsx
+ * @description Administrative action bar providing one-click CSV file download
+ * and printer-friendly PDF preview rendering for active filtered reports.
+ */
+
 import React, { useState } from 'react';
 import { Download, Printer, AlertCircle } from 'lucide-react';
 import { downloadReportCSV, openReportPrintView } from '../api';
 
+/**
+ * ReportExportActions Component
+ * @param {Object} props
+ * @param {Object} props.category - Active report category object
+ * @param {Object} props.filters - Current filter parameters
+ * @param {number} [props.totalRecords=0] - Number of records matching current filter
+ */
 export const ReportExportActions = ({
   category,
   filters,

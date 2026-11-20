@@ -1,8 +1,24 @@
+/**
+ * @file WishlistDrawer.jsx
+ * @description Storefront side slide-out drawer displaying customer's saved/wishlisted jewellery pieces,
+ * with quick item removal, direct product modal inspection, and empty state guides.
+ */
+
 import React from 'react';
 import { X, Heart, Trash2, ArrowRight } from 'lucide-react';
 import { isProductWishlisted } from '../services/productService';
 import { formatPrice } from '../services/storefrontService';
 
+/**
+ * WishlistDrawer Component
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Drawer open state
+ * @param {Function} props.onClose - Drawer dismissal callback
+ * @param {Array<string>} props.wishlistIds - List of saved product IDs
+ * @param {Array} props.products - Full product collection
+ * @param {Function} props.onSelectProduct - Handler when a saved item is selected
+ * @param {Function} props.onRemoveFromWishlist - Handler to remove item from wishlist
+ */
 export const WishlistDrawer = ({
   isOpen,
   onClose,

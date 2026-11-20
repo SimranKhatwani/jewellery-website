@@ -1,7 +1,24 @@
+/**
+ * @file DynamicCategorySection.jsx
+ * @description Dynamic category collection section rendered on the storefront homepage,
+ * automatically adapting to custom category keys, bespoke titles, subtitles, and piece counts.
+ */
+
 import React from 'react';
 import { ProductCard } from './ProductCard';
 import { isProductWishlisted } from '../services/productService';
 
+/**
+ * DynamicCategorySection Component
+ * @param {Object} props
+ * @param {string} props.categoryKey - Slug or identifier for this jewellery category
+ * @param {string} [props.title] - Optional overridden display title
+ * @param {string} [props.subtitle] - Optional overridden subtitle text
+ * @param {Array} [props.products=[]] - List of products belonging to this category
+ * @param {Function} props.onSelectProduct - Selection callback when piece is clicked
+ * @param {Array<string>} [props.wishlistIds=[]] - Current customer wishlist IDs
+ * @param {Function} props.onToggleWishlist - Callback to toggle wishlist entry
+ */
 export const DynamicCategorySection = ({
   categoryKey,
   title,

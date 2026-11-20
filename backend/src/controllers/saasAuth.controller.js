@@ -1,6 +1,17 @@
+/**
+ * @file saasAuth.controller.js
+ * @description Controller handling multi-tenant SaaS authentication endpoints:
+ * tenant owner self-registration, user login, profile fetching, global logout,
+ * and staff invitation verification & acceptance.
+ */
+
 import * as authService from '../services/auth.service.js';
 import { sendSuccess } from '../utils/response.js';
 
+/**
+ * Handles new tenant owner registration and initial store setup.
+ * @route POST /api/v1/auth/register
+ */
 export const register = async (req, res, next) => {
   try {
     const result = await authService.registerUser({
@@ -19,6 +30,10 @@ export const register = async (req, res, next) => {
   }
 };
 
+/**
+ * Authenticates user credentials and issues a signed JWT token.
+ * @route POST /api/v1/auth/login
+ */
 export const login = async (req, res, next) => {
   try {
     const result = await authService.loginUser({
@@ -33,6 +48,10 @@ export const login = async (req, res, next) => {
   }
 };
 
+/**
+ * Retrieves authenticated user profile, associated tenants, and assigned roles.
+ * @route GET /api/v1/auth/me
+ */
 export const getProfile = async (req, res, next) => {
   try {
     const result = await authService.getUserProfile(req.user._id);
@@ -42,6 +61,10 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Logs out user and increments tokenVersion to revoke all active JWT tokens.
+ * @route POST /api/v1/auth/logout
+ */
 export const logout = async (req, res, next) => {
   try {
     await authService.logoutUser(req.user._id, req);
@@ -51,6 +74,10 @@ export const logout = async (req, res, next) => {
   }
 };
 
+/**
+ * Validates staff invitation token from email link before registration.
+ * @route GET /api/v1/auth/invitations/:token
+ */
 export const getInvitation = async (req, res, next) => {
   try {
     const details = await authService.getInvitationDetails(req.params.token);
@@ -60,6 +87,10 @@ export const getInvitation = async (req, res, next) => {
   }
 };
 
+/**
+ * Completes staff member onboarding by verifying invitation token and setting credentials.
+ * @route POST /api/v1/auth/invitations/accept
+ */
 export const acceptInvitation = async (req, res, next) => {
   try {
     const result = await authService.acceptInvitation({

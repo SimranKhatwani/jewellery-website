@@ -1,5 +1,20 @@
+/**
+ * @file audit.service.js
+ * @description Service querying and aggregating immutable audit logs for individual tenants
+ * as well as platform-wide SuperAdmin auditing with date ranges, regex search, and pagination.
+ */
+
 import { AuditLog } from '../models/AuditLog.js';
 
+/**
+ * Retrieves paginated audit logs scoped strictly to an individual tenant.
+ * @param {string|mongoose.Types.ObjectId} tenantId - Tenant identifier
+ * @param {Object} options - Pagination and filter parameters
+ * @param {number} [options.page=1] - 1-based page index
+ * @param {number} [options.limit=20] - Number of log entries per page
+ * @param {string|null} [options.action=null] - Optional action filter
+ * @returns {Promise<{logs: Array, total: number, page: number, limit: number}>}
+ */
 export const getTenantAuditLogs = async (tenantId, { page = 1, limit = 20, action = null }) => {
   const query = { tenantId };
   if (action) {
@@ -19,6 +34,12 @@ export const getTenantAuditLogs = async (tenantId, { page = 1, limit = 20, actio
   return { logs, total, page, limit };
 };
 
+/**
+ * Retrieves platform-wide audit logs with cross-tenant filtering, actor search, and date bounds.
+ * Accessible exclusively to platform SuperAdmins.
+ * @param {Object} params - Query criteria
+ * @returns {Promise<{logs: Array, total: number, page: number, limit: number}>}
+ */
 export const getPlatformAuditLogs = async ({
   page = 1,
   limit = 50,

@@ -1,7 +1,20 @@
+/**
+ * @file SuperAdminLogin.jsx
+ * @description Dedicated authentication portal for platform SuperAdmins,
+ * enforcing superadmin privilege checks, error alerts, and portal routing.
+ */
+
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { superAdminLogin } from './api';
 
+/**
+ * SuperAdminLogin Component
+ * @param {Object} props
+ * @param {Function} props.onLoginSuccess - Callback invoked when superadmin login succeeds
+ * @param {Function} props.onBackToStore - Navigation handler back to customer storefront
+ * @param {Function} props.onGoToStoreAdmin - Navigation handler to switch to store admin
+ */
 export const SuperAdminLogin = ({ onLoginSuccess, onBackToStore, onGoToStoreAdmin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

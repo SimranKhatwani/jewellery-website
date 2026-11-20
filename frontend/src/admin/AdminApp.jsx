@@ -1,12 +1,25 @@
+/**
+ * @file AdminApp.jsx
+ * @description Store Administrator application root.
+ * Validates session credentials on load, manages authentication state,
+ * and conditionally displays either the AdminLogin screen or the full AdminDashboard.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { checkAdminSession } from './api';
 import { AdminLogin } from './AdminLogin';
 import { AdminDashboard } from './AdminDashboard';
 
+/**
+ * AdminApp Component
+ * @param {Object} props
+ * @param {Function} props.onExitAdmin - Handler to return to the public customer storefront
+ */
 export const AdminApp = ({ onExitAdmin }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Navigate to Platform SuperAdmin portal
   const handleGoToSuperAdmin = () => {
     window.location.hash = '';
     window.history.pushState(null, '', '/sa');

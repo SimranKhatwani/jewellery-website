@@ -1,3 +1,10 @@
+/**
+ * @file Header.jsx
+ * @description Storefront global header component featuring the top scrolling announcement ribbon,
+ * white-label branding, primary navigation menu, category dropdowns, global search trigger,
+ * live customer order notifications via WebSockets, customer profile/login modal triggers, and cart drawer badges.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Heart, Menu, X, ShoppingBag, User, Bell, CheckCheck, Sparkles, ChevronDown } from 'lucide-react';
 import {
@@ -8,6 +15,24 @@ import {
 } from '../services/storefrontService';
 import { initSocket } from '../services/socketService';
 
+/**
+ * Header Component
+ * @param {Object} props
+ * @param {Object|null} props.storeInfo - Store metadata and customization settings
+ * @param {number} props.wishlistCount - Number of saved wishlist items
+ * @param {Function} props.onOpenWishlist - Wishlist drawer open handler
+ * @param {number} [props.cartCount=0] - Number of items in shopping cart
+ * @param {Function} props.onOpenCart - Cart drawer open handler
+ * @param {Object|null} [props.customerUser=null] - Authenticated customer account
+ * @param {Function} props.onOpenAuth - Customer login modal trigger
+ * @param {Function} props.onOpenProfile - Customer profile modal trigger
+ * @param {Function} props.onOpenSearch - Global search modal trigger
+ * @param {Function} props.onNavigateHome - Navigation handler to return to homepage
+ * @param {Function} props.onNavigateCategory - Category filter navigation handler
+ * @param {Function} props.onNavigateSection - In-page anchor scroll handler
+ * @param {Array} [props.categories=[]] - Category items list
+ * @param {number} [props.allProductsCount=0] - Total product count in catalogue
+ */
 export const Header = ({
   storeInfo = null,
   wishlistCount,

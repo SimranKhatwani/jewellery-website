@@ -1,6 +1,17 @@
+/**
+ * @file CustomerInsights.jsx
+ * @description Administrative analytics widget visualizing customer acquisition,
+ * client retention ratios, new vs returning percentages, and repeat order frequency.
+ */
+
 import React from 'react';
 import { Users, UserPlus, UserCheck, Repeat } from 'lucide-react';
 
+/**
+ * CustomerInsights Component
+ * @param {Object} props
+ * @param {Object} props.customers - Aggregated customer analytics data
+ */
 export const CustomerInsights = ({
   customers,
 }) => {

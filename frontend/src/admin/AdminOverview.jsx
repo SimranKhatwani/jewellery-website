@@ -1,3 +1,9 @@
+/**
+ * @file AdminOverview.jsx
+ * @description Store administrative dashboard home overview presenting catalogue telemetry,
+ * recent customer order queues, financial summaries, and quick management shortcuts.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Package,
@@ -16,6 +22,16 @@ import {
 import { getAdminOrders } from './api';
 import { formatPrice, getStoreCurrency } from '../services/storefrontService';
 
+/**
+ * AdminOverview Component
+ * @param {Object} props
+ * @param {Object} props.admin - Current admin profile
+ * @param {Object} [props.stats] - Product catalogue distribution counts
+ * @param {number} [props.adminUnreadCount=0] - Unread alerts count
+ * @param {Function} props.onNavigateTab - Tab navigation handler
+ * @param {Function} props.onViewStorefront - Shortcut to open public store
+ * @param {Function} props.onOpenCreateProduct - Modal trigger to add a new product
+ */
 export const AdminOverview = ({
   admin,
   stats = { total: 0, published: 0, unpublished: 0, bestsellers: 0, rings: 0, anklets: 0 },

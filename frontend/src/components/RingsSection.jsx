@@ -1,8 +1,22 @@
+/**
+ * @file RingsSection.jsx
+ * @description Storefront rings collection showcase featuring an editorial hero ring display,
+ * silhouette sub-filtering (All, Sculptural Wave, Signet), and dynamic responsive product cards.
+ */
+
 import React, { useState } from 'react';
 import { ProductCard } from './ProductCard';
 import { ArrowUpRight } from 'lucide-react';
 import { isProductWishlisted } from '../services/productService';
 
+/**
+ * RingsSection Component
+ * @param {Object} props
+ * @param {Array} props.rings - Array of ring product objects
+ * @param {Function} props.onSelectProduct - Handler for product selection
+ * @param {Array<string>} props.wishlistIds - List of wishlisted product IDs
+ * @param {Function} props.onToggleWishlist - Callback to toggle wishlist entry
+ */
 export const RingsSection = ({
   rings,
   onSelectProduct,

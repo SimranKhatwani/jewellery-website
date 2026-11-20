@@ -1,6 +1,23 @@
+/**
+ * @file Footer.jsx
+ * @description Storefront global footer component rendering multi-column links,
+ * newsletter newsletter subscriptions, legal policy modal triggers (Return Policy, Shipping, Privacy, Terms),
+ * white-label branding, copyright notes, and concierge contact details.
+ */
+
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 
+/**
+ * Footer Component
+ * @param {Object} props
+ * @param {Object|null} props.storeInfo - Active store metadata
+ * @param {Function} props.onNavigateCategory - Category navigation callback
+ * @param {Function} props.onOpenSizeGuide - Sizing modal trigger
+ * @param {Function} props.onNavigateSection - In-page anchor scroll callback
+ * @param {Function} props.onOpenReturnPolicy - Return policy modal trigger
+ * @param {Function} props.onOpenPolicyPage - Custom CMS policy page viewer trigger
+ */
 export const Footer = ({
   storeInfo = null,
   onNavigateCategory,

@@ -1,3 +1,9 @@
+/**
+ * @file OrderDistributionChart.jsx
+ * @description Store administrative analytics chart illustrating order volume distribution
+ * across fulfilment statuses (Pending, Confirmed, Processing, Dispatched, Delivered, Cancelled).
+ */
+
 import React from 'react';
 import { Layers } from 'lucide-react';
 
@@ -40,6 +46,13 @@ const STATUS_CONFIG = {
   },
 };
 
+/**
+ * OrderDistributionChart Component
+ * @param {Object} props
+ * @param {Array} props.distribution - Array of order distribution breakdown entries
+ * @param {number} [props.totalOrders=0] - Total order volume count
+ * @param {string} [props.currencySymbol='₹'] - Active store currency symbol
+ */
 export const OrderDistributionChart = ({
   distribution,
   totalOrders = 0,

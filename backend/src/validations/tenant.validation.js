@@ -1,6 +1,15 @@
+/**
+ * @file tenant.validation.js
+ * @description Request schema validators for tenant store onboarding, tenant configuration updates,
+ * staff invitation/creation, staff member status modification, and store ownership transfer.
+ */
+
 import { validate } from './validate.js';
 import { TENANT_STATUS, MEMBERSHIP_STATUS } from '../config/constants.js';
 
+/**
+ * Validates request payload when creating a new tenant store
+ */
 export const validateCreateTenant = validate({
   body: {
     name: { required: true, type: 'string', minLength: 2, maxLength: 100 },
@@ -9,6 +18,9 @@ export const validateCreateTenant = validate({
   },
 });
 
+/**
+ * Validates request payload when modifying tenant settings or custom domain
+ */
 export const validateUpdateTenant = validate({
   body: {
     name: { required: false, type: 'string', minLength: 2, maxLength: 100 },
@@ -16,6 +28,9 @@ export const validateUpdateTenant = validate({
   },
 });
 
+/**
+ * Validates staff invitation dispatch payload
+ */
 export const validateInviteStaff = validate({
   body: {
     email: { required: true, type: 'email' },
@@ -26,6 +41,9 @@ export const validateInviteStaff = validate({
   },
 });
 
+/**
+ * Validates direct staff creation without invitation email flow
+ */
 export const validateCreateStaffDirectly = validate({
   body: {
     name: { required: true, type: 'string', minLength: 2, maxLength: 100 },
@@ -36,6 +54,9 @@ export const validateCreateStaffDirectly = validate({
   },
 });
 
+/**
+ * Validates updates to staff membership status (active/inactive) or role assignment
+ */
 export const validateUpdateStaffStatus = validate({
   body: {
     status: { required: false, type: 'string', enum: Object.values(MEMBERSHIP_STATUS) },
@@ -47,6 +68,9 @@ export const validateUpdateStaffStatus = validate({
   },
 });
 
+/**
+ * Validates transfer of store primary ownership to another user
+ */
 export const validateTransferOwnership = validate({
   body: {
     newOwnerId: { required: true, type: 'string' },

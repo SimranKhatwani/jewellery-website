@@ -1,7 +1,23 @@
+/**
+ * @file ProductCard.jsx
+ * @description Core storefront product card component rendering primary and hover secondary images,
+ * wishlist bookmarking, out-of-stock badges, price formatting, and size availability pills.
+ */
+
 import React, { useState } from 'react';
 import { Heart, ArrowUpRight } from 'lucide-react';
 import { formatPrice } from '../services/storefrontService';
 
+/**
+ * ProductCard Component
+ * @param {Object} props
+ * @param {Object} props.product - Product data object
+ * @param {Function} props.onSelectProduct - Handler when card is clicked
+ * @param {boolean} props.isWishlisted - Whether product is saved in wishlist
+ * @param {Function} props.onToggleWishlist - Wishlist toggle handler
+ * @param {string} [props.aspectRatioClass='aspect-square'] - Tailored aspect ratio CSS class
+ * @param {string} [props.className=''] - Additional container styling classes
+ */
 export const ProductCard = ({
   product,
   onSelectProduct,

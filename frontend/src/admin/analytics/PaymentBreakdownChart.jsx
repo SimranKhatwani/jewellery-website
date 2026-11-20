@@ -1,3 +1,9 @@
+/**
+ * @file PaymentBreakdownChart.jsx
+ * @description Store administrative dashboard widget visualizing payment settlement distribution
+ * across payment gateways (COD, Card, UPI) and payment clearance statuses.
+ */
+
 import React from 'react';
 import { CreditCard, Wallet, Banknote, ShieldAlert } from 'lucide-react';
 
@@ -7,6 +13,13 @@ const METHOD_ICONS = {
   upi: Wallet,
 };
 
+/**
+ * PaymentBreakdownChart Component
+ * @param {Object} props
+ * @param {Array} props.byMethod - Breakdown records categorized by payment method
+ * @param {Array} props.byStatus - Breakdown records categorized by clearance status
+ * @param {string} [props.currencySymbol='₹'] - Active store currency symbol
+ */
 export const PaymentBreakdownChart = ({
   byMethod,
   byStatus,

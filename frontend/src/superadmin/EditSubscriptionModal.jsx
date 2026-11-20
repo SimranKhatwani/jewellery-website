@@ -1,6 +1,21 @@
+/**
+ * @file EditSubscriptionModal.jsx
+ * @description SuperAdmin modal dialog allowing platform operators to manually adjust
+ * a tenant's subscription tier, billing status, renewal cycle, and auto-renew preferences.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { updatePlatformTenantSubscription } from './api';
 
+/**
+ * EditSubscriptionModal Component
+ * @param {Object} props
+ * @param {Object} props.subscription - Active subscription record to edit
+ * @param {boolean} props.isOpen - Modal visibility toggle
+ * @param {Function} props.onClose - Modal dismissal handler
+ * @param {Array} [props.plans=[]] - Available SaaS plans for selection
+ * @param {Function} props.onSaveSuccess - Callback on successful modification
+ */
 export const EditSubscriptionModal = ({
   subscription,
   isOpen,

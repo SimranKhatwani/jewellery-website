@@ -1,7 +1,20 @@
+/**
+ * @file AdminLogin.jsx
+ * @description Authentication screen for store administrators, managers, and staff members,
+ * supporting secure credentials login, password visibility toggles, and navigation shortcuts.
+ */
+
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from './api';
 
+/**
+ * AdminLogin Component
+ * @param {Object} props
+ * @param {Function} props.onLoginSuccess - Callback invoked upon successful authentication
+ * @param {Function} props.onBackToStore - Navigation handler back to customer storefront
+ * @param {Function} props.onGoToSuperAdmin - Navigation handler to switch to SaaS SuperAdmin portal
+ */
 export const AdminLogin = ({ onLoginSuccess, onBackToStore, onGoToSuperAdmin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

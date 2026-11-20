@@ -1,13 +1,27 @@
+/**
+ * @file NewArrivalsSection.jsx
+ * @description Storefront homepage section displaying newly released jewellery editions.
+ */
+
 import React from 'react';
 import { ProductCard } from './ProductCard';
 import { isProductWishlisted } from '../services/productService';
 
+/**
+ * NewArrivalsSection Component
+ * @param {Object} props
+ * @param {Array} props.products - Full collection of products to filter
+ * @param {Function} props.onSelectProduct - Handler when a product is clicked
+ * @param {Array<string>} props.wishlistIds - IDs of products in customer wishlist
+ * @param {Function} props.onToggleWishlist - Handler to toggle wishlist status
+ */
 export const NewArrivalsSection = ({
   products,
   onSelectProduct,
   wishlistIds,
   onToggleWishlist,
 }) => {
+  // Filter catalogue for newly launched pieces
   const newArrivals = products.filter((p) => p.isNewArrival);
 
   return (

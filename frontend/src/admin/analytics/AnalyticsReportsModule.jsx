@@ -1,8 +1,21 @@
+/**
+ * @file AnalyticsReportsModule.jsx
+ * @description Parent wrapper module combining the store's visual Analytics Dashboard
+ * and downloadable Reports Dashboard into a unified tabbed interface.
+ */
+
 import React, { useState } from 'react';
 import { BarChart3, FileText } from 'lucide-react';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ReportsDashboard } from '../reports/ReportsDashboard';
 
+/**
+ * AnalyticsReportsModule Component
+ * @param {Object} props
+ * @param {Object} props.admin - Current authenticated administrator session
+ * @param {string} [props.initialSubTab='overview'] - Initial active subtab ('overview' | 'reports')
+ * @param {Function} props.onNavigateCatalogue - Callback to return to catalogue manager
+ */
 export const AnalyticsReportsModule = ({
   admin,
   initialSubTab = 'overview',

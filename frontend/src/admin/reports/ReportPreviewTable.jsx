@@ -1,6 +1,22 @@
+/**
+ * @file ReportPreviewTable.jsx
+ * @description Administrative dynamic preview table rendering paginated datasets across
+ * Sales, Orders, Products, Inventory, Customers, and Payments with custom status badges and currency formatting.
+ */
+
 import React from 'react';
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
+/**
+ * ReportPreviewTable Component
+ * @param {Object} props
+ * @param {Object} props.category - Active report category configuration
+ * @param {Array} [props.records=[]] - Array of report data records
+ * @param {Object} [props.pagination={}] - Current pagination parameters
+ * @param {Function} props.onPageChange - Page navigation callback
+ * @param {string} [props.currencySymbol='₹'] - Active store currency symbol
+ * @param {boolean} [props.isLoading=false] - Data fetch loading flag
+ */
 export const ReportPreviewTable = ({
   category,
   records = [],

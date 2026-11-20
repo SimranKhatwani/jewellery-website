@@ -1,3 +1,10 @@
+/**
+ * @file ReportsDashboard.jsx
+ * @description Administrative reports management console enabling store managers
+ * to browse business datasets (Sales, Orders, Products, Inventory, Customers, Payments),
+ * apply granular filters, preview data tables, and export to CSV/PDF.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { REPORT_CATEGORIES } from './reportConfig';
 import { ReportFilters } from './ReportFilters';
@@ -6,6 +13,11 @@ import { ReportExportActions } from './ReportExportActions';
 import { getReport } from '../api';
 import { FileText, AlertCircle } from 'lucide-react';
 
+/**
+ * ReportsDashboard Component
+ * @param {Object} props
+ * @param {Object} props.admin - Current authenticated administrator session
+ */
 export const ReportsDashboard = ({ admin }) => {
   const [selectedCategory, setSelectedCategory] = useState(REPORT_CATEGORIES[0]);
   const [filters, setFilters] = useState({

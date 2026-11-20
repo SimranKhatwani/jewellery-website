@@ -1,3 +1,9 @@
+/**
+ * @file AnalyticsOverviewCards.jsx
+ * @description Administrative KPI cards displaying high-level financial metrics:
+ * Net Sales, Collected Revenue, Pending Payments, Average Order Value (AOV), and customer volumes.
+ */
+
 import React from 'react';
 import {
   DollarSign,
@@ -8,6 +14,14 @@ import {
   Users,
 } from 'lucide-react';
 
+/**
+ * AnalyticsOverviewCards Component
+ * @param {Object} props
+ * @param {Object} props.financials - Revenue and sales figures
+ * @param {Object} props.orders - Order count and velocity metrics
+ * @param {Object} props.customers - Customer acquisition figures
+ * @param {string} [props.currencySymbol='₹'] - Store currency symbol
+ */
 export const AnalyticsOverviewCards = ({
   financials,
   orders,

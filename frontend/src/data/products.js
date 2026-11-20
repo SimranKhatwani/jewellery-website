@@ -1,3 +1,13 @@
+/**
+ * @file products.js
+ * @description Static seed and fallback catalogue for Aurelle Fine Jewellery.
+ * Defines handcrafted 925 sterling silver rings, anklets, earrings, and necklaces
+ * with pricing, material purity specs, options, macro photography, and care instructions.
+ */
+
+/**
+ * Seed catalogue collection of jewellery products.
+ */
 export const PRODUCTS = [
   {
     id: 'sculpted-molten-band',

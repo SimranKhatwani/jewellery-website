@@ -1,7 +1,21 @@
+/**
+ * @file BestsellingProducts.jsx
+ * @description Store administrative analytics table showcasing top performing jewellery designs,
+ * units sold, total revenue generated, and thumbnail previews with sorting options.
+ */
+
 import React from 'react';
 import { Award, ArrowUpDown, Package } from 'lucide-react';
 import { resolveMediaUrl } from '../../services/productService';
 
+/**
+ * BestsellingProducts Component
+ * @param {Object} props
+ * @param {Array} props.products - Ranked list of top-selling products
+ * @param {string} [props.sortBy='units'] - Sorting metric ('units' | 'sales')
+ * @param {Function} props.onSortChange - Metric toggle callback
+ * @param {string} [props.currencySymbol='₹'] - Active store currency symbol
+ */
 export const BestsellingProducts = ({
   products,
   sortBy = 'units',

@@ -1,6 +1,17 @@
+/**
+ * @file ContactSection.jsx
+ * @description Storefront contact and order acquisition section rendering concierge contact cards,
+ * verified distribution channels (RKB Enterprises / Amazon / Flipkart / WhatsApp), and client inquiry forms.
+ */
+
 import React, { useState } from 'react';
 import { Check, MessageCircle, Mail, ExternalLink } from 'lucide-react';
 
+/**
+ * ContactSection Component
+ * @param {Object} props
+ * @param {Object|null} props.storeInfo - Active tenant store branding and contact configuration
+ */
 export const ContactSection = ({ storeInfo = null }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

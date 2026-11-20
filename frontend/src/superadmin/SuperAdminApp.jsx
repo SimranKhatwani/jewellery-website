@@ -1,8 +1,20 @@
+/**
+ * @file SuperAdminApp.jsx
+ * @description Platform SuperAdmin application root.
+ * Verifies high-privilege administrative tokens, renders SuperAdminLogin,
+ * and hosts the multi-tenant SaaS SuperAdminDashboard.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { checkSuperAdminSession } from './api';
 import { SuperAdminLogin } from './SuperAdminLogin';
 import { SuperAdminDashboard } from './SuperAdminDashboard';
 
+/**
+ * SuperAdminApp Component
+ * @param {Object} props
+ * @param {Function} props.onExitSuperAdmin - Navigation callback to leave SuperAdmin interface
+ */
 export const SuperAdminApp = ({ onExitSuperAdmin }) => {
   const [superAdminUser, setSuperAdminUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);

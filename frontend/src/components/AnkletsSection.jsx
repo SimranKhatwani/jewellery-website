@@ -1,9 +1,23 @@
+/**
+ * @file AnkletsSection.jsx
+ * @description Storefront anklets collection section highlighting delicate diamond-cut curb links,
+ * fluid snake ribbons, featured spotlight banners, and category sub-tab filtering.
+ */
+
 import React, { useState } from 'react';
 import { ProductCard } from './ProductCard';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { isProductWishlisted } from '../services/productService';
 import { formatPrice } from '../services/storefrontService';
 
+/**
+ * AnkletsSection Component
+ * @param {Object} props
+ * @param {Array} props.anklets - Array of anklet product items
+ * @param {Function} props.onSelectProduct - Handler for product selection
+ * @param {Array<string>} props.wishlistIds - Wishlisted product identifiers
+ * @param {Function} props.onToggleWishlist - Callback to toggle wishlist entry
+ */
 export const AnkletsSection = ({
   anklets,
   onSelectProduct,

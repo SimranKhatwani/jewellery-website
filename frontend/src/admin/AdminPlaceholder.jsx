@@ -1,6 +1,18 @@
+/**
+ * @file AdminPlaceholder.jsx
+ * @description Fallback placeholder view presented for administrative modules
+ * that are scheduled for future development phases (e.g. advanced BI & reports).
+ */
+
 import React from 'react';
 import { BarChart3, FileText, Clock, Sparkles } from 'lucide-react';
 
+/**
+ * AdminPlaceholder Component
+ * @param {Object} props
+ * @param {string} [props.moduleName='Analytics'] - Name of the unavailable module
+ * @param {Function} props.onNavigateCatalogue - Action to safely return user to catalogue
+ */
 export const AdminPlaceholder = ({ moduleName = 'Analytics', onNavigateCatalogue }) => {
   const isAnalytics = moduleName === 'Analytics';
 

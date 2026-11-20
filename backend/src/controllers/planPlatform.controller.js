@@ -1,6 +1,16 @@
+/**
+ * @file planPlatform.controller.js
+ * @description SuperAdmin platform controller for creating, configuring,
+ * updating, and retiring SaaS subscription plans.
+ */
+
 import * as subscriptionService from '../services/subscription.service.js';
 import { sendSuccess } from '../utils/response.js';
 
+/**
+ * Creates a new SaaS subscription tier with custom limits and features.
+ * @route POST /api/v1/platform/plans
+ */
 export const createPlan = async (req, res, next) => {
   try {
     const plan = await subscriptionService.createPlan(req.body, req);
@@ -10,6 +20,10 @@ export const createPlan = async (req, res, next) => {
   }
 };
 
+/**
+ * Lists all SaaS subscription tiers across the platform.
+ * @route GET /api/v1/platform/plans
+ */
 export const listPlans = async (req, res, next) => {
   try {
     const includeInactive = req.query.includeInactive === 'true';
@@ -20,6 +34,10 @@ export const listPlans = async (req, res, next) => {
   }
 };
 
+/**
+ * Fetches an individual subscription plan by ID.
+ * @route GET /api/v1/platform/plans/:id
+ */
 export const getPlan = async (req, res, next) => {
   try {
     const plan = await subscriptionService.getPlanById(req.params.id);
@@ -29,6 +47,10 @@ export const getPlan = async (req, res, next) => {
   }
 };
 
+/**
+ * Updates subscription plan properties (price, limits, features).
+ * @route PUT /api/v1/platform/plans/:id
+ */
 export const updatePlan = async (req, res, next) => {
   try {
     const plan = await subscriptionService.updatePlan(req.params.id, req.body, req);
@@ -38,6 +60,10 @@ export const updatePlan = async (req, res, next) => {
   }
 };
 
+/**
+ * Toggles a subscription plan's active state.
+ * @route PATCH /api/v1/platform/plans/:id/status
+ */
 export const togglePlanStatus = async (req, res, next) => {
   try {
     const plan = await subscriptionService.updatePlan(
@@ -51,6 +77,10 @@ export const togglePlanStatus = async (req, res, next) => {
   }
 };
 
+/**
+ * Deletes a subscription plan from the platform.
+ * @route DELETE /api/v1/platform/plans/:id
+ */
 export const deletePlan = async (req, res, next) => {
   try {
     const result = await subscriptionService.deletePlan(req.params.id, req);

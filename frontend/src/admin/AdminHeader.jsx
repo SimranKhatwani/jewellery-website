@@ -1,3 +1,9 @@
+/**
+ * @file AdminHeader.jsx
+ * @description Administrative top navigation bar featuring active module breadcrumbs,
+ * live WebSocket notification bell dropdown, storefront preview shortcut, and user account pill.
+ */
+
 import React from 'react';
 import { Menu, Bell, CheckCheck, Store, ShieldCheck, Sparkles } from 'lucide-react';
 
@@ -13,6 +19,22 @@ const TAB_TITLES = {
   settings: 'Store Settings',
 };
 
+/**
+ * AdminHeader Component
+ * @param {Object} props
+ * @param {string} [props.activeTab='catalogue'] - Currently selected navigation tab
+ * @param {Function} props.onOpenMobileMenu - Mobile drawer toggle handler
+ * @param {Object} props.admin - Current admin profile
+ * @param {Function} props.onViewStorefront - Shortcut handler to view customer storefront
+ * @param {Function} props.onGoToSuperAdmin - Shortcut to open SaaS SuperAdmin portal
+ * @param {boolean} props.adminNotificationsOpen - Notification dropdown toggle
+ * @param {Function} props.setAdminNotificationsOpen - Notification dropdown state setter
+ * @param {Array} props.adminNotifications - Notification list
+ * @param {number} props.adminUnreadCount - Count of unread alerts
+ * @param {Function} props.onMarkRead - Handler to mark single notification read
+ * @param {Function} props.onMarkAllRead - Handler to mark all notifications read
+ * @param {Function} props.onOpenOrdersTab - Shortcut to navigate to orders tab
+ */
 export const AdminHeader = ({
   activeTab = 'catalogue',
   onOpenMobileMenu,
