@@ -4,6 +4,8 @@ import { securityHeaders } from './middleware/security.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { config } from './config/env.js';
+import { expressCorsOptions } from './config/cors.js';
+import { globalApiLimiter } from './config/rateLimit.js';
 
 // Legacy Single-Store Routes (Preserved for existing frontend compatibility)
 import authRoutes from './routes/auth.routes.js';
@@ -28,58 +30,14 @@ import reportRoutes from './routes/report.routes.js';
 export const createApp = () => {
   const app = express();
 
+  // Trust reverse proxy for accurate client IP detection and rate limiting
+  app.set('trust proxy', process.env.TRUST_PROXY || 1);
+
   // Apply Security Headers
   app.use(securityHeaders);
 
-  // Configure CORS
-  const extraOrigins = (process.env.FRONTEND_URL || '')
-    .split(',')
-    .map((s) => s.trim().replace(/\/$/, ''))
-    .filter(Boolean);
-
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://jewellery-website-eta-flax.vercel.app',
-    'http://jewellery-website-eta-flax.vercel.app',
-    ...extraOrigins,
-    process.env.ADMIN_URL,
-  ].filter(Boolean);
-
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, or same-origin)
-        if (!origin) {
-          callback(null, true);
-          return;
-        }
-
-        const isExactMatch = allowedOrigins.includes(origin);
-        const isVercelPreview = /^https:\/\/jewellery-website-[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
-
-        if (isExactMatch || isVercelPreview) {
-          callback(null, true);
-        } else if (config.isProduction) {
-          callback(new Error(`CORS blocked: Origin '${origin}' is not authorized.`));
-        } else {
-          callback(null, true); // Dev-friendly fallback for local testing
-        }
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'X-Tenant-ID',
-        'X-Store-Slug',
-        'X-Guest-Session-ID',
-        'Idempotency-Key',
-        'idempotency-key',
-      ],
-    })
-  );
+  // Configure Controlled CORS Strategy
+  app.use(cors(expressCorsOptions));
 
   // Body parser with raw body buffer capture for webhook signature verification
   app.use(
@@ -91,6 +49,9 @@ export const createApp = () => {
     })
   );
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Apply Global API Rate Limiter (skips /api/health)
+  app.use('/api', globalApiLimiter);
 
   // Healthcheck endpoint
   app.get('/api/health', (_req, res) => {

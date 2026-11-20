@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import { globalApiLimiter, strictAuthLimiter } from '../config/rateLimit.js';
 
 /**
  * Standard Security Headers Middleware
@@ -13,32 +13,8 @@ export const securityHeaders = (_req, res, next) => {
 };
 
 /**
- * General API Rate Limiter (100 requests per minute)
+ * Backwards-compatible rate limiter exports
  */
-export const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  message: {
-    success: false,
-    message: 'Too many requests. Please slow down.',
-    code: 'RATE_LIMIT_EXCEEDED',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-/**
- * Auth Rate Limiter (10 attempts per 15 minutes)
- */
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: {
-    success: false,
-    message: 'Too many authentication attempts. Please try again after 15 minutes.',
-    code: 'AUTH_RATE_LIMIT_EXCEEDED',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+export const apiLimiter = globalApiLimiter;
+export const authLimiter = strictAuthLimiter;
 

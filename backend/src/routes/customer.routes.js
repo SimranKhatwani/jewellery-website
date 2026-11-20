@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateUser, authenticateAdmin } from '../middleware/auth.js';
 import { resolveLegacyTenant, authorizeLegacyAdminTenant } from '../middleware/tenant.js';
 import { requireTenantPermission } from '../middleware/rbac.js';
+import { strictAuthLimiter } from '../config/rateLimit.js';
 import * as customerController from '../controllers/customer.controller.js';
 import * as addressController from '../controllers/address.controller.js';
 import * as orderController from '../controllers/order.controller.js';
@@ -18,13 +19,13 @@ const router = Router();
 router.get('/me', authenticateUser, customerController.getCustomerProfile);
 router.put('/me', authenticateUser, customerController.updateCustomerProfile);
 router.patch('/me', authenticateUser, customerController.updateCustomerProfile);
-router.post('/me/change-password', authenticateUser, customerController.changeCustomerPassword);
+router.post('/me/change-password', authenticateUser, strictAuthLimiter, customerController.changeCustomerPassword);
 
 // Aliases for profile routes
 router.get('/profile', authenticateUser, customerController.getCustomerProfile);
 router.patch('/profile', authenticateUser, customerController.updateCustomerProfile);
 router.put('/profile', authenticateUser, customerController.updateCustomerProfile);
-router.post('/change-password', authenticateUser, customerController.changeCustomerPassword);
+router.post('/change-password', authenticateUser, strictAuthLimiter, customerController.changeCustomerPassword);
 
 /**
  * Customer Address Management Endpoints

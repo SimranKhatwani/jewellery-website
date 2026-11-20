@@ -11,7 +11,7 @@ router.post('/register', authLimiter, validateRegister, saasAuthController.regis
 router.post('/login', authLimiter, validateLogin, saasAuthController.login);
 
 // Public invitation onboarding
-router.get('/invitation/:token', saasAuthController.getInvitation);
+router.get('/invitation/:token', authLimiter, saasAuthController.getInvitation);
 router.post('/accept-invitation', authLimiter, saasAuthController.acceptInvitation);
 
 // Protected endpoints

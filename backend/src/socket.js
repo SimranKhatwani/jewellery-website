@@ -1,10 +1,12 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { config } from './config/env.js';
 import { User } from './models/User.js';
 import { Admin } from './models/Admin.js';
 import { TenantMembership } from './models/TenantMembership.js';
-import { MEMBERSHIP_STATUS } from './config/constants.js';
+import { MEMBERSHIP_STATUS, USER_STATUS } from './config/constants.js';
+import { socketCorsOptions } from './config/cors.js';
 
 let ioInstance = null;
 
@@ -18,37 +20,8 @@ export function initSocketServer(httpServer, options = {}) {
     return ioInstance;
   }
 
-  const extraOrigins = (process.env.FRONTEND_URL || '')
-    .split(',')
-    .map((s) => s.trim().replace(/\/$/, ''))
-    .filter(Boolean);
-
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://jewellery-website-eta-flax.vercel.app',
-    'http://jewellery-website-eta-flax.vercel.app',
-    ...extraOrigins,
-    process.env.ADMIN_URL,
-  ].filter(Boolean);
-
   const io = new Server(httpServer, {
-    cors: {
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const isExactMatch = allowedOrigins.includes(origin);
-        const isVercelPreview = /^https:\/\/jewellery-website-[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
-        if (isExactMatch || isVercelPreview) {
-          callback(null, true);
-        } else if (config.isProduction) {
-          callback(new Error(`CORS blocked: Origin '${origin}' is not authorized.`));
-        } else {
-          callback(null, true); // Permissive in dev/preview to avoid websocket handshake blocks
-        }
-      },
-      credentials: true,
-      methods: ['GET', 'POST'],
-    },
+    cors: socketCorsOptions,
     pingTimeout: 30000,
     pingInterval: 25000,
     ...options,
@@ -62,9 +35,7 @@ export function initSocketServer(httpServer, options = {}) {
         socket.handshake.headers?.authorization;
 
       if (!rawToken) {
-        socket.user = null;
-        socket.isGuest = true;
-        return next();
+        return next(new Error('Authentication error: Authentication token required.'));
       }
 
       const token = String(rawToken).startsWith('Bearer ')
@@ -75,42 +46,69 @@ export function initSocketServer(httpServer, options = {}) {
       try {
         decoded = jwt.verify(token, config.jwt.secret);
       } catch (jwtErr) {
-        socket.user = null;
-        socket.isGuest = true;
-        return next();
+        if (jwtErr.name === 'TokenExpiredError') {
+          return next(new Error('Authentication error: Token has expired.'));
+        }
+        return next(new Error('Authentication error: Invalid token signature.'));
+      }
+
+      const userId = decoded.userId || decoded.id;
+      const email = decoded.email ? String(decoded.email).toLowerCase().trim() : null;
+
+      if (!userId && !email) {
+        return next(new Error('Authentication error: Malformed token payload.'));
       }
 
       let user = null;
-      const userId = decoded.userId || decoded.id;
-      if (userId) {
+      if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
         user = await User.findById(userId);
       }
 
-      if (!user && decoded.email) {
-        const email = String(decoded.email).toLowerCase().trim();
+      let adminDoc = null;
+      if (!user && email) {
         user = await User.findOne({ email });
-        if (!user) {
-          const adminDoc = await Admin.findOne({ email });
-          if (adminDoc) {
-            user = await User.create({
-              name: adminDoc.name || 'Store Admin',
-              email: adminDoc.email,
-              passwordHash: adminDoc.passwordHash,
-              isSuperAdmin: adminDoc.role === 'superadmin',
-              status: 'active',
-            });
-          }
-        }
       }
 
+      if (email) {
+        adminDoc = await Admin.findOne({ email });
+      }
+
+      // If user does not exist in User model but exists in Admin model, auto-bridge
+      if (!user && adminDoc) {
+        user = await User.create({
+          name: adminDoc.name || 'Store Admin',
+          email: adminDoc.email,
+          passwordHash: adminDoc.passwordHash,
+          isSuperAdmin: adminDoc.role === 'superadmin',
+          status: USER_STATUS.ACTIVE,
+          tokenVersion: adminDoc.tokenVersion || 0,
+        });
+      }
+
+      if (!user) {
+        return next(new Error('Authentication error: Associated user account no longer exists.'));
+      }
+
+      // Validate account status (e.g. active vs suspended)
+      if (user.status && user.status !== USER_STATUS.ACTIVE) {
+        return next(new Error(`Authentication error: Account is ${user.status}. Access denied.`));
+      }
+
+      // Validate token version revocation (logout / password change invalidation)
+      const decodedVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
+      const currentVersion = user.tokenVersion !== undefined ? user.tokenVersion : (adminDoc?.tokenVersion || 0);
+
+      if (decodedVersion < currentVersion) {
+        return next(new Error('Authentication error: Token session has expired or was revoked.'));
+      }
+
+      // Attach resolved authenticated identity
       socket.user = user;
-      socket.isGuest = !user;
+      socket.adminDoc = adminDoc;
       next();
     } catch (err) {
-      console.warn('[Socket.io] Authentication warning:', err.message);
-      socket.user = null;
-      socket.isGuest = true;
-      next();
+      console.warn('[Socket.io] Authentication failure:', err.message);
+      return next(new Error('Authentication error: Authentication failed.'));
     }
   });
 
@@ -122,8 +120,10 @@ export function initSocketServer(httpServer, options = {}) {
         const userRoom = `user:${String(socket.user._id)}`;
         socket.join(userRoom);
 
+        const isSuperAdmin = Boolean(socket.user?.isSuperAdmin || socket.adminDoc?.role === 'superadmin');
+
         // Platform Super Admin joins platform room
-        if (socket.user.isSuperAdmin) {
+        if (isSuperAdmin) {
           socket.join('platform:superadmin');
         }
 
@@ -144,8 +144,10 @@ export function initSocketServer(httpServer, options = {}) {
           const { tenantId } = data || {};
           if (!tenantId) return;
 
+          const isSuperAdmin = Boolean(socket.user?.isSuperAdmin || socket.adminDoc?.role === 'superadmin');
+
           // Super Admin can subscribe to any store admin room
-          if (socket.user?.isSuperAdmin) {
+          if (isSuperAdmin) {
             socket.join(`tenant:${String(tenantId)}:admin`);
             socket.emit('tenant:joined', { tenantId, role: 'superadmin' });
             return;

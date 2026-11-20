@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { resolveTenant } from '../middleware/tenant.js';
 import { authenticateUser, optionalAuthenticateUser } from '../middleware/auth.js';
+import { couponRateLimiter } from '../config/rateLimit.js';
 import * as storefrontController from '../controllers/storefront.controller.js';
 import * as cartController from '../controllers/cart.controller.js';
 import * as wishlistController from '../controllers/wishlist.controller.js';
@@ -49,8 +50,8 @@ router.post('/:storeSlug/wishlist/items/:productId/move-to-cart', authenticateUs
 /**
  * 4. Tenant-Scoped Coupon Validation
  */
-router.post('/:storeSlug/coupons/validate', couponController.validateStorefrontCoupon);
-router.post('/:storeSlug/coupon/validate', couponController.validateStorefrontCoupon);
+router.post('/:storeSlug/coupons/validate', couponRateLimiter, couponController.validateStorefrontCoupon);
+router.post('/:storeSlug/coupon/validate', couponRateLimiter, couponController.validateStorefrontCoupon);
 
 /**
  * 5. Tenant-Scoped Checkout Preview & Order Placement
