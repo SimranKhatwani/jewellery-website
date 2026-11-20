@@ -44,6 +44,7 @@ export const Header = ({
   onOpenProfile,
   onOpenSearch,
   onNavigateHome,
+  onNavigatePlatform,
   onNavigateCategory,
   onNavigateSection,
   categories = [],
@@ -301,6 +302,16 @@ export const Header = ({
             >
               Contact
             </button>
+            {onNavigatePlatform && (
+              <button
+                type="button"
+                onClick={onNavigatePlatform}
+                className="hover:text-[#A85F49] text-[#8E8172] transition-colors whitespace-nowrap shrink-0 py-1 text-xs font-medium cursor-pointer"
+                title="Return to AURELLE Platform Overview"
+              >
+                Platform
+              </button>
+            )}
           </nav>
 
           {/* Search, Wishlist, Cart & Customer Profile */}
@@ -550,6 +561,18 @@ export const Header = ({
             >
               Contact
             </button>
+            {onNavigatePlatform && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onNavigatePlatform();
+                }}
+                className="text-left py-1 text-[#8E8172] hover:text-[#A85F49] text-xs font-medium"
+              >
+                Platform Overview
+              </button>
+            )}
             <div className="pt-2 border-t border-[#D7C5AF]/30 flex items-center justify-between">
               <button
                 onClick={() => {

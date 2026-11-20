@@ -277,6 +277,18 @@ export const Footer = ({
             >
               Terms &amp; Conditions
             </button>
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.hash = '';
+                window.history.pushState(null, '', '/');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }}
+              className="hover:text-[#FFFFFF] hover:underline transition-colors cursor-pointer text-[#F7F1E9]/75"
+            >
+              Platform Overview
+            </a>
             <span>Solid 925 Sterling Silver</span>
             <span>Hallmarked Quality</span>
             {isAurelle && <span>Amazon and Flipkart</span>}

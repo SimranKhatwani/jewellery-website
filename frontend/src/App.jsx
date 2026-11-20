@@ -408,16 +408,22 @@ export default function App() {
     let lastSlug = getStoreSlug();
 
     const handleRouteCheck = () => {
-      setIsSuperAdminView(checkIsSuperAdminRoute());
-      setIsAdminView(checkIsAdminRoute());
-      setIsLandingView(checkIsLandingRoute());
+      const sa = checkIsSuperAdminRoute();
+      const adm = checkIsAdminRoute();
+      const land = checkIsLandingRoute();
+
+      setIsSuperAdminView(sa);
+      setIsAdminView(adm);
+      setIsLandingView(land);
 
       const currentSlug = getStoreSlug();
-      if (currentSlug !== lastSlug) {
-        lastSlug = currentSlug;
-        loadStoreContext();
-        refreshCatalogue();
-        refreshCart();
+      if (!sa && !adm && !land) {
+        if (currentSlug !== lastSlug || products.length === 0) {
+          lastSlug = currentSlug;
+          loadStoreContext();
+          refreshCatalogue();
+          refreshCart();
+        }
       }
     };
 
@@ -582,31 +588,56 @@ export default function App() {
   const handleGoToAdmin = () => {
     window.location.hash = '';
     window.history.pushState(null, '', '/admin');
+    setIsLandingView(false);
+    setIsAdminView(true);
+    setIsSuperAdminView(false);
     window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleGoToSuperAdmin = () => {
     window.location.hash = '';
     window.history.pushState(null, '', '/sa');
+    setIsLandingView(false);
+    setIsAdminView(false);
+    setIsSuperAdminView(true);
     window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleGoToStorefront = (slug = 'aurelle') => {
     window.location.hash = '';
     const targetPath = slug === 'giva-jewels' ? '/giva' : `/${slug}`;
     window.history.pushState(null, '', targetPath);
+    setIsLandingView(false);
+    setIsAdminView(false);
+    setIsSuperAdminView(false);
+    setSelectedProduct(null);
+    setActivePolicyPage(null);
     window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    loadStoreContext();
+    refreshCatalogue();
+    refreshCart();
   };
 
   const handleGoToPlatform = () => {
     window.location.hash = '';
     window.history.pushState(null, '', '/');
+    setIsLandingView(true);
+    setIsAdminView(false);
+    setIsSuperAdminView(false);
+    setSelectedProduct(null);
+    setActivePolicyPage(null);
     window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   // Exit Super Admin Console handler
   const handleExitSuperAdmin = () => {
     setIsSuperAdminView(false);
+    setIsLandingView(true);
+    setIsAdminView(false);
     window.location.hash = '';
     window.history.pushState(null, '', '/');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -615,11 +646,16 @@ export default function App() {
   // Exit Admin Panel handler
   const handleExitAdmin = (targetSlug) => {
     setIsAdminView(false);
+    setIsLandingView(false);
+    setIsSuperAdminView(false);
     window.location.hash = '';
     const slug = targetSlug || 'aurelle';
     const pathSlug = slug === 'giva-jewels' ? 'giva' : slug;
     window.history.pushState(null, '', `/${pathSlug}`);
     window.dispatchEvent(new PopStateEvent('popstate'));
+    loadStoreContext();
+    refreshCatalogue();
+    refreshCart();
   };
 
   // Render Super Admin Console if on /sa or #sa route
@@ -763,6 +799,7 @@ export default function App() {
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onNavigateHome={handleBackToCatalogue}
+        onNavigatePlatform={handleGoToPlatform}
         onNavigateCategory={(cat) => {
           if (selectedProduct || isReturnPolicyView) handleBackToCatalogue();
           setTimeout(() => {
