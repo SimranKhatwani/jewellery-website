@@ -275,9 +275,16 @@ export const LandingPage = ({
         </div>
 
         {/* Engineering Attribution Pill */}
-        <div className="mt-8 inline-flex items-center gap-2 text-xs text-[#8E8172]">
-          <span>Designed &amp; Engineered by</span>
-          <span className="font-semibold text-[#593D30] tracking-wider uppercase">REQUIN SOLUTIONS</span>
+        <div className="mt-8 inline-flex items-center gap-1.5 text-xs text-[#8E8172]">
+          <span>Designed &amp; Developed by ❤️ </span>
+          <a
+            href="https://www.requingroup.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#593D30] hover:text-[#A85F49] underline underline-offset-2 transition-colors inline-flex items-center gap-1"
+          >
+            Requin Solutions Pvt. Ltd
+          </a>
         </div>
       </section>
 
@@ -833,10 +840,27 @@ export const LandingPage = ({
               PLATFORM ENGINEERING &amp; DESIGN
             </span>
             <h3 className="font-serif text-3xl sm:text-4xl md:text-5xl font-normal leading-tight text-[#FAF7F2]">
-              Architected &amp; Designed by REQUIN SOLUTIONS
+              Architected &amp; Designed by{' '}
+              <a
+                href="https://www.requingroup.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 decoration-[#D7C5AF]/60 hover:text-[#D7C5AF] transition-colors"
+              >
+                REQUIN SOLUTIONS
+              </a>
             </h3>
             <p className="mt-4 text-xs sm:text-sm text-[#D7C5AF] font-light leading-relaxed">
-              AURELLE is designed and engineered by Requin Solutions — delivering modern multi-tenant enterprise architectures,
+              AURELLE is designed and engineered by{' '}
+              <a
+                href="https://www.requingroup.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#FAF7F2] font-medium underline underline-offset-2 hover:text-white transition-colors"
+              >
+                Requin Solutions
+              </a>
+              {' '}— delivering modern multi-tenant enterprise architectures,
               resilient microservice frameworks, and art-directed digital commerce platforms with obsessive attention to craft.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -879,9 +903,16 @@ export const LandingPage = ({
               <p className="text-xs text-[#8E8172] max-w-md leading-relaxed font-light">
                 AURELLE is a high-performance multi-tenant commerce management operating system designed for fine jewellery and luxury retail brands.
               </p>
-              <div className="pt-2 text-xs text-[#8E8172]">
-                <span>Designed &amp; Developed with precision by </span>
-                <span className="font-semibold text-[#593D30]">REQUIN SOLUTIONS</span>
+              <div className="pt-2 text-xs text-[#8E8172] flex items-center gap-1">
+                <span>Designed &amp; Developed by ❤️ </span>
+                <a
+                  href="https://www.requingroup.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[#593D30] hover:text-[#A85F49] underline underline-offset-2 transition-colors"
+                >
+                  Requin Solutions Pvt. Ltd
+                </a>
               </div>
             </div>
 
@@ -938,7 +969,17 @@ export const LandingPage = ({
           {/* Bottom Copyright & Disclaimer */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#8E8172]">
             <p>© 2026 AURELLE Commerce Platform. All rights reserved.</p>
-            <p>Designed and Developed by Requin Solutions.</p>
+            <p className="flex items-center gap-1">
+              <span>Designed &amp; Developed by ❤️ </span>
+              <a
+                href="https://www.requingroup.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#593D30] hover:text-[#A85F49] underline underline-offset-2 transition-colors"
+              >
+                Requin Solutions Pvt. Ltd
+              </a>
+            </p>
           </div>
         </div>
       </footer>
