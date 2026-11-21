@@ -349,12 +349,13 @@ export async function mergeGuestCart() {
 // COUPON APIS
 // -------------------------------------------------------------
 
-export async function validateCoupon(code, orderAmount) {
+export async function validateCoupon(code, amount) {
   const storeSlug = getStoreSlug();
+  const subtotal = Number(amount) || 0;
   const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/coupon/validate`, {
     method: 'POST',
     headers: getStorefrontHeaders(),
-    body: JSON.stringify({ code, orderAmount }),
+    body: JSON.stringify({ code, cartSubtotal: subtotal, orderAmount: subtotal }),
   });
   const data = await res.json();
   if (!res.ok) {

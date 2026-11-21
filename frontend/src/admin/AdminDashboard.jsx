@@ -19,6 +19,7 @@ import { AdminOverview } from './AdminOverview';
 import { CatalogueManager } from './CatalogueManager';
 import { OrdersManager } from './OrdersManager';
 import { CustomersManager } from './CustomersManager';
+import { CouponsManager } from './CouponsManager';
 import { AdminNotificationsView } from './AdminNotificationsView';
 import { AnalyticsReportsModule } from './analytics/AnalyticsReportsModule';
 import { StoreSettingsManager } from './StoreSettingsManager';
@@ -43,7 +44,7 @@ export const AdminDashboard = ({
   // Calculate permitted tabs based on user permissions
   const permittedTabIds = useMemo(() => {
     if (isSuperOrStoreAdmin) {
-      return ['overview', 'catalogue', 'orders', 'customers', 'staff', 'notifications', 'analytics', 'reports', 'settings'];
+      return ['overview', 'catalogue', 'orders', 'customers', 'coupons', 'staff', 'notifications', 'analytics', 'reports', 'settings'];
     }
 
     const allowed = [];
@@ -54,8 +55,7 @@ export const AdminDashboard = ({
       userPermissions.includes('products:read') ||
       userPermissions.includes('products:write') ||
       userPermissions.includes('categories:read') ||
-      userPermissions.includes('inventory:read') ||
-      userPermissions.includes('coupons:read')
+      userPermissions.includes('inventory:read')
     ) {
       allowed.push('catalogue');
     }
@@ -64,6 +64,9 @@ export const AdminDashboard = ({
     }
     if (userPermissions.includes('customers:read')) {
       allowed.push('customers');
+    }
+    if (userPermissions.includes('coupons:read') || userPermissions.includes('coupons:write')) {
+      allowed.push('coupons');
     }
     if (userPermissions.includes('staff:read') || userPermissions.includes('roles:manage')) {
       allowed.push('staff');
@@ -82,7 +85,7 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = localStorage.getItem('aurelle_admin_active_tab');
-      if (['overview', 'catalogue', 'orders', 'customers', 'staff', 'notifications', 'analytics', 'reports', 'settings'].includes(saved)) {
+      if (['overview', 'catalogue', 'orders', 'customers', 'coupons', 'staff', 'notifications', 'analytics', 'reports', 'settings'].includes(saved)) {
         return saved;
       }
     } catch {
@@ -528,6 +531,10 @@ export const AdminDashboard = ({
 
           {activeTab === 'customers' && permittedTabIds.includes('customers') && (
             <CustomersManager admin={admin} />
+          )}
+
+          {activeTab === 'coupons' && permittedTabIds.includes('coupons') && (
+            <CouponsManager admin={admin} />
           )}
 
           {activeTab === 'staff' && permittedTabIds.includes('staff') && (

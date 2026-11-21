@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Store,
   Settings,
+  Tag,
 } from 'lucide-react';
 
 /**
@@ -97,6 +98,16 @@ export const AdminSidebar = ({
       icon: Users,
       badge: null,
       isAllowed: () => isSuperOrStoreAdmin || userPermissions.includes('customers:read'),
+    },
+    {
+      id: 'coupons',
+      label: 'Coupons & Promotions',
+      icon: Tag,
+      badge: null,
+      isAllowed: () =>
+        isSuperOrStoreAdmin ||
+        userPermissions.includes('coupons:read') ||
+        userPermissions.includes('coupons:write'),
     },
     {
       id: 'staff',

@@ -12,6 +12,7 @@ const TAB_TITLES = {
   catalogue: 'Catalogue Management',
   orders: 'Orders & Fulfillment',
   customers: 'Customers & Purchases',
+  coupons: 'Store Coupons & Promotions',
   staff: 'Team Members & Roles (RBAC)',
   notifications: 'Store Notifications & Alerts',
   analytics: 'Analytics & Reports',

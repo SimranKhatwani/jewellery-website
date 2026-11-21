@@ -26,6 +26,7 @@ import orderRoutes from './routes/order.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import reportRoutes from './routes/report.routes.js';
+import couponRoutes from './routes/coupon.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -73,6 +74,7 @@ export const createApp = () => {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/customers', customerRoutes);
+  app.use('/api/coupons', couponRoutes);
 
   // Mount SaaS Platform & Tenant Routes (Phase 1 & Phase 2)
   app.use('/api/v1/auth', saasAuthRoutes);
@@ -86,6 +88,7 @@ export const createApp = () => {
   app.use('/api/v1/storefront', storefrontRoutes);
   app.use('/api/v1/customers', customerRoutes);
   app.use('/api/v1/orders', orderRoutes);
+  app.use('/api/v1/coupons', couponRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
   app.use('/api/v1/analytics', analyticsRoutes);
   app.use('/api/v1/reports', reportRoutes);

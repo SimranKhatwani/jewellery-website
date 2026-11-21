@@ -887,6 +887,97 @@ export async function deleteTenantRole(roleId) {
   return data.data || data;
 }
 
+// -------------------------------------------------------------
+// COUPON MANAGEMENT APIS (Admin RBAC: coupons:read, coupons:write)
+// -------------------------------------------------------------
+
+export async function getAdminCoupons(params = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status && params.status !== 'all') query.set('status', params.status);
+  if (params.discountType && params.discountType !== 'all') query.set('discountType', params.discountType);
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+
+  const qs = query.toString();
+  const endpoint = `/v1/coupons${qs ? `?${qs}` : ''}`;
+  const res = await authFetch(endpoint);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch coupons');
+  }
+  return data;
+}
+
+export async function getAdminCoupon(id) {
+  const res = await authFetch(`/v1/coupons/${id}`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch coupon details');
+  }
+  return data.coupon || data.data || data;
+}
+
+export async function createAdminCoupon(payload) {
+  const res = await authFetch('/v1/coupons', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to create coupon');
+  }
+  return data.coupon || data.data || data;
+}
+
+export async function updateAdminCoupon(id, payload) {
+  const res = await authFetch(`/v1/coupons/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to update coupon');
+  }
+  return data.coupon || data.data || data;
+}
+
+export async function toggleAdminCouponStatus(id, status) {
+  const res = await authFetch(`/v1/coupons/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to toggle coupon status');
+  }
+  return data.coupon || data.data || data;
+}
+
+export async function deleteAdminCoupon(id) {
+  const res = await authFetch(`/v1/coupons/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to delete coupon');
+  }
+  return data;
+}
+
+export async function getAdminCouponUsage(id) {
+  const res = await authFetch(`/v1/coupons/${id}/usage`);
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch coupon usage history');
+  }
+  return data;
+}
+
+
 
 
 

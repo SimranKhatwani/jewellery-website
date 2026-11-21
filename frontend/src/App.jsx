@@ -356,22 +356,29 @@ export default function App() {
   }, []);
 
   const handleApplyCoupon = useCallback(async (code) => {
+    if (!code || !String(code).trim()) return;
     setCouponLoading(true);
     setCouponError(null);
     try {
-      const res = await validateCoupon(code, cart.subtotal);
-      if (res.valid) {
+      const res = await validateCoupon(code.trim().toUpperCase(), cart.subtotal);
+      const couponData = res.coupon || res;
+      if (res.valid || res.success) {
         setAppliedCoupon({
-          code: res.code,
-          discountAmount: res.discountAmount,
-          discountType: res.discountType,
-          discountValue: res.discountValue,
+          code: couponData.code || res.code,
+          discountAmount: couponData.discountAmount ?? res.discountAmount ?? 0,
+          discountType: couponData.discountType || res.discountType,
+          discountValue: couponData.discountValue ?? res.discountValue,
+          description: couponData.description || res.description || '',
+          minimumOrderAmount: couponData.minimumOrderAmount,
         });
+        setCouponError(null);
       } else {
         setCouponError(res.message || 'Invalid coupon');
+        setAppliedCoupon(null);
       }
     } catch (err) {
       setCouponError(err.message || 'Failed to apply coupon');
+      setAppliedCoupon(null);
     } finally {
       setCouponLoading(false);
     }
@@ -381,6 +388,48 @@ export default function App() {
     setAppliedCoupon(null);
     setCouponError(null);
   }, []);
+
+  // Automatic Coupon Revalidation on Cart Subtotal Changes
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    if (!cart?.items?.length || !cart?.subtotal) {
+      setAppliedCoupon(null);
+      return;
+    }
+
+    let isMounted = true;
+    validateCoupon(appliedCoupon.code, cart.subtotal)
+      .then((res) => {
+        if (!isMounted) return;
+        const couponData = res.coupon || res;
+        if (res.valid || res.success) {
+          setAppliedCoupon((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              code: couponData.code || res.code,
+              discountAmount: couponData.discountAmount ?? res.discountAmount ?? 0,
+              discountType: couponData.discountType || res.discountType,
+              discountValue: couponData.discountValue ?? res.discountValue,
+            };
+          });
+          setCouponError(null);
+        } else {
+          setAppliedCoupon(null);
+          setCouponError(res.message || 'Coupon requirement no longer met');
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setAppliedCoupon(null);
+        setCouponError(err.message || 'Coupon removed: cart no longer meets requirement');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cart.subtotal, appliedCoupon?.code]);
 
   const handleCustomerLoginSuccess = useCallback(async (user) => {
     setCustomerUser(user);
