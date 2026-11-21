@@ -60,9 +60,23 @@ export const previewStorefrontCheckout = async (req, res, next) => {
     }
 
     // 3. Revalidate every item against database (Stock, Active Status, Authoritative Price)
-    const productIds = cart.items.map((i) => i.productId);
-    const products = await Product.find({ _id: { $in: productIds }, tenantId }).lean();
-    const productMap = new Map(products.map((p) => [String(p._id), p]));
+    const validObjectIds = cart.items.map((i) => i.productId).filter((id) => id && mongoose.Types.ObjectId.isValid(id));
+    const nonObjectIds = cart.items.map((i) => i.productId).filter((id) => id && !mongoose.Types.ObjectId.isValid(id));
+    const productQueryConditions = [
+      ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []),
+      ...(nonObjectIds.length > 0 ? [{ slug: { $in: nonObjectIds } }, { sku: { $in: nonObjectIds } }] : []),
+    ];
+
+    const products = productQueryConditions.length > 0
+      ? await Product.find({ tenantId, $or: productQueryConditions }).lean()
+      : [];
+
+    const productMap = new Map();
+    for (const p of products) {
+      productMap.set(String(p._id), p);
+      if (p.slug) productMap.set(String(p.slug), p);
+      if (p.sku) productMap.set(String(p.sku), p);
+    }
 
     let subtotal = 0;
     const lineItems = [];

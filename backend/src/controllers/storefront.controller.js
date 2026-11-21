@@ -2,6 +2,7 @@ import { Product } from '../models/Product.js';
 import { Category } from '../models/Category.js';
 import { NotFoundError } from '../utils/errors.js';
 import { buildSafeRegexQuery } from '../utils/regex.js';
+import { ensureAurelleProducts } from '../services/seedProducts.service.js';
 
 /**
  * Build fully resolved white-label storefront configuration with sensible defaults.
@@ -395,7 +396,7 @@ export const getStorefrontProducts = async (req, res, next) => {
     else if (sort === 'priceDesc') sortOption = { priceUSD: -1 };
     else if (sort === 'newest') sortOption = { createdAt: -1 };
 
-    const [products, total] = await Promise.all([
+    let [products, total] = await Promise.all([
       Product.find(filter)
         .sort(sortOption)
         .skip(skip)
@@ -403,6 +404,19 @@ export const getStorefrontProducts = async (req, res, next) => {
         .lean(),
       Product.countDocuments(filter),
     ]);
+
+    // If store has 0 products and is the default 'aurelle' flagship store, auto-seed default products
+    if (products.length === 0 && req.tenant.slug === 'aurelle') {
+      await ensureAurelleProducts(tenantId);
+      [products, total] = await Promise.all([
+        Product.find(filter)
+          .sort(sortOption)
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+        Product.countDocuments(filter),
+      ]);
+    }
 
     // Format products for storefront response
     const formattedProducts = products.map((p) => ({
@@ -439,11 +453,20 @@ export const getStorefrontProductDetail = async (req, res, next) => {
     const tenantId = req.tenant._id;
     const { productSlug } = req.params;
 
-    const product = await Product.findOne({
+    let product = await Product.findOne({
       tenantId,
       slug: productSlug.toLowerCase(),
       isPublished: true,
     }).lean();
+
+    if (!product && req.tenant.slug === 'aurelle') {
+      await ensureAurelleProducts(tenantId);
+      product = await Product.findOne({
+        tenantId,
+        slug: productSlug.toLowerCase(),
+        isPublished: true,
+      }).lean();
+    }
 
     if (!product) {
       throw new NotFoundError(`Product '${productSlug}' not found in this store.`);

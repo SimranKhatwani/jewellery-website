@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Cart } from '../models/Cart.js';
 import { Product } from '../models/Product.js';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
+import { ensureAurelleProducts } from '../services/seedProducts.service.js';
 
 /**
  * Helper to resolve or initialize tenant cart
@@ -31,7 +32,9 @@ const getOrCreateCart = async (tenantId, userId, guestSessionId) => {
  * Helper to recalculate cart pricing & format items
  */
 const calculateCartTotals = async (cart, tenantId) => {
-  const productIds = cart.items.map((i) => i.productId);
+  const productIds = cart.items
+    .map((i) => i.productId)
+    .filter((id) => id && mongoose.Types.ObjectId.isValid(id));
   const products = await Product.find({ _id: { $in: productIds }, tenantId }).lean();
   const productMap = new Map(products.map((p) => [String(p._id), p]));
 
@@ -154,8 +157,43 @@ export const addCartItem = async (req, res, next) => {
 
     const reqQty = Math.max(1, parseInt(quantity, 10));
 
-    // 1. Validate product belongs to this tenant and is published
-    const product = await Product.findOne({ _id: productId, tenantId, isPublished: true });
+    // 1. Resolve product: robustly supports ObjectId, slug, SKU, or name
+    let product = null;
+    if (mongoose.Types.ObjectId.isValid(productId)) {
+      product = await Product.findOne({ _id: productId, tenantId, isPublished: true });
+    }
+    if (!product) {
+      const cleanId = String(productId).trim();
+      product = await Product.findOne({
+        tenantId,
+        isPublished: true,
+        $or: [
+          { slug: cleanId.toLowerCase() },
+          { sku: cleanId },
+          { name: cleanId },
+        ],
+      });
+    }
+
+    // Auto-seed Aurelle catalog if not yet seeded
+    if (!product && req.tenant.slug === 'aurelle') {
+      await ensureAurelleProducts(tenantId);
+      if (mongoose.Types.ObjectId.isValid(productId)) {
+        product = await Product.findOne({ _id: productId, tenantId, isPublished: true });
+      }
+      if (!product) {
+        const cleanId = String(productId).trim();
+        product = await Product.findOne({
+          tenantId,
+          isPublished: true,
+          $or: [
+            { slug: cleanId.toLowerCase() },
+            { sku: cleanId },
+          ],
+        });
+      }
+    }
+
     if (!product) {
       throw new NotFoundError('Product not found in this store.');
     }
@@ -164,8 +202,9 @@ export const addCartItem = async (req, res, next) => {
     let verifiedPrice = product.priceUSD;
     let verifiedSku = product.sku;
 
-    if (variantId) {
-      const variant = (product.variants || []).find((v) => String(v._id) === String(variantId));
+    const validVariantId = (variantId && mongoose.Types.ObjectId.isValid(variantId)) ? variantId : null;
+    if (validVariantId) {
+      const variant = (product.variants || []).find((v) => String(v._id) === String(validVariantId));
       if (!variant) {
         throw new NotFoundError(`Variant '${variantId}' does not belong to this product.`);
       }
@@ -196,13 +235,13 @@ export const addCartItem = async (req, res, next) => {
     // 4. Check if item already exists in cart (same productId + variantId)
     const existingIndex = cart.items.findIndex((item) => {
       const sameProd = String(item.productId) === String(product._id);
-      const sameVariant = variantId ? String(item.variantId) === String(variantId) : !item.variantId;
+      const sameVariant = validVariantId ? String(item.variantId) === String(validVariantId) : !item.variantId;
       return sameProd && sameVariant;
     });
 
     if (existingIndex > -1) {
       const totalRequested = cart.items[existingIndex].quantity + reqQty;
-      if (!variantId && product.stockQuantity !== undefined && product.stockQuantity > 0 && totalRequested > product.stockQuantity) {
+      if (!validVariantId && product.stockQuantity !== undefined && product.stockQuantity > 0 && totalRequested > product.stockQuantity) {
         throw new BadRequestError(
           `Cannot add more. You have ${cart.items[existingIndex].quantity} in cart and only ${product.stockQuantity} unit(s) available.`
         );
@@ -212,7 +251,7 @@ export const addCartItem = async (req, res, next) => {
     } else {
       cart.items.push({
         productId: product._id,
-        variantId: variantId || null,
+        variantId: validVariantId,
         sku: verifiedSku,
         selectedOptions,
         quantity: reqQty,

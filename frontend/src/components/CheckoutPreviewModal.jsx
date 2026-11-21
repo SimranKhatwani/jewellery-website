@@ -5,7 +5,6 @@ import {
   MapPin,
   Receipt,
   Truck,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
   User,
@@ -138,25 +137,6 @@ export const CheckoutPreviewModal = ({
   }, [isOpen, cart, appliedCoupon, selectedAddressId, addresses, placedOrder]);
 
   if (!isOpen) return null;
-
-  // Quick fill sample details for testing or evaluation
-  const handleFillSampleDetails = () => {
-    setNewAddressForm({
-      name: 'Elena Rostova',
-      phone: '9876543210',
-      email: customerUser?.email || 'customer@aurelle.com',
-      addressLine1: '42 Solitaire Boulevard, Bandra West',
-      addressLine2: 'Apt 4B',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      postalCode: '400050',
-      country: 'India',
-      addressType: 'shipping',
-      isDefault: true,
-    });
-    setOrderError(null);
-    setHighlightedFields([]);
-  };
 
   const handleSaveNewAddress = async (e) => {
     e.preventDefault();
@@ -442,17 +422,6 @@ export const CheckoutPreviewModal = ({
                         <span>1. Delivery Address</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {(!customerUser || isAddingNewAddress) && (
-                          <button
-                            type="button"
-                            onClick={handleFillSampleDetails}
-                            className="text-[11px] text-[#A85F49] hover:text-[#8E4D3A] flex items-center gap-1 font-medium bg-[#F7F1E9] px-2 py-0.5 rounded-xs border border-[#D7C5AF]/60 transition-colors shadow-2xs"
-                            title="Auto-fill sample delivery address for quick checkout testing"
-                          >
-                            <Sparkles className="w-3 h-3 text-[#A85F49]" />
-                            <span>Fill Sample Details</span>
-                          </button>
-                        )}
                         {customerUser && !isAddingNewAddress && (
                           <button
                             onClick={() => setIsAddingNewAddress(true)}

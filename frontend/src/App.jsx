@@ -302,7 +302,7 @@ export default function App() {
 
   // Cart action handlers
   const handleAddToCart = useCallback(async ({ product, selectedOption, selectedFinish, quantity }) => {
-    const productId = product._id || product.id;
+    const productId = product._id || product.id || product.slug;
     const selectedOptions = {
       ...(selectedOption ? { size: selectedOption } : {}),
       ...(selectedFinish ? { finish: selectedFinish } : {}),

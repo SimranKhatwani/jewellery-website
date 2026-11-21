@@ -10,6 +10,7 @@
  */
 export const PRODUCTS = [
   {
+    _id: '674000000000000000000001',
     id: 'sculpted-molten-band',
     slug: 'sculpted-molten-band',
     name: 'The Sculpted Molten Band',
@@ -50,6 +51,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000002',
     id: 'wave-contour-ring',
     slug: 'wave-contour-ring',
     name: 'The Wave Contour Ring',
@@ -89,6 +91,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000003',
     id: 'architectural-signet-ring',
     slug: 'architectural-signet-ring',
     name: 'The Architectural Signet Ring',
@@ -128,6 +131,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000004',
     id: 'caldera-statement-band',
     slug: 'caldera-statement-band',
     name: 'The Caldera Statement Band',
@@ -165,6 +169,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000005',
     id: 'fluid-curb-chain-anklet',
     slug: 'fluid-curb-chain-anklet',
     name: 'The Fluid Curb Chain Anklet',
@@ -204,6 +209,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000006',
     id: 'polished-teardrop-clasp-anklet',
     slug: 'polished-teardrop-clasp-anklet',
     name: 'The Polished Teardrop Clasp Anklet',
@@ -242,6 +248,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000007',
     id: 'liquid-snake-ribbon-anklet',
     slug: 'liquid-snake-ribbon-anklet',
     name: 'The Liquid Snake Ribbon Anklet',
@@ -279,6 +286,7 @@ export const PRODUCTS = [
     stockistInquiryAvailable: true,
   },
   {
+    _id: '674000000000000000000008',
     id: 'orbit-satellite-beaded-anklet',
     slug: 'orbit-satellite-beaded-anklet',
     name: 'The Orbit Satellite Beaded Anklet',
