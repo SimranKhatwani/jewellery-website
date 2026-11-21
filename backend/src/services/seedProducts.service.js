@@ -363,46 +363,41 @@ export async function ensureAurelleProducts(tenantId) {
   if (!tenantId) return;
 
   try {
+    const existingCount = await Product.countDocuments({ tenantId });
+    if (existingCount >= AURELLE_SEED_PRODUCTS.length) return;
+
     // 1. Ensure Categories exist
     const categories = [
       { name: 'Rings', slug: 'rings', displayOrder: 1 },
       { name: 'Anklets', slug: 'anklets', displayOrder: 2 },
     ];
     for (const cat of categories) {
-      await Category.updateOne(
-        { tenantId, slug: cat.slug },
-        {
-          $setOnInsert: {
-            tenantId,
-            name: cat.name,
-            slug: cat.slug,
-            displayOrder: cat.displayOrder,
-            isActive: true,
-          },
-        },
-        { upsert: true }
-      );
+      const catExists = await Category.findOne({ tenantId, slug: cat.slug });
+      if (!catExists) {
+        await Category.create({
+          tenantId,
+          name: cat.name,
+          slug: cat.slug,
+          displayOrder: cat.displayOrder,
+          isActive: true,
+        });
+      }
     }
 
-    // 2. Ensure each product exists with full metadata
+    // 2. Ensure each product exists cleanly
     for (const prod of AURELLE_SEED_PRODUCTS) {
-      await Product.updateOne(
-        {
+      const prodExists = await Product.findOne({
+        tenantId,
+        $or: [{ slug: prod.slug }, { sku: prod.sku }],
+      });
+      if (!prodExists) {
+        const { _id, ...cleanData } = prod;
+        await Product.create({
+          ...cleanData,
           tenantId,
-          $or: [
-            { _id: prod._id },
-            { slug: prod.slug },
-            { sku: prod.sku },
-          ],
-        },
-        {
-          $setOnInsert: {
-            ...prod,
-            tenantId,
-          },
-        },
-        { upsert: true }
-      );
+          isPublished: true,
+        });
+      }
     }
   } catch (err) {
     console.warn('[SeedProductsService] Non-fatal product seeding notice:', err.message);

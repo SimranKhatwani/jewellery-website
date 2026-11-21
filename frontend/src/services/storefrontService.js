@@ -270,18 +270,29 @@ export async function fetchCart() {
   }
 }
 
-export async function addToCart({ productId, variantId, sku, selectedOptions, quantity = 1 }) {
+export async function addToCart({ productId, slug, variantId, sku, selectedOptions, quantity = 1 }) {
   const storeSlug = getStoreSlug();
-  const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`, {
-    method: 'POST',
-    headers: getStorefrontHeaders(),
-    body: JSON.stringify({ productId, variantId, sku, selectedOptions, quantity }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || 'Failed to add item to cart');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`, {
+      method: 'POST',
+      headers: getStorefrontHeaders(),
+      body: JSON.stringify({ productId, slug, variantId, sku, selectedOptions, quantity }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to add item to cart');
+    }
+    return data.cart || data.data?.cart;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  return data.cart || data.data?.cart;
 }
 
 export async function updateCartItemQuantity(itemId, quantity) {

@@ -10,8 +10,10 @@ import { ensureAurelleProducts } from '../services/seedProducts.service.js';
 const getOrCreateCart = async (tenantId, userId, guestSessionId) => {
   let cart = null;
 
-  if (userId) {
-    cart = await Cart.findOne({ tenantId, userId });
+  const validUserId = (userId && mongoose.Types.ObjectId.isValid(String(userId))) ? userId : null;
+
+  if (validUserId) {
+    cart = await Cart.findOne({ tenantId, userId: validUserId });
   } else if (guestSessionId) {
     cart = await Cart.findOne({ tenantId, guestSessionId });
   }
@@ -19,8 +21,8 @@ const getOrCreateCart = async (tenantId, userId, guestSessionId) => {
   if (!cart) {
     cart = await Cart.create({
       tenantId,
-      userId: userId || null,
-      guestSessionId: !userId ? (guestSessionId || `gst_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`) : null,
+      userId: validUserId || null,
+      guestSessionId: !validUserId ? (guestSessionId || `gst_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`) : null,
       items: [],
     });
   }
@@ -150,48 +152,40 @@ export const addCartItem = async (req, res, next) => {
     const userId = req.user ? req.user._id : null;
     const guestSessionId = req.headers['x-guest-session-id'] || req.body.guestSessionId;
 
-    const { productId, variantId, quantity = 1, selectedOptions = {} } = req.body;
-    if (!productId) {
-      throw new BadRequestError('Product ID is required.');
+    const { productId, slug, sku, variantId, quantity = 1, selectedOptions = {} } = req.body;
+    if (!productId && !slug && !sku) {
+      throw new BadRequestError('Product identifier is required.');
     }
 
     const reqQty = Math.max(1, parseInt(quantity, 10));
 
     // 1. Resolve product: robustly supports ObjectId, slug, SKU, or name
-    let product = null;
-    if (mongoose.Types.ObjectId.isValid(productId)) {
-      product = await Product.findOne({ _id: productId, tenantId, isPublished: true });
+    const searchConditions = [];
+    if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+      searchConditions.push({ _id: productId });
     }
-    if (!product) {
-      const cleanId = String(productId).trim();
-      product = await Product.findOne({
-        tenantId,
-        isPublished: true,
-        $or: [
-          { slug: cleanId.toLowerCase() },
-          { sku: cleanId },
-          { name: cleanId },
-        ],
-      });
+    if (productId && typeof productId === 'string') {
+      const cleanProdId = productId.trim();
+      searchConditions.push({ slug: cleanProdId.toLowerCase() });
+      searchConditions.push({ sku: cleanProdId });
     }
+    if (slug && typeof slug === 'string') {
+      searchConditions.push({ slug: slug.trim().toLowerCase() });
+    }
+    if (sku && typeof sku === 'string') {
+      searchConditions.push({ sku: sku.trim() });
+    }
+
+    let product = searchConditions.length > 0
+      ? await Product.findOne({ tenantId, isPublished: true, $or: searchConditions })
+      : null;
 
     // Auto-seed Aurelle catalog if not yet seeded
     if (!product && req.tenant.slug === 'aurelle') {
       await ensureAurelleProducts(tenantId);
-      if (mongoose.Types.ObjectId.isValid(productId)) {
-        product = await Product.findOne({ _id: productId, tenantId, isPublished: true });
-      }
-      if (!product) {
-        const cleanId = String(productId).trim();
-        product = await Product.findOne({
-          tenantId,
-          isPublished: true,
-          $or: [
-            { slug: cleanId.toLowerCase() },
-            { sku: cleanId },
-          ],
-        });
-      }
+      product = searchConditions.length > 0
+        ? await Product.findOne({ tenantId, isPublished: true, $or: searchConditions })
+        : null;
     }
 
     if (!product) {
@@ -231,6 +225,13 @@ export const addCartItem = async (req, res, next) => {
 
     // 3. Resolve cart
     const cart = await getOrCreateCart(tenantId, userId, guestSessionId);
+
+    // Safeguard: sanitize items to ensure only valid productIds are persisted
+    if (Array.isArray(cart.items)) {
+      cart.items = cart.items.filter((item) => item && item.productId && mongoose.Types.ObjectId.isValid(String(item.productId)));
+    } else {
+      cart.items = [];
+    }
 
     // 4. Check if item already exists in cart (same productId + variantId)
     const existingIndex = cart.items.findIndex((item) => {
@@ -409,6 +410,7 @@ export const mergeGuestCart = async (req, res, next) => {
 
     // Merge strategy: for each guest item, revalidate product and stock, then merge
     for (const gItem of guestCart.items) {
+      if (!gItem || !gItem.productId || !mongoose.Types.ObjectId.isValid(String(gItem.productId))) continue;
       const product = await Product.findOne({ _id: gItem.productId, tenantId, isPublished: true });
       if (!product) continue;
 
