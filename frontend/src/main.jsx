@@ -44,16 +44,19 @@ class ErrorBoundary extends Component {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
-                onClick={this.handleReset}
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.href = '/aurelle';
+                }}
                 className="px-5 py-2.5 bg-[#593D30] hover:bg-[#A85F49] text-white rounded-full text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer"
               >
-                Return to Platform Home
+                Open Storefront
               </button>
               <button
-                onClick={() => window.location.reload()}
+                onClick={this.handleReset}
                 className="px-5 py-2.5 border border-[#D7C5AF] hover:bg-[#FAF7F2] text-[#593D30] rounded-full text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer"
               >
-                Reload Page
+                Platform Home
               </button>
             </div>
           </div>

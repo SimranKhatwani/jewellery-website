@@ -407,41 +407,51 @@ export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
     const container = containerRef.current;
     if (!container) return;
 
-    // --- 1. Scene, Camera, and Renderer ---
-    const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(
-      38,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      100
-    );
-    // Camera placed for natural product-photography depth and optimal framing above text
-    const updateCameraDistance = () => {
-      const isMobile = window.innerWidth < 768;
-      camera.position.set(0, 0.42, isMobile ? 6.2 : 5.0);
-      camera.lookAt(0, 0.35, 0);
-    };
-    updateCameraDistance();
-
     let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance',
-      });
-    } catch (e) {
-      console.warn('[Aurelle 3D] WebGL not supported, using high-res poster fallback:', e?.message || e);
-      setHasWebGLError(true);
-      return;
-    }
+    let animationFrameId;
+    let domElement;
 
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
-    container.appendChild(renderer.domElement);
+    try {
+      const width = container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 800) || 800;
+      const height = container.clientHeight || (typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.8) : 760) || 760;
+      const aspect = height > 0 ? width / height : 1.77;
+
+      // --- 1. Scene, Camera, and Renderer ---
+      const scene = new THREE.Scene();
+
+      const camera = new THREE.PerspectiveCamera(
+        38,
+        aspect,
+        0.1,
+        100
+      );
+      // Camera placed for natural product-photography depth and optimal framing above text
+      const updateCameraDistance = () => {
+        const isMobile = window.innerWidth < 768;
+        camera.position.set(0, 0.42, isMobile ? 6.2 : 5.0);
+        camera.lookAt(0, 0.35, 0);
+      };
+      updateCameraDistance();
+
+      try {
+        renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+        });
+      } catch (e) {
+        console.warn('[Aurelle 3D] WebGL not supported, using high-res poster fallback:', e?.message || e);
+        setHasWebGLError(true);
+        return;
+      }
+
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
+
+      domElement = renderer.domElement;
+      container.appendChild(domElement);
 
     // --- 2. Environment Map & Showroom Spotlight Directional Lighting ---
     // Luxury showroom environment map for metallic silver ring and gold pedestal
@@ -748,20 +758,26 @@ export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
         sparkleSprite2.material.opacity = 0.4;
       }
 
-      renderer.render(scene, camera);
+      try {
+        renderer.render(scene, camera);
+      } catch (renderErr) {
+        cancelAnimationFrame(animationFrameId);
+        setHasWebGLError(true);
+        return;
+      }
     };
 
     animationFrameId = requestAnimationFrame(animate);
 
     // --- 7. Responsive Resize Handling ---
     const handleResize = () => {
-      if (!container) return;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      camera.aspect = width / height;
+      if (!container || !renderer) return;
+      const w = container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 800) || 800;
+      const h = container.clientHeight || (typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.8) : 760) || 760;
+      camera.aspect = h > 0 ? w / h : 1.77;
       camera.updateProjectionMatrix();
       updateCameraDistance();
-      renderer.setSize(width, height);
+      renderer.setSize(w, h);
     };
 
     window.addEventListener('resize', handleResize);
@@ -783,7 +799,6 @@ export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
       isDraggingRef.current = false;
     };
 
-    const domElement = renderer.domElement;
     domElement.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
@@ -793,38 +808,48 @@ export const RotatingRingHero = ({ onExploreClick, storeInfo = null }) => {
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
-      domElement.removeEventListener('pointerdown', handlePointerDown);
+      if (domElement) {
+        domElement.removeEventListener('pointerdown', handlePointerDown);
+      }
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerUp);
 
-      renderer.dispose();
-      envTexture.dispose();
-      diamondEnvTexture.dispose();
-      sparkleTexture.dispose();
-      sparkleMat.dispose();
-      contactShadowTexture.dispose();
+      try {
+        renderer?.dispose();
+        envTexture?.dispose();
+        diamondEnvTexture?.dispose();
+        sparkleTexture?.dispose();
+        sparkleMat?.dispose();
+        contactShadowTexture?.dispose();
 
-      pedestalShadowGeo.dispose();
-      pedestalShadowMat.dispose();
+        pedestalShadowGeo?.dispose();
+        pedestalShadowMat?.dispose();
 
-      diamondGeometry.dispose();
-      diamondMaterial.dispose();
-      diamondCoreGeometry.dispose();
-      diamondCoreMaterial.dispose();
-      diamondEdgeGeo.dispose();
-      diamondEdgeMat.dispose();
-      galleryWireGeo.dispose();
-      baseCollarGeo.dispose();
-      bandGeo.dispose();
-      bridgeGeoL.dispose();
-      bridgeGeoR.dispose();
-      silverMaterial.dispose();
+        diamondGeometry?.dispose();
+        diamondMaterial?.dispose();
+        diamondCoreGeometry?.dispose();
+        diamondCoreMaterial?.dispose();
+        diamondEdgeGeo?.dispose();
+        diamondEdgeMat?.dispose();
+        galleryWireGeo?.dispose();
+        baseCollarGeo?.dispose();
+        bandGeo?.dispose();
+        bridgeGeoL?.dispose();
+        bridgeGeoR?.dispose();
+        silverMaterial?.dispose();
 
-      if (container.contains(domElement)) {
-        container.removeChild(domElement);
+        if (container && domElement && container.contains(domElement)) {
+          container.removeChild(domElement);
+        }
+      } catch {
+        // Safe disposal fallback
       }
     };
+    } catch (setupErr) {
+      console.warn('[Aurelle 3D] Scene setup failed, falling back to static poster:', setupErr?.message || setupErr);
+      setHasWebGLError(true);
+    }
   }, [prefersReducedMotion]);
 
   return (

@@ -657,54 +657,30 @@ export default function App() {
   const handleGoToStorefront = (slug = 'aurelle') => {
     window.location.hash = '';
     const targetPath = slug === 'giva-jewels' ? '/giva' : `/${slug}`;
-    window.history.pushState(null, '', targetPath);
-    setIsLandingView(false);
-    setIsAdminView(false);
-    setIsSuperAdminView(false);
-    setSelectedProduct(null);
-    setActivePolicyPage(null);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    loadStoreContext();
-    refreshCatalogue();
-    refreshCart();
+    try {
+      localStorage.setItem('aurelle_store_slug', slug);
+    } catch {}
+    // Direct, definitive browser navigation to storefront URL without in-memory unmount collisions
+    window.location.assign(targetPath);
   };
 
   const handleGoToPlatform = () => {
     window.location.hash = '';
-    window.history.pushState(null, '', '/');
-    setIsLandingView(true);
-    setIsAdminView(false);
-    setIsSuperAdminView(false);
-    setSelectedProduct(null);
-    setActivePolicyPage(null);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.location.assign('/');
   };
 
   // Exit Super Admin Console handler
   const handleExitSuperAdmin = () => {
-    setIsSuperAdminView(false);
-    setIsLandingView(true);
-    setIsAdminView(false);
     window.location.hash = '';
-    window.history.pushState(null, '', '/');
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.location.assign('/');
   };
 
   // Exit Admin Panel handler
   const handleExitAdmin = (targetSlug) => {
-    setIsAdminView(false);
-    setIsLandingView(false);
-    setIsSuperAdminView(false);
     window.location.hash = '';
     const slug = targetSlug || 'aurelle';
     const pathSlug = slug === 'giva-jewels' ? 'giva' : slug;
-    window.history.pushState(null, '', `/${pathSlug}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    loadStoreContext();
-    refreshCatalogue();
-    refreshCart();
+    window.location.assign(`/${pathSlug}`);
   };
 
   // Render Super Admin Console if on /sa or #sa route
