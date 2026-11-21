@@ -6,6 +6,7 @@ import { Address } from '../models/Address.js';
 import { Coupon } from '../models/Coupon.js';
 import { User } from '../models/User.js';
 import { Customer } from '../models/Customer.js';
+import { Tenant } from '../models/Tenant.js';
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
@@ -13,7 +14,7 @@ import {
   AUDIT_ACTIONS,
 } from '../config/constants.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
-import { buildSafeRegexQuery } from '../utils/regex.js';
+import { buildSafeRegexQuery, escapeRegex } from '../utils/regex.js';
 import { logAudit } from '../utils/audit.js';
 import { isValidPhoneNumber, normalizePhoneNumber } from '../utils/phone.js';
 import * as notificationService from './notification.service.js';
@@ -168,6 +169,19 @@ export async function placeStorefrontOrder({
     customerName = guestAddress.name.trim();
     customerEmail = guestAddress.email.trim().toLowerCase();
     customerPhone = cleanPhone;
+
+    // If an existing registered customer account matches this email, associate the order to their account
+    if (!userId) {
+      try {
+        const existingCustUser = await User.findOne({ email: customerEmail }).select('_id');
+        if (existingCustUser) {
+          userId = existingCustUser._id;
+        }
+      } catch (findUserErr) {
+        console.warn('[OrderService] Could not resolve existing user for guest email:', findUserErr.message);
+      }
+    }
+
     shippingAddressSnapshot = {
       name: customerName,
       phone: cleanPhone,
@@ -931,17 +945,59 @@ export async function cancelOrderInternal(order, { cancelledBy = null, role = 's
 
 /**
  * List orders belonging to an authenticated customer.
+ * Matches orders by customer userId as well as customer email (including past guest orders).
+ * Automatically links unassigned past orders placed with the customer's email to this account.
  */
 export async function listCustomerOrders(userId, query = {}) {
-  const { tenantId, page = 1, limit = 20 } = query;
+  const { tenantId, email, page = 1, limit = 50 } = query;
 
-  const filter = { userId };
+  // Auto-link any unassociated past guest orders matching customer's email to their userId
+  if (email && userId) {
+    try {
+      const cleanEmail = String(email).trim().toLowerCase();
+      await Order.updateMany(
+        {
+          $or: [
+            { 'customerInfo.email': cleanEmail },
+            { 'customerInfo.email': new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') },
+          ],
+          userId: { $in: [null, undefined] },
+        },
+        { $set: { userId } }
+      );
+    } catch (linkErr) {
+      console.warn('[OrderService] Auto-link guest orders notice:', linkErr.message);
+    }
+  }
+
+  // Build robust ownership filter matching either userId or email
+  const ownershipConditions = [{ userId }];
+  if (email) {
+    const cleanEmail = String(email).trim().toLowerCase();
+    ownershipConditions.push(
+      { 'customerInfo.email': cleanEmail },
+      { 'customerInfo.email': new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') }
+    );
+  }
+
+  const filter = { $or: ownershipConditions };
+
+  // Tenant scoping with slug or ObjectId support
   if (tenantId) {
-    filter.tenantId = tenantId;
+    if (mongoose.Types.ObjectId.isValid(tenantId)) {
+      filter.tenantId = tenantId;
+    } else {
+      try {
+        const tenantDoc = await Tenant.findOne({ slug: String(tenantId).trim().toLowerCase() }).select('_id');
+        if (tenantDoc) {
+          filter.tenantId = tenantDoc._id;
+        }
+      } catch (_) {}
+    }
   }
 
   const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10)));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
   const skip = (pageNum - 1) * limitNum;
 
   const [orders, total] = await Promise.all([
@@ -968,15 +1024,24 @@ export async function listCustomerOrders(userId, query = {}) {
 /**
  * Get customer order by ID with strict customer ownership enforcement.
  */
-export async function getCustomerOrderById(userId, orderId) {
+export async function getCustomerOrderById(userId, orderId, email = null) {
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
     throw new BadRequestError('Invalid order ID provided.');
   }
 
-  const order = await Order.findOne({ _id: orderId, userId }).populate(
-    'tenantId',
-    'name slug logoUrl settings.currency settings.currencySymbol'
-  );
+  const ownershipConditions = [{ userId }];
+  if (email) {
+    const cleanEmail = String(email).trim().toLowerCase();
+    ownershipConditions.push(
+      { 'customerInfo.email': cleanEmail },
+      { 'customerInfo.email': new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') }
+    );
+  }
+
+  const order = await Order.findOne({
+    _id: orderId,
+    $or: ownershipConditions,
+  }).populate('tenantId', 'name slug logoUrl settings.currency settings.currencySymbol');
 
   if (!order) {
     throw new NotFoundError('Order not found or does not belong to your account.');
@@ -988,8 +1053,8 @@ export async function getCustomerOrderById(userId, orderId) {
 /**
  * Customer self-service cancellation of eligible orders.
  */
-export async function customerCancelOrder(userId, orderId, { reason = '', req = null }) {
-  const order = await getCustomerOrderById(userId, orderId);
+export async function customerCancelOrder(userId, orderId, { reason = '', email = null, req = null } = {}) {
+  const order = await getCustomerOrderById(userId, orderId, email);
 
   return await cancelOrderInternal(order, {
     cancelledBy: userId,

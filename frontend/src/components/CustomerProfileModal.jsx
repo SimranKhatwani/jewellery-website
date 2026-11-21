@@ -87,6 +87,7 @@ export const CustomerProfileModal = ({
   useEffect(() => {
     if (isOpen) {
       loadAddresses(); // Pre-fetch immediately on open so tab has data ready
+      loadOrders(); // Pre-fetch orders immediately on open so tab has data ready
       fetchCustomerProfile()
         .then((fresh) => {
           if (fresh) {
@@ -125,9 +126,11 @@ export const CustomerProfileModal = ({
     setOrdersLoading(true);
     try {
       const res = await fetchCustomerOrders();
-      setOrders(res.orders || []);
+      const orderList = Array.isArray(res) ? res : (res?.orders || res?.data?.orders || []);
+      setOrders(orderList);
     } catch (err) {
       console.warn('Failed to load orders:', err?.message || err);
+      setOrders([]);
     } finally {
       setOrdersLoading(false);
     }
@@ -417,21 +420,21 @@ export const CustomerProfileModal = ({
                               {order.orderNumber}
                             </span>
                             <span className="text-[11px] text-[#8E8172]">
-                              Placed {new Date(order.createdAt).toLocaleDateString()}
+                              Placed {order.createdAt ? new Date(order.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                order.orderStatus === 'delivered'
+                                (order.orderStatus || '').toLowerCase() === 'delivered'
                                   ? 'bg-green-100 text-green-800'
-                                  : order.orderStatus === 'shipped'
+                                  : (order.orderStatus || '').toLowerCase() === 'shipped'
                                   ? 'bg-blue-100 text-blue-800'
-                                  : order.orderStatus === 'processing'
+                                  : (order.orderStatus || '').toLowerCase() === 'processing'
                                   ? 'bg-purple-100 text-purple-800'
-                                  : order.orderStatus === 'confirmed'
+                                  : (order.orderStatus || '').toLowerCase() === 'confirmed'
                                   ? 'bg-amber-100 text-amber-800'
-                                  : order.orderStatus === 'cancelled'
+                                  : (order.orderStatus || '').toLowerCase() === 'cancelled'
                                   ? 'bg-red-100 text-red-800'
                                   : 'bg-stone-200 text-stone-700'
                               }`}

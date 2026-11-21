@@ -163,7 +163,8 @@ export const cancelAdminOrder = async (req, res, next) => {
 export const getCustomerOrders = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const result = await orderService.listCustomerOrders(userId, req.query);
+    const email = req.user?.email;
+    const result = await orderService.listCustomerOrders(userId, { ...req.query, email });
 
     res.json({
       success: true,
@@ -182,7 +183,8 @@ export const getCustomerOrders = async (req, res, next) => {
 export const getCustomerOrderDetails = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const order = await orderService.getCustomerOrderById(userId, req.params.orderId);
+    const email = req.user?.email;
+    const order = await orderService.getCustomerOrderById(userId, req.params.orderId, email);
 
     res.json({
       success: true,
@@ -200,8 +202,10 @@ export const getCustomerOrderDetails = async (req, res, next) => {
 export const cancelCustomerOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
+    const email = req.user?.email;
     const order = await orderService.customerCancelOrder(userId, req.params.orderId, {
       reason: req.body.reason,
+      email,
       req,
     });
 

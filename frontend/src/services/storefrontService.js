@@ -446,20 +446,31 @@ export async function placeOrder({
 // CUSTOMER ORDER HISTORY APIS
 // -------------------------------------------------------------
 
-export async function fetchCustomerOrders({ page = 1, limit = 20 } = {}) {
+export async function fetchCustomerOrders({ page = 1, limit = 50 } = {}) {
   const token = getCustomerToken();
-  if (!token) return [];
+  if (!token) return { orders: [], count: 0 };
 
-  const res = await fetch(`${API_BASE_URL}/v1/customers/me/orders?page=${page}&limit=${limit}`, {
-    headers: getStorefrontHeaders(),
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/customers/me/orders?page=${page}&limit=${limit}`, {
+      headers: getStorefrontHeaders(),
+    });
 
-  if (!res.ok) {
-    if (res.status === 401) customerLogout();
-    return [];
+    if (!res.ok) {
+      if (res.status === 401) customerLogout();
+      return { orders: [], count: 0 };
+    }
+    const data = await res.json();
+    const orderList = Array.isArray(data) ? data : (data.orders || data.data?.orders || []);
+    return {
+      orders: orderList,
+      count: data.count || orderList.length,
+      pagination: data.pagination || null,
+      ...data,
+    };
+  } catch (err) {
+    console.warn('Failed to fetch customer orders:', err?.message || err);
+    return { orders: [], count: 0 };
   }
-  const data = await res.json();
-  return data.orders || data.data?.orders || [];
 }
 
 export async function fetchCustomerOrderById(orderId) {
